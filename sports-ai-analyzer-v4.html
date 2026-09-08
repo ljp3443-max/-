@@ -258,7 +258,7 @@ body[aria-busy="true"] .btn-analyze{opacity:.6;cursor:progress}
   <div class="header">
     <div class="header-left">
       <h1>ULTIMATE SPORTS AI ANALYZER</h1>
-      <p>DIXON-COLES 강도 모델 · 26개 리그 국내전 + 리그 간 경기 · 워크포워드 백테스트</p>
+      <p>DIXON-COLES 강도 모델 · 29개 리그 국내전 + 리그 간 경기 · 워크포워드 백테스트</p>
     </div>
     <div class="version-badge">v4.0 · 2026</div>
   </div>
@@ -288,8 +288,9 @@ body[aria-busy="true"] .btn-analyze{opacity:.6;cursor:progress}
         <div class="layer-title">🧭 자동 리그 판정</div>
         <div class="small">리그를 고를 필요가 없습니다. 팀 이름을 입력하면 <b>소속 국내 리그</b>를 찾아내고, 필요한 시즌 데이터만 골라서 불러옵니다. 두 팀의 소속이 다르면 리그 간 경기로 판정해 <b>양쪽 리그 데이터를 함께</b> 씁니다.</div>
         <div class="probar" style="margin-top:8px">
-          <span class="protag">한글 · 영문 호환</span><span class="protag">약칭 지원</span><span class="protag">국내 리그 자동 감지</span><span class="protag">리그 간 경기 지원</span>
+          <span class="protag">한글 · 영문 · 약칭</span><span class="protag">정식 명칭</span><span class="protag">발음기호 무시</span><span class="protag">한영 혼용 입력</span><span class="protag">승강 자동 대응</span>
         </div>
+        <div class="small" style="margin-top:8px">입력 형태는 가리지 않습니다. <b>맨유 / Man United / Manchester United</b>, <b>인터밀란 / Inter / Inter Milan / FC Internazionale Milano</b>, <b>Atlético Madrid</b>(악센트), <b>비킹fk</b>(한영 혼용) 모두 같은 팀으로 인식합니다.</div>
         <div class="small" style="margin-top:8px">등록된 팀 <b id="regCount">0</b>개 · <span id="regLeagues"></span></div>
         <button class="btn btn-secondary" onclick="showTeamList()">🔍 등록된 팀 전체 보기</button>
       </div>
@@ -353,6 +354,31 @@ body[aria-busy="true"] .btn-analyze{opacity:.6;cursor:progress}
         점수가 낮게 나오고, 카드에도 계수와 경고를 함께 표시합니다.
         K리그·J리그·MLS는 UEFA 계수가 없어 대략적인 위치만 잡아둔 값이라, 유럽 팀과의
         비교는 특히 거칠다는 경고가 하나 더 붙습니다.
+        </div></details>
+        <details><summary>팀 이름은 어떻게 맞추나</summary>
+        <div class="small" style="margin-top:8px">
+        같은 팀을 데이터 소스마다 다르게 부릅니다. API-Football은 <b>Inter</b>,
+        TheSportsDB는 <b>Inter Milan</b>, 공식 명칭은 <b>FC Internazionale Milano</b> 입니다.
+        그래서 팀마다 알려진 라틴문자 표기를 모아 두고, <b>사용자 입력 해석</b>과
+        <b>시즌 데이터 매칭</b> 양쪽에서 그 목록 전체와 대조합니다.<br>
+        이게 없을 때 실제로 <b>"Inter Milan"이 "Inter Miami"로 조용히 잘못 매칭</b>됐습니다.
+        둘 다 Inter로 시작해 철자 유사도가 더 높았기 때문입니다. 지금은 별칭에 정확히
+        걸려 세리에A의 인테르로 갑니다.<br>
+        <b>발음기호:</b> Atlético·Beşiktaş·Malmö·Bodø 처럼 악센트가 붙은 표기는 기본 문자로
+        접어서 비교합니다(atletico·besiktas·malmo·bodo). 예전에는 해당 글자를 <b>지워버려</b>
+        beikta 같은 형태가 되어 매칭이 흔들렸습니다.<br>
+        <b>한영 혼용:</b> "aek아테네", "비킹fk" 처럼 섞어 써도 한글·영문 양쪽으로 해석합니다.<br>
+        <b>애매하면 찍지 않습니다.</b> 1·2위 후보 점수가 붙어 있으면 임의로 고르지 않고
+        후보를 보여주거나 실패로 처리합니다.
+        </div></details>
+        <details><summary>승강(1부↔2부)은 어떻게 처리하나</summary>
+        <div class="small" style="margin-top:8px">
+        등록부는 각 클럽의 디비전을 고정값으로 들고 있는데, 승강으로 매 시즌 바뀝니다.
+        등록된 리그 데이터에서 팀을 찾지 못하면 <b>형제 디비전</b>(K리그1↔K리그2,
+        프리미어리그↔챔피언십)을 자동으로 확인합니다.<br>
+        두 팀이 서로 다른 디비전이면 리그 간 경기로 다시 판정하고, 둘 다 아래 디비전에
+        있으면 그 리그의 국내전으로 처리합니다. 추가 조회는 <b>실패했을 때만</b> 일어나므로
+        평소에는 호출이 늘지 않습니다.
         </div></details>
         <details><summary>리그 ID가 틀리면 어떻게 되나</summary>
         <div class="small" style="margin-top:8px">
@@ -541,32 +567,72 @@ const TEAM_DB={
  'Union St. Gilloise':'생질루아즈|위니옹생질루아즈|#144',
  'Zenit St. Petersburg':'제니트|#235',
  'Sturm Graz':'슈투름그라츠|#218',
+ /* 유럽 대항전 단골인데 등록부에 없어 매칭이 실패하던 클럽들.
+    없으면 "찾지 못했습니다"가 아니라 엉뚱한 후보(LASK→Lazio 등)를 내놓기 때문에
+    커버리지 자체가 정확도 문제입니다. */
+ 'LASK':'라스크|LASK린츠|#218',
+ 'Rapid Wien':'라피드빈|라피드비엔나|#218',
+ 'Austria Wien':'아우스트리아빈|#218',
+ 'AEK Athens':'AEK아테네|아테네|#197',
+ 'PAOK':'PAOK|파오크|파오크살로니카|#197',
+ 'Aris Thessaloniki':'아리스|아리스살로니카|#197',
+ 'Viking':'비킹|비킹FK|#103',
+ 'Rosenborg':'로센보리|로젠보리|#103',
+ 'Molde':'몰데|#103',
+ 'Brann':'브란|SK브란|#103',
+ 'Vitoria Guimaraes':'비토리아기마랑이스|기마랑이스|#94',
+ 'Boavista':'보아비스타|#94',
+ 'FC Twente':'트벤테|#88',
+ 'FC Utrecht':'위트레흐트|#88',
+ 'Trabzonspor':'트라브존스포르|트라브존|#203',
+ 'Istanbul Basaksehir':'바샥셰히르|이스탄불바샥셰히르|#203',
+ 'Genk':'헹크|KRC헹크|#144',
+ 'Gent':'헨트|KAA헨트|#144',
+ 'Royal Antwerp':'안트베르펀|안트워프|#144',
+ 'Standard Liege':'스탕다르리에주|스탕다르|#144',
+ 'Hearts':'하츠|하트오브미들로시언|#179',
+ 'Hibernian':'히버니언|하이버니언|#179',
+ 'Aberdeen':'애버딘|#179',
+ 'Viktoria Plzen':'빅토리아플젠|플젠|#345',
+ 'Hajduk Split':'하이두크스플리트|하이두크|#210',
+ 'Rijeka':'리예카|#210',
+ 'Partizan':'파르티잔|파르티잔베오그라드|#286',
+ 'Servette':'세르베트|#207',
+ 'Lugano':'루가노|#207',
+ 'FC Midtjylland':'미트윌란|미티란|#119',
+ 'Brondby':'브뢴뷔|브론뷔|#119',
+ 'AIK':'AIK|AIK스톡홀름|#113',
+ 'Djurgarden':'유르고덴|디우르고르덴|#113',
+ 'Hammarby':'함마르뷔|#113',
+ 'Legia Warsaw':'레기아바르샤바|레기아|#106',
+ 'Lech Poznan':'레흐포즈난|포즈난|#106',
+ 'Rakow':'라쿠프|라쿠프쳉스토호바|#106',
  'Jeonbuk Motors':'전북현대모터스|전북현대|전북|#292',
  'Ulsan Hyundai FC':'울산HD|울산현대|울산|#292',
  'Pohang Steelers':'포항스틸러스|포항|#292',
  'FC Seoul':'FC서울|서울|#292',
  'Suwon City':'수원FC|#292',
- 'Suwon Bluewings':'수원삼성블루윙즈|수원삼성|#292',
+ 'Suwon Bluewings':'수원삼성블루윙즈|수원삼성|#293',
  'Daegu FC':'대구FC|대구|#292',
- 'Incheon United':'인천유나이티드|인천|#292',
+ 'Incheon United':'인천유나이티드|인천|#293',
  'Gangwon FC':'강원FC|강원|#292',
  'Gwangju FC':'광주FC|광주|#292',
  'Jeju United FC':'제주유나이티드|제주SK|제주|#292',
  'Gimcheon Sangmu FC':'김천상무|김천|#292',
  'Daejeon Citizen':'대전하나시티즌|대전|#292',
  'FC Anyang':'FC안양|안양|#292',
- 'Busan I Park':'부산아이파크|부산|#292',
- 'Gyeongnam FC':'경남FC|경남|#292',
- 'Jeonnam Dragons':'전남드래곤즈|전남|#292',
- 'Chungnam Asan':'충남아산|아산|#292',
- 'Seoul E-Land FC':'서울이랜드|이랜드|#292',
- 'Bucheon FC 1995':'부천FC|부천|#292',
- 'Ansan Greeners':'안산그리너스|안산|#292',
- 'Seongnam FC':'성남FC|성남|#292',
- 'Gimpo Citizen FC':'김포FC|김포|#292',
- 'Cheonan City':'천안시티|천안|#292',
- 'Chungbuk Cheongju':'충북청주|청주|#292',
- 'Hwaseong FC':'화성FC|화성|#292',
+ 'Busan I Park':'부산아이파크|부산|#293',
+ 'Gyeongnam FC':'경남FC|경남|#293',
+ 'Jeonnam Dragons':'전남드래곤즈|전남|#293',
+ 'Chungnam Asan':'충남아산|아산|#293',
+ 'Seoul E-Land FC':'서울이랜드|이랜드|#293',
+ 'Bucheon FC 1995':'부천FC|부천|#293',
+ 'Ansan Greeners':'안산그리너스|안산|#293',
+ 'Seongnam FC':'성남FC|성남|#293',
+ 'Gimpo Citizen FC':'김포FC|김포|#293',
+ 'Cheonan City':'천안시티|천안|#293',
+ 'Chungbuk Cheongju':'충북청주|청주|#293',
+ 'Hwaseong FC':'화성FC|화성|#293',
  'Kawasaki Frontale':'가와사키프론탈레|가와사키|#98',
  'Yokohama F. Marinos':'요코하마마리노스|요코하마F마리노스|#98',
  'Vissel Kobe':'비셀고베|고베|#98',
@@ -623,7 +689,8 @@ const TEAM_DB={
    불러온 데이터와 대조하는 데 씁니다.
    season: 'y' = 추춘제(시즌 시작 연도), 'cal' = 춘추제(달력연도). */
 const LEAGUE_INFO={
- '39' :{name:'프리미어리그',   flag:'🏴',season:'y',  apiName:'Premier League',country:'England'},
+ '39' :{name:'프리미어리그',   flag:'🏴',season:'y',  apiName:'Premier League',country:'England',alt:'40'},
+ '40' :{name:'챔피언십',       flag:'🏴',season:'y',  apiName:'Championship',country:'England',alt:'39'},
  '140':{name:'라리가',        flag:'🇪🇸',season:'y',  apiName:'La Liga',country:'Spain'},
  '135':{name:'세리에A',       flag:'🇮🇹',season:'y',  apiName:'Serie A',country:'Italy'},
  '78' :{name:'분데스리가',     flag:'🇩🇪',season:'y',  apiName:'Bundesliga',country:'Germany'},
@@ -645,9 +712,11 @@ const LEAGUE_INFO={
  '235':{name:'러시아 프리미어리그',flag:'🇷🇺',season:'y',apiName:'Premier League',country:'Russia'},
  '119':{name:'덴마크 수페르리가',flag:'🇩🇰',season:'y', apiName:'Superliga',country:'Denmark'},
  '113':{name:'알스벤스칸',     flag:'🇸🇪',season:'cal',apiName:'Allsvenskan',country:'Sweden'},
+ '106':{name:'에크스트라클라사',flag:'🇵🇱',season:'y',  apiName:'Ekstraklasa',country:'Poland'},
  '103':{name:'엘리테세리엔',   flag:'🇳🇴',season:'cal',apiName:'Eliteserien',country:'Norway'},
  /* K리그는 2~11월 달력연도 시즌입니다. 'y'로 두면 3월에 지난 시즌을 요청합니다. */
- '292':{name:'K리그',         flag:'🇰🇷',season:'cal',apiName:'K League 1',country:'South-Korea'},
+ '292':{name:'K리그1',        flag:'🇰🇷',season:'cal',apiName:'K League 1',country:'South-Korea',alt:'293'},
+ '293':{name:'K리그2',        flag:'🇰🇷',season:'cal',apiName:'K League 2',country:'South-Korea',alt:'292'},
  '98' :{name:'J리그',         flag:'🇯🇵',season:'y',  apiName:'J1 League',country:'Japan'},
  '253':{name:'MLS',           flag:'🇺🇸',season:'cal',apiName:'Major League Soccer',country:'USA'}
 };
@@ -662,30 +731,154 @@ const LEAGUE_INFO={
    비유럽 리그(K·J·MLS)는 UEFA 계수가 없어 대략적인 위치만 잡아둔 값이라
    유럽 팀과의 비교는 특히 거칠다는 점을 함께 표시합니다. */
 const LEAGUE_Q={
- '39':100,'135':90,'140':84,'78':82,'61':71,
+ '39':100,'40':55,'135':90,'140':84,'78':82,'61':71,
  '88':64,'94':61,'144':58,'203':48,'345':45,'197':45,'218':43,
  '103':40,'119':39,'207':37,'179':36,'333':34,'286':33,'210':32,
- '113':30,'271':30,'419':29,'235':33,
- '98':46,'292':42,'253':44
+ '113':30,'271':30,'419':29,'235':33,'106':36,
+ '98':46,'292':42,'293':30,'253':44
 };
 const UEFA_Q=new Set(['39','135','140','78','61','88','94','144','203','345',
- '197','218','103','119','207','179','333','286','210','113','271','419','235']);
+ '197','218','103','119','207','179','333','286','210','113','271','419','235','106']);
+/* ---------- 이름 정규화 ----------
+   등록부를 조립하는 아래 루프가 이 함수들을 곧바로 호출하므로,
+   반드시 그 앞에 있어야 합니다. const 는 호이스팅돼도 초기화 전에는
+   쓸 수 없어서(TDZ), 뒤에 두면 ReferenceError 로 페이지가 죽습니다. */
+const hasHangul=s=>/[가-힣]/.test(String(s||''));
+const hasLatin=s=>/[a-z]/i.test(String(s||''));
+/* NFD가 분해해 주지 않는 글자들. ø·ł·đ 등은 결합기호가 아니라 별도 문자라
+   그냥 지우면 Bodø→Bod, Beşiktaş→Beikta 처럼 자음이 통째로 사라집니다. */
+const LETTER_FOLD={'ø':'o','œ':'oe','æ':'ae','ß':'ss','ł':'l','đ':'d','ð':'d',
+ 'þ':'th','ħ':'h','ı':'i','ŋ':'n','ĸ':'k','ʼ':'','\u2019':''};
+/* 이름 정규화. 예전에는 [^a-z0-9가-힣]를 그냥 지워서 é·ş·ö 같은 글자가
+   통째로 사라졌습니다. Atlético→atltico, Beşiktaş→beikta 가 되어 편집거리로
+   겨우 붙는 수준이었고, 데이터 소스가 악센트 표기를 쓰면 매칭이 흔들립니다.
+   NFD로 분해해 결합기호만 떼면 Atlético→atletico, Malmö→malmo 가 됩니다. */
+function normName(s){
+ return String(s||'').toLowerCase()
+  .replace(/[øœæßłđðþħıŋĸʼ\u2019]/g,c=>LETTER_FOLD[c]??c)
+  /* NFD는 한글 음절도 자모로 분해합니다('맨유'→ㅁㅐㄴㅇㅠ). 그대로 두면
+     아래 필터가 자모(U+1100 대역)를 전부 지워 한글 이름이 빈 문자열이 되고,
+     모든 한글 입력이 같은 팀으로 붙어버립니다. NFC로 반드시 되돌립니다. */
+  .normalize('NFD').replace(/[\u0300-\u036f]/g,'').normalize('NFC')
+  .replace(/[^a-z0-9가-힣]/g,'');
+}
+
+/* 데이터 소스마다 같은 팀을 다르게 부릅니다. API-Football은 'Inter',
+   TheSportsDB는 'Inter Milan', 공식 명칭은 'FC Internazionale Milano' 입니다.
+   여기에 없으면 두 가지가 동시에 깨집니다.
+   ① 사용자가 정식 명칭을 입력했을 때 인식 실패 — 실제로 'Inter Milan'은
+      'Inter Miami'로 <b>조용히 잘못</b> 매칭됐습니다(둘 다 Inter로 시작).
+   ② 시즌 데이터의 팀명이 등록부 표기와 달라 findTeamIn이 팀을 못 찾음.
+   그래서 라틴문자 별칭을 따로 모아 두고, 입력 해석과 데이터 매칭 양쪽에서 씁니다. */
+const LATIN_ALIAS={
+ 'Inter':['Inter Milan','Internazionale','FC Internazionale Milano','Inter Milano'],
+ 'AC Milan':['Milan','Associazione Calcio Milan'],
+ 'Tottenham':['Tottenham Hotspur','Spurs'],
+ 'Manchester United':['Man United','Man Utd','Manchester Utd'],
+ 'Manchester City':['Man City'],
+ 'Newcastle':['Newcastle United','Newcastle Utd'],
+ 'West Ham':['West Ham United'],
+ 'Leeds':['Leeds United'],
+ 'Wolves':['Wolverhampton','Wolverhampton Wanderers'],
+ 'Brighton':['Brighton & Hove Albion','Brighton and Hove Albion','Brighton Hove Albion'],
+ 'Bournemouth':['AFC Bournemouth'],
+ 'Sheffield Utd':['Sheffield United'],
+ 'Nottingham Forest':["Nott'm Forest",'Notts Forest'],
+ 'Atletico Madrid':['Club Atletico de Madrid','Atletico de Madrid','Atlético de Madrid','Atleti'],
+ 'Real Madrid':['Real Madrid CF'],
+ 'Barcelona':['FC Barcelona'],
+ 'Athletic Club':['Athletic Bilbao','Athletic Club Bilbao'],
+ 'Real Betis':['Betis','Real Betis Balompie'],
+ 'Celta Vigo':['Celta de Vigo','RC Celta'],
+ 'Bayern Munich':['FC Bayern Munchen','Bayern Munchen','FC Bayern München'],
+ 'Borussia Dortmund':['BV Borussia 09 Dortmund','Dortmund'],
+ 'Borussia Monchengladbach':['Borussia Monchengladbach','Monchengladbach','Gladbach'],
+ 'Bayer Leverkusen':['Bayer 04 Leverkusen','Leverkusen'],
+ 'Eintracht Frankfurt':['Frankfurt'],
+ 'VfB Stuttgart':['Stuttgart'],
+ 'Paris Saint Germain':['Paris Saint-Germain','PSG','Paris SG'],
+ 'Marseille':['Olympique Marseille','Olympique de Marseille'],
+ 'Lyon':['Olympique Lyonnais','Olympique Lyon'],
+ 'Monaco':['AS Monaco'],
+ 'Lille':['LOSC Lille','Lille OSC'],
+ 'PSV Eindhoven':['PSV'],
+ 'Sporting CP':['Sporting Lisbon','Sporting Clube de Portugal','Sporting'],
+ 'FC Porto':['Porto'],
+ 'Benfica':['SL Benfica'],
+ 'Club Brugge KV':['Club Brugge','Club Bruges'],
+ 'Red Bull Salzburg':['RB Salzburg','FC Salzburg','Salzburg'],
+ 'Olympiakos Piraeus':['Olympiacos','Olympiakos','Olympiacos Piraeus'],
+ 'Red Star Belgrade':['Crvena Zvezda','FK Crvena Zvezda'],
+ 'Dynamo Kyiv':['Dynamo Kiev','FC Dynamo Kyiv'],
+ 'Shakhtar Donetsk':['FC Shakhtar Donetsk','Shakhtar'],
+ 'Zenit St. Petersburg':['Zenit','FC Zenit'],
+ 'Qarabag FK':['Qarabag','Qarabag Agdam'],
+ 'Bodo/Glimt':['Bodo Glimt','Bodø/Glimt','FK Bodo/Glimt'],
+ 'Viking':['Viking FK','Viking Stavanger'],
+ 'LASK':['LASK Linz','Linzer ASK'],
+ 'AEK Athens':['AEK','AEK Athens FC'],
+ 'PAOK':['PAOK Thessaloniki','PAOK Salonika'],
+ 'Malmo FF':['Malmo','Malmö FF'],
+ 'Ferencvarosi TC':['Ferencvaros','Ferencvarosi TC Budapest'],
+ 'Union St. Gilloise':['Union Saint-Gilloise','Royale Union Saint-Gilloise','Union SG'],
+ 'Dinamo Zagreb':['GNK Dinamo Zagreb'],
+ 'Slavia Praha':['Slavia Prague','SK Slavia Praha'],
+ 'Sparta Praha':['Sparta Prague','AC Sparta Praha'],
+ 'Viktoria Plzen':['Viktoria Plzen','FC Viktoria Plzen'],
+ 'FC Copenhagen':['Copenhagen','FC Kobenhavn','FC København'],
+ 'Young Boys':['BSC Young Boys'],
+ 'Basel':['FC Basel','FC Basel 1893'],
+ 'Istanbul Basaksehir':['Basaksehir','Istanbul Basaksehir FK'],
+ 'Besiktas':['Besiktas JK','Beşiktaş'],
+ 'Fenerbahce':['Fenerbahce SK','Fenerbahçe'],
+ 'Galatasaray':['Galatasaray SK'],
+ 'Hearts':['Heart of Midlothian'],
+ 'Legia Warsaw':['Legia Warszawa'],
+ 'Rakow':['Rakow Czestochowa','Raków Częstochowa'],
+ /* K리그: 공식 영문 표기가 데이터 소스마다 다릅니다. */
+ 'Jeonbuk Motors':['Jeonbuk Hyundai Motors','Jeonbuk Hyundai'],
+ 'Ulsan Hyundai FC':['Ulsan HD','Ulsan HD FC','Ulsan Hyundai'],
+ 'Daejeon Citizen':['Daejeon Hana Citizen','Daejeon Hana'],
+ 'Jeju United FC':['Jeju United','Jeju SK','Jeju SK FC'],
+ 'Gimcheon Sangmu FC':['Gimcheon Sangmu'],
+ 'Suwon Bluewings':['Suwon Samsung Bluewings','Suwon Samsung'],
+ 'Suwon City':['Suwon FC'],
+ 'Seoul E-Land FC':['Seoul E-Land','Seoul ELand'],
+ 'Bucheon FC 1995':['Bucheon FC','Bucheon'],
+ 'Incheon United':['Incheon United FC'],
+ 'Pohang Steelers':['Pohang Steelers FC'],
+ /* J리그·MLS */
+ 'Yokohama F. Marinos':['Yokohama F Marinos','Yokohama F-Marinos'],
+ 'Urawa':['Urawa Red Diamonds','Urawa Reds'],
+ 'Kashima':['Kashima Antlers'],
+ 'Los Angeles Galaxy':['LA Galaxy'],
+ 'Los Angeles FC':['LAFC','Los Angeles Football Club'],
+ 'Inter Miami':['Inter Miami CF'],
+ 'Austin':['Austin FC'],
+ 'Charlotte':['Charlotte FC'],
+ 'San Diego':['San Diego FC'],
+ 'St. Louis City':['St Louis City SC','St. Louis City SC']
+};
 const ALIAS={};   // 정규화된 이름 → 영문 정식명
 const TEAM_LEAGUE={};  // 영문 정식명 → 리그ID
 const TEAM_KO={};      // 영문 정식명 → 대표 한글명
 const ALL_TEAMS=[];
+const TEAM_LATIN={};   // 영문 정식명 → 데이터 매칭에 쓸 라틴문자 이름들
 Object.entries(TEAM_DB).forEach(([en,spec])=>{
  const parts=spec.split('|');
  const lid=parts.pop().replace('#','');
  TEAM_LEAGUE[en]=lid;
- TEAM_KO[en]=parts[0]||en;
+ TEAM_KO[en]=parts.find(hasHangul)||parts[0]||en;
  ALL_TEAMS.push(en);
  ALIAS[normName(en)]=en;
  parts.forEach(k=>{ALIAS[normName(k)]=en});
+ /* 라틴문자 이름만 모읍니다. 시즌 데이터의 팀명은 항상 라틴문자이므로
+    한글 별칭을 여기 섞으면 findTeamIn의 채점만 흐려집니다. */
+ const latin=[en,...parts.filter(k=>!hasHangul(k)),...(LATIN_ALIAS[en]||[])];
+ TEAM_LATIN[en]=[...new Set(latin.filter(x=>normName(x).length>=2))];
+ TEAM_LATIN[en].forEach(k=>{const q=normName(k);if(!ALIAS[q])ALIAS[q]=en});
 });
 
-const hasHangul=s=>/[가-힣]/.test(String(s||''));
-function normName(s){return String(s||'').toLowerCase().replace(/[^a-z0-9가-힣]/g,'')}
 function lev(a,b){
  const m=a.length,n=b.length;
  if(!m)return n; if(!n)return m;
@@ -739,21 +932,51 @@ function resolveTeamRaw(input){
  const direct=ALIAS[q];
  if(direct)return hit(direct,'사전');
 
+ /* 한글이 섞여 있으면 한글 경로로 갑니다. 다만 "aek아테네", "비킹fk" 처럼
+    한글과 영문이 섞인 입력은 예전에 한글 경로에서 실패한 채 끝나버렸습니다.
+    이제 한글 부분으로 못 찾으면 영문 경로로 한 번 더 시도합니다. */
  if(hasHangul(raw)){
   const keys=Object.keys(ALIAS).filter(k=>hasHangul(k)&&(k.includes(q)||q.includes(k)));
   const ens=[...new Set(keys.map(k=>ALIAS[k]))];
   if(ens.length===1)return hit(ens[0],'부분일치');
   if(ens.length>1)return {ok:false,ambiguous:true,
    candidates:ens.slice(0,6).map(e=>({en:e,ko:TEAM_KO[e],league:TEAM_LEAGUE[e]}))};
+  if(!hasLatin(raw))return {ok:false,unknown:true,hangul:true};
+  /* 혼용 입력: 한글을 떼고 남은 영문으로 다시 봅니다. */
+  const latin=raw.replace(/[가-힣]+/g,' ').trim();
+  if(latin&&normName(latin).length>=2){
+   const r=resolveLatin(latin);
+   if(r.ok)return r;
+  }
+  /* 영문을 떼고 남은 한글로도 봅니다. */
+  const kor=raw.replace(/[^가-힣]+/g,'');
+  if(kor){
+   const kq=normName(kor);
+   const ks=Object.keys(ALIAS).filter(k=>hasHangul(k)&&(k.includes(kq)||kq.includes(k)));
+   const kens=[...new Set(ks.map(k=>ALIAS[k]))];
+   if(kens.length===1)return hit(kens[0],'혼용입력');
+   if(kens.length>1)return {ok:false,ambiguous:true,
+    candidates:kens.slice(0,6).map(e=>({en:e,ko:TEAM_KO[e],league:TEAM_LEAGUE[e]}))};
+  }
   return {ok:false,unknown:true,hangul:true};
  }
- /* 토큰 일치를 먼저 봅니다. 'Man United'는 'Manchester United'와 단어가 겹치지만
-    'DC United'와는 한 단어만 겹치므로, 토큰 기준이 철자 유사도보다 정확합니다. */
- const byTok=ALL_TEAMS.map(en=>({en,s:tokenScore(raw,en)})).sort((a,b)=>b.s-a.s);
+ return resolveLatin(raw);
+}
+function resolveLatin(raw){
+ const q=normName(raw);
+ const direct=ALIAS[q];
+ if(direct)return hit(direct,'사전');
+ /* 채점 대상은 정식명 하나가 아니라 그 팀의 모든 라틴문자 이름입니다.
+    예전에는 정식명만 봤기 때문에 'Inter Milan'이 'Inter'(0.5)와
+    'Inter Miami'(0.8)를 견주다 <b>Inter Miami로 조용히 잘못</b> 갔습니다.
+    이제 'Inter'의 별칭에 'Inter Milan'이 있어 1.0으로 정확히 잡힙니다. */
+ const best=en=>Math.max(...TEAM_LATIN[en].map(nm=>
+  Math.max(tokenScore(raw,nm),simRatio(q,normName(nm)))));
+ const byTok=ALL_TEAMS.map(en=>({en,s:Math.max(...TEAM_LATIN[en].map(nm=>tokenScore(raw,nm)))}))
+  .sort((a,b)=>b.s-a.s);
  if(byTok[0]&&byTok[0].s>=0.75&&(byTok.length<2||byTok[0].s-byTok[1].s>=0.2))
   return hit(byTok[0].en,'단어일치');
- const scored=ALL_TEAMS.map(en=>({en,s:Math.max(tokenScore(raw,en),simRatio(q,normName(en)))}))
-  .sort((a,b)=>b.s-a.s);
+ const scored=ALL_TEAMS.map(en=>({en,s:best(en)})).sort((a,b)=>b.s-a.s);
  if(scored[0]&&scored[0].s>=0.55&&(scored.length<2||scored[0].s-scored[1].s>=0.15))
   return hit(scored[0].en,'유사도');
  const cands=scored.filter(x=>x.s>=0.4).slice(0,5);
@@ -1014,10 +1237,10 @@ const TSDB_LEAGUE_ID={'39':4328,'78':4331,'135':4332,'61':4334,'140':4335,'253':
 /* 숫자 ID를 추측하는 대신 리그 이름으로 찾게 둡니다. 못 찾으면 그 리그는
    대체 소스를 쓰지 못할 뿐, 잘못된 리그를 가져오지는 않습니다. */
 const TSDB_LEAGUE_HINT={
- '292':'k league 1','98':'j1 league',
+ '292':'k league 1','293':'k league 2','98':'j1 league',
  '88':'eredivisie','94':'primeira liga','144':'belgian','179':'scottish premiership',
  '203':'turkish','197':'greek','207':'swiss','218':'austrian bundesliga',
- '345':'czech','210':'croatian','286':'serbian','333':'ukrainian','271':'hungarian',
+ '345':'czech','210':'croatian','286':'serbian','333':'ukrainian','271':'hungarian','106':'ekstraklasa',
  '419':'azerbaijan','235':'russian','119':'danish','113':'allsvenskan','103':'eliteserien'
 };
 
@@ -1741,21 +1964,31 @@ function recentFor(teamId,limit=5,DS){
    걸리는 식의 조용한 오매칭이 나므로, 전 팀을 채점해 최고점을 고르고
    1·2위가 붙어 있으면 찍지 않고 실패로 돌립니다. */
 function findTeamIn(S,en,leagueLabel){
- const q=normName(en);
- const exact=S.teams.filter(x=>normName(x.name)===q);
+ /* 등록부의 정식명 하나로만 대조하면, 데이터 소스가 다른 표기를 쓸 때
+    팀을 못 찾습니다(API-Football 'Inter' vs TheSportsDB 'Inter Milan').
+    그 팀의 알려진 라틴문자 이름 전부와 대조합니다. */
+ const names=TEAM_LATIN[en]||[en];
+ const qs=names.map(normName);
+ const exact=S.teams.filter(x=>qs.includes(normName(x.name)));
  if(exact.length===1)return {t:exact[0]};
  if(exact.length>1)return {err:`"${en}"와 이름이 같은 팀이 데이터에 ${exact.length}개 있습니다.`};
+ const q=normName(en);
  let best=null,second=null;
  S.teams.forEach(x=>{
   const nx=normName(x.name);
-  let sc=Math.max(tokenScore(en,x.name),simRatio(q,nx));
-  if(nx.includes(q)||q.includes(nx))
-   sc=Math.max(sc,.8*Math.min(q.length,nx.length)/Math.max(q.length,nx.length,1));
+  let sc=0;
+  names.forEach((nm,i)=>{
+   sc=Math.max(sc,tokenScore(nm,x.name),simRatio(qs[i],nx));
+   if(nx.includes(qs[i])||qs[i].includes(nx))
+    sc=Math.max(sc,.8*Math.min(qs[i].length,nx.length)/Math.max(qs[i].length,nx.length,1));
+  });
   if(!best||sc>best.sc){second=best;best={t:x,sc}}
   else if(!second||sc>second.sc)second={t:x,sc};
  });
  if(!best||best.sc<.6)
-  return {err:`"${en}" 와 충분히 일치하는 팀이 ${leagueLabel} 데이터에 없습니다.`};
+  return {err:`"${en}" 와 충분히 일치하는 팀이 ${leagueLabel} 데이터에 없습니다. `
+   +`승강으로 이번 시즌 소속이 바뀌었거나(2부 리그 등), 데이터 소스가 다른 표기를 쓰는 경우입니다.`,
+   notFound:true};
  if(second&&best.sc-second.sc<.08)
   return {err:`"${en}" 가 ${best.t.name} / ${second.t.name} 중 어느 쪽인지 확정할 수 없어 분석을 중단했습니다.`};
  return {t:best.t};
@@ -1889,26 +2122,56 @@ async function runV4Analysis(){
    }
    DS[lg]=S;FIT[lg]=st;
   }
-  matches.forEach(m=>{
+  /* 등록부는 클럽의 디비전을 고정값으로 들고 있는데 승강으로 매 시즌 바뀝니다.
+     등록된 리그 데이터에 팀이 없으면, 형제 디비전(K리그1↔2, PL↔챔피언십)에서
+     한 번 더 찾아봅니다. 실패했을 때만 추가로 불러오므로 평소에는 호출이 늘지
+     않고, 두 팀이 서로 다른 디비전이면 리그 간 경기로 다시 판정합니다. */
+  const inDS=(S,en)=>!!(S&&findTeamIn(S,en,'').t);
+  for(const m of matches){
    const c=m.comp;
    const meta={slot:m.slot,home:m.home.en,away:m.away.en,
     homeKo:m.home.ko,awayKo:m.away.ko,kind:c.kind};
-   const bad=c.leagues.filter(l=>loadErr[l]);
-   if(bad.length){rows.push({...meta,league:c.leagues[0],
-    leagueName:LEAGUE_INFO[c.leagues[0]]?.name,flag:LEAGUE_INFO[c.leagues[0]]?.flag,
-    error:bad.map(l=>loadErr[l]).join(' ')});return}
+   if(c.kind==='domestic'&&!loadErr[c.league]){
+    const S=DS[c.league],alt=LEAGUE_INFO[c.league]?.alt;
+    const hOk=inDS(S,m.home.en),aOk=inDS(S,m.away.en);
+    if((!hOk||!aOk)&&alt){
+     $('resultArea').innerHTML=`<div class="card loading">${LEAGUE_INFO[alt].flag} ${LEAGUE_INFO[alt].name} 확인 중... (승강 여부)</div>`;
+     await sleep(0);
+     let SA=DS[alt];
+     if(!SA&&!loadErr[alt]){
+      SA=await ensureLeague(alt);
+      if(SA){const st=fitStrength(SA.rows,null);if(st){DS[alt]=SA;FIT[alt]=st}else SA=null}
+     }
+     if(SA&&FIT[alt]){
+      const hAlt=inDS(SA,m.home.en),aAlt=inDS(SA,m.away.en);
+      const hL=hOk?c.league:(hAlt?alt:null), aL=aOk?c.league:(aAlt?alt:null);
+      if(hL&&aL&&hL!==aL){
+       m.comp=c.kind==='domestic'
+        ?{kind:'cross',homeLeague:hL,awayLeague:aL,leagues:[hL,aL]}:c;
+       meta.kind='cross';
+      }else if(hL&&aL&&hL===alt){
+       m.comp={kind:'domestic',league:alt,leagues:[alt]};
+      }
+     }
+    }
+   }
+   const c2=m.comp;
+   const bad=c2.leagues.filter(l=>loadErr[l]);
+   if(bad.length){rows.push({...meta,league:c2.leagues[0],
+    leagueName:LEAGUE_INFO[c2.leagues[0]]?.name,flag:LEAGUE_INFO[c2.leagues[0]]?.flag,
+    error:bad.map(l=>loadErr[l]).join(' ')});continue}
    let r;
-   if(c.kind==='domestic'){
-    const S=DS[c.league];
-    r=analyzeMatch(m,S,FIT[c.league]);
+   if(c2.kind==='domestic'){
+    const S=DS[c2.league];
+    r=analyzeMatch(m,S,FIT[c2.league]);
     if(!r.error){
      r.h2h=h2hFromSeason(r.homeTeamId,r.awayTeamId,S);
      r.recentH=recentFor(r.homeTeamId,5,S);
      r.recentA=recentFor(r.awayTeamId,5,S);
     }
    }else{
-    const SH=DS[c.homeLeague],SA=DS[c.awayLeague];
-    r=analyzeCrossMatch(m,SH,FIT[c.homeLeague],SA,FIT[c.awayLeague]);
+    const SH=DS[c2.homeLeague],SA=DS[c2.awayLeague];
+    r=analyzeCrossMatch(m,SH,FIT[c2.homeLeague],SA,FIT[c2.awayLeague]);
     if(!r.error){
      /* 서로 다른 데이터셋이라 공통 상대전적은 없습니다. 최근 폼만 각자에서. */
      r.h2h=[];
@@ -1918,7 +2181,7 @@ async function runV4Analysis(){
     }
    }
    rows.push(r);
-  });
+  }
   problems.forEach(slot=>rows.push({slot,home:$('home-'+slot).value,away:$('away-'+slot).value,
    error:'팀 이름을 인식하지 못했습니다. 자동완성 목록에서 골라 주세요.'}));
   rows.sort((a,b)=>a.slot-b.slot);
