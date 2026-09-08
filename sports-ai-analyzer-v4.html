@@ -227,6 +227,14 @@ details summary{cursor:pointer;color:var(--pro2);font-size:.72rem;font-weight:70
 .field-label{display:block;font-size:.7rem;color:var(--muted);
  font-family:'Space Mono','SFMono-Regular',Consolas,monospace;letter-spacing:1px;text-transform:uppercase}
 
+/* 진행률 표시 — 리그 로드는 네트워크 대기가 길어 무엇을 하는 중인지 보여야 합니다 */
+.progress-wrap{margin-top:12px}
+.progress-track{height:6px;background:var(--surface3);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;width:0;border-radius:3px;
+ background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .25s ease}
+.progress-text{margin-top:6px;font-size:.72rem;color:var(--muted);
+ font-family:'Space Mono','SFMono-Regular',Consolas,monospace}
+
 /* 결과 카드 안의 경고 상자 */
 .warn-box{margin-top:10px;padding:10px 12px;border-radius:9px;
  background:rgba(255,171,0,.09);border:1px solid rgba(255,171,0,.28);
@@ -424,6 +432,11 @@ body[aria-busy="true"] .btn-analyze{opacity:.6;cursor:progress}
         <div class="plan-bar" id="planBar"></div>
         <div class="match-grid" id="matchGrid"></div>
         <button class="btn-analyze" onclick="runV4Analysis()">⚡ V4 FULL ANALYSIS · 14 MATCH RANKING</button>
+        <div id="progressWrap" class="progress-wrap" hidden
+             role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <div class="progress-track"><div id="progressFill" class="progress-fill"></div></div>
+          <div id="progressText" class="progress-text"></div>
+        </div>
       </div>
       <div id="teamListArea"></div>
       <div id="backtestArea"></div>
@@ -1145,6 +1158,16 @@ function busyGuard(what){
  BUSY=what;document.body.setAttribute('aria-busy','true');return true;
 }
 function busyDone(){BUSY=null;document.body.removeAttribute('aria-busy')}
+/* 14경기 × 여러 리그를 도는 동안 화면이 멈춘 것처럼 보이지 않도록 진행 상태를 표시합니다. */
+function setProgress(done,total,label){
+ const w=$('progressWrap'),f=$('progressFill'),t=$('progressText');
+ if(!w||!f||!t)return;
+ if(done==null){w.hidden=true;return}
+ const pct=total?Math.round(done/total*100):0;
+ w.hidden=false;f.style.width=pct+'%';
+ w.setAttribute('aria-valuenow',String(pct));
+ t.textContent=`${pct}% · ${label||''}`;
+}
 /* alert()는 페이지를 멈춥니다. 화면 안내로 대체합니다. */
 function toast(msg,bad){
  const el=$('toast');if(!el){console.log(msg);return}
@@ -1246,7 +1269,11 @@ function validateApi(){
 /* ---------- competitions ---------- */
 /* 달력연도로 도는 리그만 TSDB에서 'YYYY' 형태를 먼저 시도합니다. */
 const isCalendarSeason=l=>LEAGUE_INFO[String(l)]?.season==='cal';
-const TSDB_LEAGUE_ID={'39':4328,'78':4331,'135':4332,'61':4334,'140':4335,'253':4346,'2':4480};
+/* 알려진 TSDB 리그 ID. 맞으면 검색 호출 한 번을 아낍니다.
+   다만 ID가 틀리면 조용히 <b>다른 리그</b>를 가져오므로, 받아온 경기 데이터가
+   스스로 밝힌 리그명으로 반드시 검증하고 어긋나면 버립니다(아래 참조). */
+const TSDB_LEAGUE_ID={'39':4328,'78':4331,'135':4332,'61':4334,'140':4335,
+ '253':4346,'2':4480,'292':4689};
 /* 숫자 ID를 추측하는 대신 리그 이름으로 찾게 둡니다. 못 찾으면 그 리그는
    대체 소스를 쓰지 못할 뿐, 잘못된 리그를 가져오지는 않습니다. */
 const TSDB_LEAGUE_HINT={
@@ -1282,10 +1309,12 @@ const _tsdbIdCache={},_tsdbFoundName={};
    이제 ① 국가로 좁혀 검색하고 ② 실패하면 전체 목록을 훑고 ③ 두 경우 모두
    부분문자열이 아니라 점수로 최선을 고릅니다. 결과는 성공·실패 모두 캐시해
    같은 리그를 반복해서 조회하지 않습니다. */
-async function tsdbResolveLeagueId(l){
+const _tsdbDistrust=new Set();   // 검증에 실패해 신뢰하지 않기로 한 리그
+async function tsdbResolveLeagueId(l,skipKnown){
  const key=String(l);
- if(TSDB_LEAGUE_ID[key])return TSDB_LEAGUE_ID[key];
- if(key in _tsdbIdCache)return _tsdbIdCache[key];
+ const distrust=skipKnown||_tsdbDistrust.has(key);
+ if(!distrust&&TSDB_LEAGUE_ID[key])return TSDB_LEAGUE_ID[key];
+ if(!distrust&&key in _tsdbIdCache)return _tsdbIdCache[key];
  const info=LEAGUE_INFO[key]||{};
  const hints=[TSDB_LEAGUE_HINT[key],info.apiName].filter(Boolean).map(normName);
  const score=x=>{
@@ -1323,6 +1352,15 @@ async function tsdbResolveLeagueId(l){
  return _tsdbIdCache[key];
 }
 
+/* 받아온 이벤트가 밝힌 리그명이 우리가 기대한 리그와 맞는지 확인합니다.
+   판단할 근거가 없으면(이름이 비어 있으면) 통과시킵니다. */
+function tsdbLeagueMatches(league,evLeagueName){
+ const info=LEAGUE_INFO[String(league)]||{};
+ const hints=[TSDB_LEAGUE_HINT[String(league)],info.apiName].filter(Boolean).map(normName);
+ const nx=normName(evLeagueName);
+ if(!nx||!hints.length)return true;
+ return hints.some(h=>nx===h||nx.includes(h)||h.includes(nx)||simRatio(h,nx)>=.7);
+}
 /* 경기 데이터가 부실해도 리그 소속 팀 명단은 따로 받아올 수 있습니다.
    경기 기록이 적어 팀이 몇 개만 잡히는 상황을 이걸로 보완합니다. */
 async function tsdbRoster(leagueVal){
@@ -1446,8 +1484,8 @@ function verifyLeagueIdentity(league,seen){
       +`API가 돌려준 데이터는 "${seen.country||'?'} · ${seen.name}"입니다. `
       +`ID가 바뀌었을 수 있으니 결과를 그대로 믿지 마세요.`;
 }
-async function fetchSeasonFallback(league,season){
- const lid=await tsdbResolveLeagueId(league);
+async function fetchSeasonFallback(league,season,retried){
+ const lid=await tsdbResolveLeagueId(league,retried);
  if(!lid){
   const info=LEAGUE_INFO[String(league)]||{};
   throw new Error(`대체 소스에서 "${info.country||'?'} · ${info.apiName||league}" 리그를 찾지 못했습니다.`);
@@ -1458,8 +1496,23 @@ async function fetchSeasonFallback(league,season){
   try{
    const d=await tsdb(`/eventsseason.php?id=${lid}&s=${sv}`);
    const ev=d.events||[];
-   if(ev.length)return {rows:ev.map(tsdbToRow),source:'fallback',seasonStr:sv};
-  }catch(e){console.warn('TSDB season',sv,e.message)}
+   if(ev.length){
+    /* 알려진 ID를 그냥 믿지 않습니다. 받아온 데이터가 다른 리그면 버리고
+       검색으로 한 번 다시 찾습니다. */
+    if(!tsdbLeagueMatches(league,ev[0].strLeague)){
+     if(!retried){
+      console.warn(`TSDB ID ${lid}가 "${ev[0].strLeague}" 였습니다. 검색으로 다시 찾습니다.`);
+      _tsdbDistrust.add(String(league));delete _tsdbIdCache[String(league)];
+      return fetchSeasonFallback(league,season,true);
+     }
+     throw new Error(`대체 소스가 다른 리그("${ev[0].strLeague}") 데이터를 돌려주어 사용하지 않았습니다.`);
+    }
+    return {rows:ev.map(tsdbToRow),source:'fallback',seasonStr:sv};
+   }
+  }catch(e){
+   if(/다른 리그/.test(e.message))throw e;
+   console.warn('TSDB season',sv,e.message);
+  }
  }
  throw new Error('대체 소스에 해당 시즌 데이터가 없습니다.');
 }
@@ -2293,19 +2346,24 @@ async function runV4Analysis(){
   /* 필요한 리그를 먼저 전부 확보합니다. 리그 간 경기는 두 리그를 함께
      쓰므로, 경기 단위가 아니라 리그 단위로 한 번씩만 불러옵니다. */
   const DS={},FIT={},loadErr={};
+  /* 진행률은 "리그 로드 + 경기 분석" 전체를 하나의 축으로 봅니다. */
+  const steps=needed.length+matches.length;
+  let step=0;
   for(let i=0;i<needed.length;i++){
    const lg=needed[i],info=LEAGUE_INFO[lg];
+   setProgress(step,steps,`${info.flag} ${info.name} 데이터 불러오는 중 (${i+1}/${needed.length})`);
    $('resultArea').innerHTML=`<div class="card loading">${info.flag} ${info.name} 데이터 불러오는 중... (${i+1}/${needed.length})</div>`;
    await sleep(0);
    const S=await ensureLeague(lg);
-   if(!S){loadErr[lg]=`${info.name} 데이터를 불러오지 못했습니다.`;continue}
+   if(!S){loadErr[lg]=`${info.name} 데이터를 불러오지 못했습니다.`;step++;continue}
    const st=fitStrength(S.rows,null);
    if(!st){
     const fin=S.rows.filter(r=>r.finished).length;
     loadErr[lg]=`${info.name}의 완료 경기가 ${fin}건뿐이라 모델을 만들 수 없습니다 (최소 10건).`;
-    continue;
+    step++;continue;
    }
    DS[lg]=S;FIT[lg]=st;
+   step++;
   }
   /* 등록부는 클럽의 디비전을 고정값으로 들고 있는데 승강으로 매 시즌 바뀝니다.
      등록된 리그 데이터에 팀이 없으면, 형제 디비전(K리그1↔2, PL↔챔피언십)에서
@@ -2314,6 +2372,7 @@ async function runV4Analysis(){
   const inDS=(S,en)=>!!(S&&findTeamIn(S,en,'').t);
   for(const m of matches){
    const c=m.comp;
+   setProgress(step++,steps,`MATCH ${m.slot} · ${m.home.ko||m.home.en} vs ${m.away.ko||m.away.en} 분석 중`);
    const meta={slot:m.slot,home:m.home.en,away:m.away.en,
     homeKo:m.home.ko,awayKo:m.away.ko,kind:c.kind};
    if(c.kind==='domestic'&&!loadErr[c.league]){
@@ -2382,7 +2441,7 @@ async function runV4Analysis(){
    $('briefSwap').hidden=true;setCopyStatus('');
   }
  }catch(e){console.error(e);$('resultArea').innerHTML=`<div class="card" style="color:var(--danger)">오류: ${esc(e.message)}</div>`}
- finally{if(btn)btn.disabled=false;busyDone()}
+ finally{if(btn)btn.disabled=false;setProgress(null);busyDone()}
 }
 function render(rows){
  const list=rows.slice().sort((a,b)=>a.slot-b.slot);
