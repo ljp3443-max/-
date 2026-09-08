@@ -382,12 +382,19 @@ body[aria-busy="true"] .btn-analyze{opacity:.6;cursor:progress}
         있으면 그 리그의 국내전으로 처리합니다. 추가 조회는 <b>실패했을 때만</b> 일어나므로
         평소에는 호출이 늘지 않습니다.
         </div></details>
-        <details><summary>리그 ID가 틀리면 어떻게 되나</summary>
+        <details><summary>리그를 못 찾으면 어떻게 되나</summary>
         <div class="small" style="margin-top:8px">
-        각 리그는 API-Football의 숫자 ID로 지정돼 있습니다. 이 ID가 틀리면 조용히 엉뚱한
-        리그를 분석하게 됩니다. 그래서 불러온 데이터가 스스로 밝힌 <b>리그 이름과 국가</b>를
-        등록된 값과 대조하고, 어긋나면 시즌 카드의 "데이터 수집 경고"에 표시합니다.
-        표기 차이(Türkiye/Turkey 등)로 오탐이 날 수 있어 분석을 막지는 않습니다.
+        연도를 하나씩 넘겨짚지 않습니다. 현재 시즌 요청이 실패하면 순서대로:<br>
+        <b>①</b> 응답이 허용 범위를 알려주면(<i>try from 2022 to 2024</i>) 그 최신 연도로 바로 이동합니다.<br>
+        <b>②</b> 범위를 안 알려주고 빈 응답만 오면 <b>리그에 직접 물어봅니다</b>(<code>/leagues?id=</code>).
+        그 리그가 실제로 가진 시즌 목록을 받아 그중에서만 고릅니다.<br>
+        <b>③</b> 등록된 ID가 API에 아예 없으면 등록된 <b>이름과 국가</b>로 올바른 ID를 찾아
+        그 자리에서 사용하고, 무엇으로 대체했는지 경고로 남깁니다.<br>
+        <b>④</b> 불러온 데이터가 스스로 밝힌 리그 이름·국가가 등록값과 다르면 경고합니다.
+        표기 차이(Türkiye/Turkey 등)로 오탐이 날 수 있어 분석을 막지는 않습니다.<br>
+        <b>대체 소스</b>도 마찬가지로 국가로 좁혀 검색한 뒤 이름 점수로 고릅니다.
+        예전에는 전체 목록을 부분문자열로 훑기만 해서, TheSportsDB가
+        "South Korean K League 1" 처럼 부르는 리그를 놓쳤습니다.
         </div></details>
         <details><summary>CONF(신뢰도)의 의미</summary>
         <div class="small" style="margin-top:8px">
@@ -1189,6 +1196,9 @@ function getApiKey(){return ($('apiKey')?.value||'').trim()}
    429를 맞고 곧장 대체 소스로 떨어졌습니다. */
 const API_MIN_GAP=1200;
 let _apiLast=0,_apiChain=Promise.resolve();
+/* 무료 플랜은 하루 100회입니다. 실패한 요청과 재시도도 쿼터를 소모하므로,
+   "데이터를 받은 횟수"가 아니라 실제로 보낸 횟수를 세야 맞습니다. */
+let API_CALLS=0;
 function apiGate(){
  _apiChain=_apiChain.then(async()=>{
   const wait=_apiLast+API_MIN_GAP-Date.now();
@@ -1207,6 +1217,7 @@ async function api(path,attempt=0){
   if(attempt<3){await sleep(1500*Math.pow(2,attempt));return api(path,attempt+1)}
   throw new Error('네트워크 오류: '+e.message);
  }
+ API_CALLS++;
  let d={};try{d=await r.json()}catch{}
  if(r.status===429||r.status>=500){
   if(attempt<3){
@@ -1260,16 +1271,58 @@ async function tsdb(path){
  }
  throw last||new Error('TSDB 접속 실패');
 }
+/* TheSportsDB가 쓰는 국가 표기. API-Football은 'South-Korea', TSDB는 'South Korea'. */
+const TSDB_COUNTRY={'South-Korea':'South Korea','Czech-Republic':'Czech Republic',
+ 'USA':'United States','Turkey':'Turkey'};
+const _tsdbIdCache={},_tsdbFoundName={};
+/* 예전에는 전체 리그 목록(all_leagues.php) 하나만 받아 부분문자열로 찾았습니다.
+   그 요청이 실패하거나 표기가 조금만 달라도 곧바로 "리그를 찾지 못했습니다"로
+   끝났고, K리그처럼 TSDB가 "South Korean K League 1" 식으로 부르는 리그가
+   그렇게 걸렸습니다.
+   이제 ① 국가로 좁혀 검색하고 ② 실패하면 전체 목록을 훑고 ③ 두 경우 모두
+   부분문자열이 아니라 점수로 최선을 고릅니다. 결과는 성공·실패 모두 캐시해
+   같은 리그를 반복해서 조회하지 않습니다. */
 async function tsdbResolveLeagueId(l){
- if(TSDB_LEAGUE_ID[l])return TSDB_LEAGUE_ID[l];
- const hint=TSDB_LEAGUE_HINT[l];if(!hint)return null;
- try{
-  if(!_tsdbLeagues){const d=await tsdb('/all_leagues.php');_tsdbLeagues=d.leagues||[]}
-  const f=_tsdbLeagues.find(x=>(x.strLeague||'').toLowerCase().includes(hint))
-       ||_tsdbLeagues.find(x=>(x.strLeagueAlternate||'').toLowerCase().includes(hint));
-  return f?Number(f.idLeague):null;
- }catch(e){console.warn(e);return null}
+ const key=String(l);
+ if(TSDB_LEAGUE_ID[key])return TSDB_LEAGUE_ID[key];
+ if(key in _tsdbIdCache)return _tsdbIdCache[key];
+ const info=LEAGUE_INFO[key]||{};
+ const hints=[TSDB_LEAGUE_HINT[key],info.apiName].filter(Boolean).map(normName);
+ const score=x=>{
+  const names=[x.strLeague,x.strLeagueAlternate].map(normName).filter(Boolean);
+  let best=0;
+  hints.forEach(h=>names.forEach(nx=>{
+   if(nx===h)best=Math.max(best,1);
+   else if(nx.includes(h)||h.includes(nx))best=Math.max(best,.85);
+   else best=Math.max(best,simRatio(h,nx));
+  }));
+  return best;
+ };
+ const pick=list=>{
+  let best=null;
+  (list||[]).filter(x=>!x.strSport||x.strSport==='Soccer')
+   .forEach(x=>{const sc=score(x);if(!best||sc>best.sc)best={x,sc}});
+  return best&&best.sc>=.6?{id:Number(best.x.idLeague),name:best.x.strLeague}:null;
+ };
+ let found=null;
+ const country=TSDB_COUNTRY[info.country]||info.country;
+ if(country){
+  try{
+   const d=await tsdb(`/search_all_leagues.php?c=${encodeURIComponent(country)}&s=Soccer`);
+   found=pick(d.countries||d.leagues);
+  }catch(e){console.warn('TSDB 국가 검색 실패',country,e.message)}
+ }
+ if(!found){
+  try{
+   if(!_tsdbLeagues){const d=await tsdb('/all_leagues.php');_tsdbLeagues=d.leagues||[]}
+   found=pick(_tsdbLeagues);
+  }catch(e){console.warn('TSDB 전체 목록 실패',e.message)}
+ }
+ _tsdbIdCache[key]=found?found.id:null;
+ if(found)_tsdbFoundName[key]=found.name;
+ return _tsdbIdCache[key];
 }
+
 /* 경기 데이터가 부실해도 리그 소속 팀 명단은 따로 받아올 수 있습니다.
    경기 기록이 적어 팀이 몇 개만 잡히는 상황을 이걸로 보완합니다. */
 async function tsdbRoster(leagueVal){
@@ -1310,9 +1363,8 @@ async function fetchSeasonPrimary(league,season){
     통째로 실패했습니다. 첫 요청은 page 없이 보내고, 응답이 스스로
     여러 페이지라고 말할 때만 뒷 페이지를 시도합니다.
     그마저 거부되면 받은 만큼으로 진행하고 경고만 남깁니다. */
- let rows=[],calls=0,seen=null,warn=null;
+ let rows=[],seen=null,warn=null;
  const first=await api(`/fixtures?league=${league}&season=${season}`);
- calls++;
  /* 응답에 리그 이름·국가가 함께 들어옵니다. 추가 호출 없이 받아 두었다가
     LEAGUE_INFO의 ID가 맞는지 대조하는 데 씁니다. */
  if(first.response?.[0]?.league)
@@ -1322,7 +1374,6 @@ async function fetchSeasonPrimary(league,season){
  for(let page=2;page<=total&&page<=8;page++){
   try{
    const d=await api(`/fixtures?league=${league}&season=${season}&page=${page}`);
-   calls++;
    rows.push(...(d.response||[]).map(apiToRow));
   }catch(e){
    warn=`${season} 시즌 ${page}페이지 이후를 받지 못했습니다(${e.message}). 받은 ${rows.length}경기로 진행합니다.`;
@@ -1330,7 +1381,36 @@ async function fetchSeasonPrimary(league,season){
   }
  }
  if(!rows.length)throw new Error('시즌 경기 데이터가 비어 있습니다.');
- return {rows,source:'primary',calls,seen,warn};
+ return {rows,source:'primary',seen,warn};
+}
+/* 이 리그가 실제로 어떤 시즌을 갖고 있는지 API에 직접 묻습니다.
+   연도를 하나씩 넘겨짚는 대신 "있는 시즌" 중에서 고르기 위한 것이고,
+   정상 경로가 실패했을 때만 호출하므로 평소 호출 수는 그대로입니다. */
+async function apiLeagueProbe(league){
+ try{
+  const d=await api(`/leagues?id=${league}`);
+  const r=d.response?.[0];
+  if(!r)return {exists:false};
+  return {exists:true,name:r.league?.name,country:r.country?.name,
+   seasons:(r.seasons||[]).map(x=>Number(x.year)).filter(Number.isFinite).sort((a,b)=>b-a)};
+ }catch(e){return {error:e.message}}
+}
+/* 등록된 ID가 이 API에 아예 없으면(ID 변경·오타), 등록된 이름과 국가로
+   올바른 ID를 찾아 그 자리에서 씁니다. 사용자가 등록부를 고칠 때까지
+   기다릴 이유가 없고, 무엇으로 대체했는지는 경고로 남깁니다. */
+async function apiFindLeagueId(info){
+ if(!info||!info.apiName)return null;
+ try{
+  const d=await api(`/leagues?search=${encodeURIComponent(info.apiName)}`);
+  const list=d.response||[];
+  const want=normName(info.country||'');
+  const nameEq=x=>normName(x.league?.name)===normName(info.apiName);
+  const ctryEq=x=>normName(x.country?.name)===want;
+  const hit=list.find(x=>ctryEq(x)&&nameEq(x))||list.find(x=>ctryEq(x))||null;
+  if(!hit)return null;
+  return {id:String(hit.league.id),name:hit.league.name,country:hit.country?.name,
+   seasons:(hit.seasons||[]).map(x=>Number(x.year)).filter(Number.isFinite).sort((a,b)=>b-a)};
+ }catch(e){return null}
 }
 /* 무료 플랜은 최근 시즌을 막으면서 "try from 2022 to 2024" 처럼 접근 가능한
    범위를 함께 알려줍니다. 넘겨짚지 말고 그 값을 그대로 씁니다. */
@@ -1368,14 +1448,17 @@ function verifyLeagueIdentity(league,seen){
 }
 async function fetchSeasonFallback(league,season){
  const lid=await tsdbResolveLeagueId(league);
- if(!lid)throw new Error('대체 소스에서 리그를 찾지 못했습니다.');
+ if(!lid){
+  const info=LEAGUE_INFO[String(league)]||{};
+  throw new Error(`대체 소스에서 "${info.country||'?'} · ${info.apiName||league}" 리그를 찾지 못했습니다.`);
+ }
  const y=Number(season);
  const tries=isCalendarSeason(league)?[`${y}`,`${y}-${y+1}`]:[`${y}-${y+1}`,`${y}`];
  for(const sv of tries){
   try{
    const d=await tsdb(`/eventsseason.php?id=${lid}&s=${sv}`);
    const ev=d.events||[];
-   if(ev.length)return {rows:ev.map(tsdbToRow),source:'fallback',calls:1,seasonStr:sv};
+   if(ev.length)return {rows:ev.map(tsdbToRow),source:'fallback',seasonStr:sv};
   }catch(e){console.warn('TSDB season',sv,e.message)}
  }
  throw new Error('대체 소스에 해당 시즌 데이터가 없습니다.');
@@ -1421,6 +1504,7 @@ async function loadPlannedSeasons(){
 async function loadSeasonData(leagueArg,seasonArg){
  const league=String(leagueArg||'39'),season=Number(seasonArg||currentSeasonFor(league));
  const minM=T.minMatches(),cacheKey=`${league}-${season}-${minM}`;
+ const callsAtStart=API_CALLS;
  $('seasonDot').className='dot';$('seasonStatus').textContent='불러오는 중...';
  $('seasonSummary').textContent='';
  const cached=readSeasonCache(cacheKey);
@@ -1433,10 +1517,11 @@ async function loadSeasonData(leagueArg,seasonArg){
       ② 플랜 제한 응답이 접근 가능한 연도를 알려주면 그 최신 연도로 곧바로 이동하고,
       ③ 완료 경기가 기준에 못 미칠 때만 <b>직전 시즌 하나만</b> 덧붙입니다.
     어떤 경우에도 시즌 두 개를 넘겨 보지 않습니다. */
- let rows=[],calls=0,source=null,used=[],errs=[],allowed=null;
+ let rows=[],source=null,used=[],errs=[],allowed=null,availableSeasons=null;
+ let fetchLeague=league;   // 등록 ID가 틀렸을 때 실제로 조회할 ID
  const tryLoad=async sv=>{
   let res=null;
-  try{res=await fetchSeasonPrimary(league,sv)}
+  try{res=await fetchSeasonPrimary(fetchLeague,sv)}
   catch(e){
    errs.push(`${sv} API: ${e.message}`);
    const a=parseAllowedSeasons(e.message); if(a)allowed=a;
@@ -1448,7 +1533,7 @@ async function loadSeasonData(leagueArg,seasonArg){
   if(!source)source=res.source;
   if(res.warn)errs.push(res.warn);
   if(res.seen){const bad=verifyLeagueIdentity(league,res.seen);if(bad)errs.push(`${sv} ⚠️ ${bad}`)}
-  rows=rows.concat(res.rows);calls+=res.calls;
+  rows=rows.concat(res.rows);
   used.push({season:sv,total:res.rows.length,finished:res.rows.filter(r=>r.finished).length,source:res.source});
   return true;
  };
@@ -1462,9 +1547,46 @@ async function loadSeasonData(leagueArg,seasonArg){
   $('seasonStatus').textContent=`플랜이 허용하는 최신 시즌(${seasonUsed})으로 전환합니다...`;
   ok=await tryLoad(seasonUsed); tried.add(seasonUsed);
  }
- if(finished()<minM){
+ /* 여기까지 아무것도 못 받았다면 연도를 더 더듬지 않습니다.
+    이 리그가 실제로 무엇을 갖고 있는지 API에 한 번 물어보고, 그 답에 있는
+    시즌으로만 다시 시도합니다. 등록된 ID 자체가 없으면 이름·국가로 올바른
+    ID를 찾아 대체합니다. */
+ if(!rows.length){
+  $('seasonStatus').textContent='이 리그가 제공하는 시즌을 확인하는 중...';
+  let probe=await apiLeagueProbe(fetchLeague),avail=probe.seasons||[];
+  if(probe.exists===false){
+   const found=await apiFindLeagueId(LEAGUE_INFO[league]);
+   if(found){
+    fetchLeague=found.id;avail=found.seasons||[];
+    errs.push(`리그 ID ${league}가 API에 없어 "${found.country} · ${found.name}"(ID ${found.id})로 대신 조회했습니다. 등록부의 ID를 갱신해야 합니다.`);
+   }else{
+    errs.push(`리그 ID ${league}를 API에서 확인할 수 없습니다. 이 리그를 지원하지 않는 플랜이거나 ID가 바뀌었습니다.`);
+   }
+  }else if(probe.error){
+   errs.push(`리그 정보 조회 실패: ${probe.error}`);
+  }else if(probe.exists){
+   const bad=verifyLeagueIdentity(league,{name:probe.name,country:probe.country});
+   if(bad)errs.push('⚠️ '+bad);
+  }
+  /* 플랜이 알려준 범위가 있으면 교집합만 남깁니다. */
+  const usable=avail.filter(y=>y<=season&&(!allowed||(y>=allowed.from&&y<=allowed.to)));
+  const pickList=(usable.length?usable:avail.filter(y=>!allowed||(y>=allowed.from&&y<=allowed.to))).slice(0,2);
+  if(pickList.length){
+   availableSeasons=avail;
+   for(const sv of pickList){
+    if(tried.has(sv))continue;
+    $('seasonStatus').textContent=`${sv} 시즌으로 다시 시도합니다...`;
+    const got=await tryLoad(sv); tried.add(sv);
+    if(got){seasonUsed=sv;if(finished()>=minM)break}
+   }
+  }else if(avail.length){
+   errs.push(`이 리그가 제공하는 시즌은 ${avail.slice(0,6).join(', ')} 입니다. 플랜 허용 범위와 겹치는 시즌이 없습니다.`);
+  }
+ }
+ if(finished()<minM&&rows.length){
   const prev=seasonUsed-1;
-  if(!tried.has(prev)&&(!allowed||prev>=allowed.from)){
+  const ok2=(!allowed||prev>=allowed.from)&&(!availableSeasons||availableSeasons.includes(prev));
+  if(!tried.has(prev)&&ok2){
    $('seasonStatus').textContent=`완료 경기 ${finished()}건 — 직전 시즌(${prev})만 추가로 불러옵니다...`;
    await tryLoad(prev); tried.add(prev);
   }
@@ -1510,8 +1632,9 @@ async function loadSeasonData(leagueArg,seasonArg){
   const have=new Set(teams.map(t=>normName(t.name)));
   roster.filter(t=>!have.has(normName(t.name))).forEach(t=>{teams.push(t);rosterAdded++});
  }
- SEASON={league,season,seasonUsed,allowed,minM,cacheKey,ts:Date.now(),rows,source,calls,used,errs,teams,rosterAdded,
-  sources,mixedSource,mergedIds};
+ SEASON={league,season,seasonUsed,allowed,availableSeasons,fetchLeague,
+  minM,cacheKey,ts:Date.now(),rows,source,calls:API_CALLS-callsAtStart,
+  used,errs,teams,rosterAdded,sources,mixedSource,mergedIds};
  DATASETS[league]=SEASON;
  writeSeasonCache(cacheKey,SEASON);
  paintSeasonStatus();paintFallbackStatus();
@@ -1609,12 +1732,19 @@ function paintSeasonStatus(){
  const thin=nTeams<12||fin<20;
  dot.className=thin?'dot err':'dot ok';
  st.textContent=SEASON.mixedSource?'혼합 소스':(SEASON.source==='primary'?'API-Football':'대체 소스');
- let h=`완료 <b>${fin}</b>경기 / 총 ${SEASON.rows.length} · 팀 <b>${nTeams}</b> · 호출 ${SEASON.calls}회<br>`;
+ let h=`완료 <b>${fin}</b>경기 / 총 ${SEASON.rows.length} · 팀 <b>${nTeams}</b> · API 요청 ${SEASON.calls}회(실패·재시도 포함)<br>`;
  /* 플랜 제한은 사용자가 가장 먼저 알아야 할 정보인데, 예전에는 접힌
     "데이터 수집 경고" 안에 파묻혀 있었습니다. 위로 끌어올립니다. */
  if(SEASON.allowed)
   h+=`<span style="color:var(--warning)">· API 플랜이 <b>${SEASON.allowed.from}~${SEASON.allowed.to}</b> 시즌만 허용합니다`
    +`${SEASON.seasonUsed!==SEASON.season?` → <b>${SEASON.seasonUsed}</b> 시즌으로 자동 전환했습니다`:''}.</span><br>`;
+ /* 리그가 실제로 제공하는 시즌을 보여주면, 실패했을 때 무엇이 문제인지
+    바로 알 수 있습니다. */
+ if(SEASON.availableSeasons&&SEASON.availableSeasons.length)
+  h+=`<span class="small">· 이 리그가 제공하는 시즌: ${SEASON.availableSeasons.slice(0,8).join(', ')}`
+   +`${SEASON.availableSeasons.length>8?' …':''}</span><br>`;
+ if(SEASON.fetchLeague&&String(SEASON.fetchLeague)!==String(SEASON.league))
+  h+=`<span style="color:var(--warning)">· 등록 ID ${SEASON.league} 대신 <b>ID ${SEASON.fetchLeague}</b>로 조회했습니다.</span><br>`;
  h+=SEASON.used.length
   ?SEASON.used.map(u=>`· ${u.season} 시즌: 완료 ${u.finished}/${u.total} (${u.source==='primary'?'API':'대체'})`).join('<br>')
   :'· 사용한 시즌 없음';
