@@ -297,7 +297,7 @@ body[aria-busy="true"] .btn-analyze{opacity:.6;cursor:progress}
 
       <div class="card layer-card">
         <div class="layer-title">📦 시즌 데이터</div>
-        <div class="small">모든 계산의 토대입니다. <b>입력한 경기의 리그</b>를 골라 시즌 전체 경기를 한 번 받아오고, 이후 계산은 전부 브라우저에서 합니다. 14경기를 돌려도 추가 호출이 없습니다. 완료 경기가 적으면 직전 시즌까지 자동으로 보강합니다(최대 3시즌).</div>
+        <div class="small">모든 계산의 토대입니다. <b>입력한 경기의 리그</b>를 골라 시즌 전체 경기를 한 번 받아오고, 이후 계산은 전부 브라우저에서 합니다. 14경기를 돌려도 추가 호출이 없습니다. 완료 경기가 적을 때만 <b>직전 시즌 하나</b>를 덧붙입니다(최대 2시즌). 플랜이 최근 시즌을 막아두면 API가 알려준 <b>허용 최신 시즌으로 곧바로 전환</b>합니다.</div>
         <button class="btn btn-primary" onclick="loadPlannedSeasons()">📥 입력한 리그 데이터 불러오기</button>
         <button class="btn btn-secondary" onclick="showTeamList()">🔍 등록된 팀 목록</button>
         <button class="btn btn-secondary" onclick="clearSeasonCache()">🗑 캐시 비우기</button>
@@ -318,7 +318,9 @@ body[aria-busy="true"] .btn-analyze{opacity:.6;cursor:progress}
         <div class="layer-title">모델이 하는 일 · 하지 않는 일</div>
         <details open><summary>계산 방식</summary>
         <div class="small" style="margin-top:8px">
-        <b>수집:</b> 리그당 시즌 전체 경기를 한 번 받아옵니다(페이지당 1회, 요청 간 최소 1.2초). 경기 수만큼 호출이 늘지 않습니다.<br>
+        <b>수집:</b> 리그당 시즌 전체 경기를 한 번 받아옵니다(요청 간 최소 1.2초). 경기 수만큼 호출이 늘지 않습니다.
+        완료 경기가 기준에 못 미칠 때만 직전 시즌 하나를 덧붙이며, 그 이상 과거는 보지 않습니다.
+        플랜이 최근 시즌을 막으면 API 응답에 적힌 허용 최신 시즌으로 한 번에 이동합니다.<br>
         <b>강도 추정:</b> Dixon-Coles 방식입니다. 반복 스케일링으로 팀별 공격력·수비력을 리그 평균 1.00 기준으로 맞추고, 경기 시점에 반감기 <b>120일</b>의 지수 감쇠를 겁니다. 강한 상대를 이긴 것이 더 크게 반영됩니다.<br>
         <b>표본 보정:</b> Kish 유효표본수 기준으로 표본이 적은 팀을 리그 평균 쪽으로 당깁니다(수축 계수 5).<br>
         <b>홈 이점:</b> 리그 전체 홈 평균에 더해 팀별 홈 강세를 40%만 반영하고, 0.80~1.25로 제한합니다.<br>
@@ -1302,19 +1304,39 @@ function apiToRow(f){
   finished:fin&&Number.isFinite(f.goals?.home)&&Number.isFinite(f.goals?.away)};
 }
 async function fetchSeasonPrimary(league,season){
- let rows=[],page=1,total=1,calls=0,seen=null;
- do{
-  const d=await api(`/fixtures?league=${league}&season=${season}&page=${page}`);
-  calls++;
-  /* 응답에 리그 이름·국가가 함께 들어옵니다. 추가 호출 없이 받아 두었다가
-     LEAGUE_INFO의 ID가 맞는지 대조하는 데 씁니다. */
-  if(!seen&&d.response?.[0]?.league)
-   seen={name:d.response[0].league.name,country:d.response[0].league.country};
-  rows.push(...(d.response||[]).map(apiToRow));
-  total=d.paging?.total||1;page++;
- }while(page<=total&&page<=8);   /* 요청 간격은 apiGate가 관리합니다 */
+ /* /fixtures 는 리그+시즌 조회에서 보통 한 번에 전부 돌려줍니다.
+    그런데 첫 요청부터 page=1 을 붙이면 플랜에 따라
+    "The Page field do not exist" 오류가 나서, 접근 가능한 시즌까지
+    통째로 실패했습니다. 첫 요청은 page 없이 보내고, 응답이 스스로
+    여러 페이지라고 말할 때만 뒷 페이지를 시도합니다.
+    그마저 거부되면 받은 만큼으로 진행하고 경고만 남깁니다. */
+ let rows=[],calls=0,seen=null,warn=null;
+ const first=await api(`/fixtures?league=${league}&season=${season}`);
+ calls++;
+ /* 응답에 리그 이름·국가가 함께 들어옵니다. 추가 호출 없이 받아 두었다가
+    LEAGUE_INFO의 ID가 맞는지 대조하는 데 씁니다. */
+ if(first.response?.[0]?.league)
+  seen={name:first.response[0].league.name,country:first.response[0].league.country};
+ rows.push(...(first.response||[]).map(apiToRow));
+ const total=first.paging?.total||1;
+ for(let page=2;page<=total&&page<=8;page++){
+  try{
+   const d=await api(`/fixtures?league=${league}&season=${season}&page=${page}`);
+   calls++;
+   rows.push(...(d.response||[]).map(apiToRow));
+  }catch(e){
+   warn=`${season} 시즌 ${page}페이지 이후를 받지 못했습니다(${e.message}). 받은 ${rows.length}경기로 진행합니다.`;
+   break;
+  }
+ }
  if(!rows.length)throw new Error('시즌 경기 데이터가 비어 있습니다.');
- return {rows,source:'primary',calls,seen};
+ return {rows,source:'primary',calls,seen,warn};
+}
+/* 무료 플랜은 최근 시즌을 막으면서 "try from 2022 to 2024" 처럼 접근 가능한
+   범위를 함께 알려줍니다. 넘겨짚지 말고 그 값을 그대로 씁니다. */
+function parseAllowedSeasons(msg){
+ const m=/from\s+(\d{4})\s+to\s+(\d{4})/i.exec(String(msg||''));
+ return m?{from:Number(m[1]),to:Number(m[2])}:null;
 }
 /* 이 프로그램이 들고 있는 리그 ID가 실제로 그 리그인지 확인합니다.
    ID가 틀리면(오타·API 개편) 조용히 엉뚱한 리그를 분석하게 되므로,
@@ -1403,25 +1425,49 @@ async function loadSeasonData(leagueArg,seasonArg){
  $('seasonSummary').textContent='';
  const cached=readSeasonCache(cacheKey);
  if(cached){SEASON=cached;DATASETS[league]=cached;paintSeasonStatus();paintFallbackStatus();return SEASON}
- let rows=[],calls=0,source=null,used=[],errs=[];
- for(let back=0;back<=2;back++){
-  const sv=season-back;
-  $('seasonStatus').textContent=back?`이전 시즌(${sv}) 보강 중...`:'불러오는 중...';
+ /* 예전에는 현재·직전·전전 세 시즌을 무조건 차례로 요청했습니다.
+    무료 플랜은 최근 시즌을 막아두므로, 접근도 못 하는 시즌 두 개를 먼저
+    때려보고 실패 로그만 쌓인 뒤에야 쓸 수 있는 시즌에 닿았습니다.
+    이제는
+      ① 현재 시즌을 한 번 요청하고,
+      ② 플랜 제한 응답이 접근 가능한 연도를 알려주면 그 최신 연도로 곧바로 이동하고,
+      ③ 완료 경기가 기준에 못 미칠 때만 <b>직전 시즌 하나만</b> 덧붙입니다.
+    어떤 경우에도 시즌 두 개를 넘겨 보지 않습니다. */
+ let rows=[],calls=0,source=null,used=[],errs=[],allowed=null;
+ const tryLoad=async sv=>{
   let res=null;
   try{res=await fetchSeasonPrimary(league,sv)}
   catch(e){
    errs.push(`${sv} API: ${e.message}`);
+   const a=parseAllowedSeasons(e.message); if(a)allowed=a;
    try{res=await fetchSeasonFallback(league,sv)}
    catch(e2){errs.push(`${sv} 대체: ${e2.message}`)}
   }
-  if(res){
-   res.rows.forEach(r=>r.season=sv);
-   if(!source)source=res.source;
-   if(res.seen){const bad=verifyLeagueIdentity(league,res.seen);if(bad)errs.push(`${sv} ⚠️ ${bad}`)}
-   rows=rows.concat(res.rows);calls+=res.calls;
-   used.push({season:sv,total:res.rows.length,finished:res.rows.filter(r=>r.finished).length,source:res.source});
+  if(!res)return false;
+  res.rows.forEach(r=>r.season=sv);
+  if(!source)source=res.source;
+  if(res.warn)errs.push(res.warn);
+  if(res.seen){const bad=verifyLeagueIdentity(league,res.seen);if(bad)errs.push(`${sv} ⚠️ ${bad}`)}
+  rows=rows.concat(res.rows);calls+=res.calls;
+  used.push({season:sv,total:res.rows.length,finished:res.rows.filter(r=>r.finished).length,source:res.source});
+  return true;
+ };
+ const finished=()=>rows.filter(r=>r.finished).length;
+ const tried=new Set();
+ let seasonUsed=season;
+ $('seasonStatus').textContent=`${season} 시즌 불러오는 중...`;
+ let ok=await tryLoad(season); tried.add(season);
+ if(!ok&&allowed&&allowed.to<season&&!tried.has(allowed.to)){
+  seasonUsed=allowed.to;
+  $('seasonStatus').textContent=`플랜이 허용하는 최신 시즌(${seasonUsed})으로 전환합니다...`;
+  ok=await tryLoad(seasonUsed); tried.add(seasonUsed);
+ }
+ if(finished()<minM){
+  const prev=seasonUsed-1;
+  if(!tried.has(prev)&&(!allowed||prev>=allowed.from)){
+   $('seasonStatus').textContent=`완료 경기 ${finished()}건 — 직전 시즌(${prev})만 추가로 불러옵니다...`;
+   await tryLoad(prev); tried.add(prev);
   }
-  if(rows.filter(r=>r.finished).length>=minM)break;
  }
  if(!rows.length){
   $('seasonDot').className='dot err';$('seasonStatus').textContent='❌ 실패';
@@ -1464,7 +1510,7 @@ async function loadSeasonData(leagueArg,seasonArg){
   const have=new Set(teams.map(t=>normName(t.name)));
   roster.filter(t=>!have.has(normName(t.name))).forEach(t=>{teams.push(t);rosterAdded++});
  }
- SEASON={league,season,minM,cacheKey,ts:Date.now(),rows,source,calls,used,errs,teams,rosterAdded,
+ SEASON={league,season,seasonUsed,allowed,minM,cacheKey,ts:Date.now(),rows,source,calls,used,errs,teams,rosterAdded,
   sources,mixedSource,mergedIds};
  DATASETS[league]=SEASON;
  writeSeasonCache(cacheKey,SEASON);
@@ -1564,7 +1610,14 @@ function paintSeasonStatus(){
  dot.className=thin?'dot err':'dot ok';
  st.textContent=SEASON.mixedSource?'혼합 소스':(SEASON.source==='primary'?'API-Football':'대체 소스');
  let h=`완료 <b>${fin}</b>경기 / 총 ${SEASON.rows.length} · 팀 <b>${nTeams}</b> · 호출 ${SEASON.calls}회<br>`;
- h+=SEASON.used.map(u=>`· ${u.season} 시즌: 완료 ${u.finished}/${u.total} (${u.source==='primary'?'API':'대체'})`).join('<br>');
+ /* 플랜 제한은 사용자가 가장 먼저 알아야 할 정보인데, 예전에는 접힌
+    "데이터 수집 경고" 안에 파묻혀 있었습니다. 위로 끌어올립니다. */
+ if(SEASON.allowed)
+  h+=`<span style="color:var(--warning)">· API 플랜이 <b>${SEASON.allowed.from}~${SEASON.allowed.to}</b> 시즌만 허용합니다`
+   +`${SEASON.seasonUsed!==SEASON.season?` → <b>${SEASON.seasonUsed}</b> 시즌으로 자동 전환했습니다`:''}.</span><br>`;
+ h+=SEASON.used.length
+  ?SEASON.used.map(u=>`· ${u.season} 시즌: 완료 ${u.finished}/${u.total} (${u.source==='primary'?'API':'대체'})`).join('<br>')
+  :'· 사용한 시즌 없음';
  if(SEASON.rosterAdded)h+=`<br>· 팀 명단 ${SEASON.rosterAdded}개를 별도로 보강했습니다`;
  if(SEASON.mixedSource)
   h+=`<br><span style="color:var(--warning)">· ⚠️ 시즌마다 데이터 출처가 다릅니다(API-Football + 대체 소스). `
@@ -1577,8 +1630,10 @@ function paintSeasonStatus(){
     했습니다. 실제로 할 수 있는 일만 적습니다. */
  if(thin)
   h+=`<br><span style="color:var(--danger)"><b>⚠️ 데이터 부족.</b> 팀 ${nTeams}개 / 완료 ${fin}경기로는 정상 분석이 어렵습니다.<br>`
-   +`① 위 "데이터 수집 경고"를 펼쳐 API가 돌려준 실제 사유를 확인하세요. 무료 플랜은 최근 시즌을 막아두는 경우가 많습니다.<br>`
-   +`② 시즌 개막 직후라면 완료 경기 자체가 없습니다. 이 프로그램은 직전 시즌까지 자동으로 보강하지만, 그래도 부족하면 시간이 지나야 합니다.<br>`
+   +(SEASON.allowed
+     ?`① 이 리그는 플랜이 ${SEASON.allowed.from}~${SEASON.allowed.to} 시즌만 허용합니다. 그 범위에서 받아온 결과가 위와 같습니다.<br>`
+     :`① 위 "데이터 수집 경고"를 펼쳐 API가 돌려준 실제 사유를 확인하세요. 무료 플랜은 최근 시즌을 막아두는 경우가 많습니다.<br>`)
+   +`② 시즌 개막 직후라면 완료 경기 자체가 없습니다. 이 경우 직전 시즌 하나를 자동으로 덧붙이며, 그래도 부족하면 시간이 지나야 합니다.<br>`
    +`③ "캐시 비우기" 후 다시 불러오면 실패한 시즌을 재시도합니다.</span>`;
  /* 자동완성 목록은 등록부가 관리하므로 여기서 건드리지 않습니다. */
  sum.innerHTML=h;
