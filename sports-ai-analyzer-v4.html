@@ -616,7 +616,8 @@ const LEAGUE_INFO={
  '78':{name:'분데스리가',flag:'🇩🇪',season:'y'},
  '61':{name:'리그1',flag:'🇫🇷',season:'y'},
  '2':{name:'UEFA 대항전',flag:'🇪🇺',season:'y'},
- '292':{name:'K리그',flag:'🇰🇷',season:'y'},
+ /* K리그는 2~11월 달력연도 시즌입니다. 'y'로 두면 3월에 지난 시즌을 요청합니다. */
+ '292':{name:'K리그',flag:'🇰🇷',season:'cal'},
  '98':{name:'J리그',flag:'🇯🇵',season:'y'},
  '253':{name:'MLS',flag:'🇺🇸',season:'cal'}
 };
@@ -646,6 +647,11 @@ function lev(a,b){
  return prev[n];
 }
 const simRatio=(a,b)=>{const L=Math.max(a.length,b.length);return L?1-lev(a,b)/L:0};
+/* 이름을 단어 단위로 쪼갭니다. tokenScore가 쓰는 헬퍼인데 정의가 빠져 있어서
+   영문 입력이 사전 정확일치가 아닐 때마다 ReferenceError로 죽었습니다. */
+function toks(s){
+ return String(s||'').toLowerCase().split(/[^a-z0-9가-힣]+/).filter(Boolean);
+}
 function tokenScore(a,b){
  const A=toks(a),B=toks(b);
  if(!A.length||!B.length)return 0;
@@ -659,8 +665,14 @@ function tokenScore(a,b){
 }
 
 /* 입력 한 줄 → {en, ko, league} 또는 후보/실패 사유.
-   한글·영문·약칭 모두 같은 경로로 처리됩니다. */
+   한글·영문·약칭 모두 같은 경로로 처리됩니다.
+   이 함수는 입력 이벤트와 분석 진입점 양쪽에서 불리므로 절대 예외를 던지지
+   않습니다. 던지면 배지·경고문 갱신이 멈추고 분석 버튼이 조용히 죽습니다. */
 function resolveTeam(input){
+ try{return resolveTeamRaw(input)}
+ catch(e){console.error('팀 이름 해석 실패:',input,e);return {ok:false,unknown:true,failed:e.message}}
+}
+function resolveTeamRaw(input){
  const raw=String(input||'').trim();
  if(!raw)return {ok:false,empty:true};
  const q=normName(raw);
@@ -740,7 +752,10 @@ refreshPlan();return}
  [[rh,hv,'홈팀'],[ra,av,'원정팀']].forEach(([r,v,lbl])=>{
   if(!v)return;
   if(r.ok&&normName(v)!==normName(r.en))msgs.push(`${lbl} → ${r.en}`);
-  else if(r.ambiguous)msgs.push(`⚠️ ${lbl} "${v}"는 ${r.candidates.map(c=>c.ko).join(' / ')} 중 어느 팀인가요?`);
+  /* 영문 경로도 후보 목록을 돌려주는데 예전에는 ambiguous 플래그(한글 경로 전용)만
+     확인해서, 후보가 있어도 "찾지 못했습니다"라고만 표시했습니다. */
+  else if(r.candidates&&r.candidates.length)
+   msgs.push(`⚠️ ${lbl} "${v}"는 ${r.candidates.map(c=>`${c.ko}(${c.en})`).join(' / ')} 중 어느 팀인가요?`);
   else if(!r.ok)msgs.push(`❌ ${lbl} "${v}" 를 찾지 못했습니다`);
  });
  const lg=matchLeague(rh,ra);
@@ -782,7 +797,8 @@ function refreshPlan(){
 
 
 const API_BASE='https://v3.football.api-sports.io';
-const SEASON_KEY='usai_season_cache_v1';
+/* v2: TSDB 시각 파싱(UTC)과 혼합 소스 팀 ID 통합이 바뀌어 v1 캐시는 못 씁니다. */
+const SEASON_KEY='usai_season_cache_v2';
 let fixtures=[],lastRows=[],SEASON=null,BT=null;
 
 const $=id=>document.getElementById(id);
@@ -875,7 +891,9 @@ async function tsdbRoster(leagueVal){
 function tsdbToRow(ev){
  const hs=ev.intHomeScore,as=ev.intAwayScore;
  const scored=hs!==null&&hs!==undefined&&hs!==''&&as!==null&&as!==undefined&&as!=='';
- let ts=ev.strTimestamp?new Date(Number(ev.strTimestamp)*1000):new Date(`${ev.dateEvent||''}T${ev.strTime||'00:00:00'}`);
+ /* TSDB의 dateEvent/strTime은 UTC입니다. 'Z'가 없으면 브라우저 로컬 시각으로
+    해석되어 API-Football 데이터와 최대 반나절까지 어긋납니다. */
+ let ts=ev.strTimestamp?new Date(Number(ev.strTimestamp)*1000):new Date(`${ev.dateEvent||''}T${ev.strTime||'00:00:00'}Z`);
  if(isNaN(ts))ts=new Date();
  return {id:'tsdb-'+ev.idEvent,date:ts.toISOString(),
   homeId:'t'+ev.idHomeTeam,homeName:ev.strHomeTeam,awayId:'t'+ev.idAwayTeam,awayName:ev.strAwayTeam,
@@ -931,8 +949,10 @@ function currentSeasonFor(league){
  if(LEAGUE_INFO[league]?.season==='cal')return y;
  return now.getMonth()>=6?y:y-1;
 }
+/* 캐시 히트 때 SEASON을 갱신하지 않으면, 화면의 시즌 상태 패널과 SEASON을
+   참조하는 코드가 "마지막으로 새로 불러온 리그"를 계속 가리키게 됩니다. */
 async function ensureLeague(league){
- if(DATASETS[league])return DATASETS[league];
+ if(DATASETS[league]){SEASON=DATASETS[league];paintSeasonStatus();return SEASON}
  return loadSeasonData(league,currentSeasonFor(league));
 }
 const DATASETS={};   // 리그ID -> 시즌 데이터
@@ -943,7 +963,7 @@ async function loadSeasonData(leagueArg,seasonArg){
  $('seasonSummary').textContent='';
  const cached=readSeasonCache(cacheKey);
  if(cached){SEASON=cached;DATASETS[league]=cached;paintSeasonStatus();return SEASON}
- let rows=[],calls=0,source=null,used=[],errs=[],currentTeams=null;
+ let rows=[],calls=0,source=null,used=[],errs=[];
  for(let back=0;back<=2;back++){
   const sv=season-back;
   $('seasonStatus').textContent=back?`이전 시즌(${sv}) 보강 중...`:'불러오는 중...';
@@ -957,7 +977,6 @@ async function loadSeasonData(leagueArg,seasonArg){
   if(res){
    res.rows.forEach(r=>r.season=sv);
    if(!source)source=res.source;
-   if(back===0)currentTeams=teamIndex(res.rows);
    rows=rows.concat(res.rows);calls+=res.calls;
    used.push({season:sv,total:res.rows.length,finished:res.rows.filter(r=>r.finished).length,source:res.source});
   }
@@ -970,6 +989,32 @@ async function loadSeasonData(leagueArg,seasonArg){
  }
  const seen=new Set();
  rows=rows.filter(r=>{const k=String(r.id);if(seen.has(k))return false;seen.add(k);return true});
+ /* 시즌마다 소스가 갈리면 같은 팀이 API-Football('a…')과 TheSportsDB('t…')로
+    서로 다른 ID를 갖습니다. 그대로 두면 한 팀의 경기가 둘로 쪼개져 표본이
+    반토막 나고 강도 추정·최근폼·상대전적이 모두 어긋납니다.
+    등록부(정식 영문명)를 우선 키로, 안 잡히면 정규화된 팀명을 키로 합칩니다.
+    rows는 최신 시즌부터 쌓이므로 먼저 등장한 ID가 대표가 됩니다. */
+ const sources=[...new Set(used.map(u=>u.source))];
+ const mixedSource=sources.length>1;
+ let mergedIds=0;
+ if(mixedSource){
+  /* resolveTeam은 팀 230개에 대해 편집거리를 계산하므로 팀명당 한 번만 부릅니다. */
+  const keyCache=new Map();
+  const keyOf=name=>{
+   if(keyCache.has(name))return keyCache.get(name);
+   const r=resolveTeam(name),k=r.ok?'en:'+r.en:'nm:'+normName(name);
+   keyCache.set(name,k);return k;
+  };
+  const canon=new Map();
+  rows.forEach(r=>[[r.homeId,r.homeName],[r.awayId,r.awayName]].forEach(([id,nm])=>{
+   const k=keyOf(nm);if(k&&k!=='nm:'&&!canon.has(k))canon.set(k,{id,name:nm});
+  }));
+  rows.forEach(r=>{
+   const h=canon.get(keyOf(r.homeName)),a=canon.get(keyOf(r.awayName));
+   if(h&&h.id!==r.homeId){r.homeId=h.id;r.homeName=h.name;mergedIds++}
+   if(a&&a.id!==r.awayId){r.awayId=a.id;r.awayName=a.name;mergedIds++}
+  });
+ }
  let teams=teamIndex(rows),rosterAdded=0;
  /* 경기에서 뽑은 팀이 비정상적으로 적으면 리그 명단을 따로 받아 보강합니다. */
  if(teams.length<12){
@@ -979,7 +1024,7 @@ async function loadSeasonData(leagueArg,seasonArg){
   roster.filter(t=>!have.has(normName(t.name))).forEach(t=>{teams.push(t);rosterAdded++});
  }
  SEASON={league,season,minM,cacheKey,ts:Date.now(),rows,source,calls,used,errs,teams,rosterAdded,
-  currentTeams:teams};
+  sources,mixedSource,mergedIds};
  DATASETS[league]=SEASON;
  writeSeasonCache(cacheKey,SEASON);
  paintSeasonStatus();
@@ -1006,6 +1051,9 @@ function writeSeasonCache(k,v){
 }
 function clearSeasonCache(){
  try{localStorage.removeItem(SEASON_KEY)}catch{}
+ /* DATASETS를 비우지 않으면 ensureLeague()가 계속 옛 데이터를 돌려주어
+    "캐시 비우기"가 아무 효과도 없었습니다. */
+ Object.keys(DATASETS).forEach(k=>delete DATASETS[k]);
  SEASON=null;BT=null;$('backtestArea').innerHTML='';
  $('btDot').className='dot';$('btStatus').textContent='미실행';
  paintSeasonStatus();
@@ -1039,10 +1087,14 @@ function paintSeasonStatus(){
  const nTeams=SEASON.teams.length;
  const thin=nTeams<12||fin<20;
  dot.className=thin?'dot err':'dot ok';
- st.textContent=SEASON.source==='primary'?'API-Football':'대체 소스';
+ st.textContent=SEASON.mixedSource?'혼합 소스':(SEASON.source==='primary'?'API-Football':'대체 소스');
  let h=`완료 <b>${fin}</b>경기 / 총 ${SEASON.rows.length} · 팀 <b>${nTeams}</b> · 호출 ${SEASON.calls}회<br>`;
  h+=SEASON.used.map(u=>`· ${u.season} 시즌: 완료 ${u.finished}/${u.total} (${u.source==='primary'?'API':'대체'})`).join('<br>');
  if(SEASON.rosterAdded)h+=`<br>· 팀 명단 ${SEASON.rosterAdded}개를 별도로 보강했습니다`;
+ if(SEASON.mixedSource)
+  h+=`<br><span style="color:var(--warning)">· ⚠️ 시즌마다 데이터 출처가 다릅니다(API-Football + 대체 소스). `
+   +`팀 ID ${SEASON.mergedIds}건을 이름 기준으로 합쳤지만, 두 소스의 표기가 크게 다른 팀은 `
+   +`합쳐지지 않아 표본이 나뉘어 있을 수 있습니다.</span>`;
  if(SEASON.errs&&SEASON.errs.length)
   h+=`<br><details style="margin-top:6px"><summary style="color:var(--warning)">데이터 수집 경고 ${SEASON.errs.length}건 (펼쳐보기)</summary>`
    +SEASON.errs.map(e=>`<span style="color:var(--danger)">· ${esc(e)}</span>`).join('<br>')+'</details>';
@@ -1160,21 +1212,26 @@ function scoreMatrix(lh,la,rho){
 function brier(p,y){return p.reduce((s,x,i)=>s+Math.pow(x-(i===y?1:0),2),0)}
 function logloss(p,y){return -Math.log(clamp(p[y],1e-9,1))}
 async function runBacktest(){
- /* 검증은 입력된 경기 중 가장 많이 쓰인 리그로 실행합니다. */
- if(!SEASON){
-  const {byLeague}=currentPlan();
-  const lgs=Object.keys(byLeague).sort((a,b)=>byLeague[b].length-byLeague[a].length);
-  if(!lgs.length){$('btDot').className='dot err';
-   $('btStatus').textContent='먼저 경기를 입력하거나 분석을 실행하세요';return}
-  const s0=await ensureLeague(lgs[0]);if(!s0)return;
- }
- const rows=SEASON.rows.filter(r=>r.finished).sort((a,b)=>new Date(a.date)-new Date(b.date));
+ /* 검증 대상 리그를 명시적으로 정합니다.
+    예전에는 전역 SEASON이 비어 있을 때만 리그를 골랐기 때문에, EPL을 한 번
+    불러온 뒤 라리가 경기를 입력하고 검증을 누르면 EPL 데이터로 돌려놓고
+    화면에는 라리가라고 표시하는 문제가 있었습니다. */
+ const {byLeague}=currentPlan();
+ const lgs=Object.keys(byLeague).sort((a,b)=>byLeague[b].length-byLeague[a].length);
+ const league=lgs[0]||(SEASON?SEASON.league:null);
+ if(!league){$('btDot').className='dot err';
+  $('btStatus').textContent='먼저 경기를 입력하거나 분석을 실행하세요';return}
+ $('btDot').className='dot';$('btStatus').textContent='데이터 준비 중...';
+ const DS=await ensureLeague(league);
+ if(!DS){$('btDot').className='dot err';
+  $('btStatus').textContent=`${LEAGUE_INFO[league]?.name||league} 데이터를 불러오지 못했습니다`;return}
+ const rows=DS.rows.filter(r=>r.finished).sort((a,b)=>new Date(a.date)-new Date(b.date));
  if(rows.length<40){
   $('btDot').className='dot err';
   $('btStatus').textContent=`완료 경기 ${rows.length}개 — 최소 40개 필요`;
   $('backtestArea').innerHTML=`<div class="card"><div class="card-title" style="color:var(--danger)">백테스트를 실행할 수 없습니다</div>
-  <div class="small" style="line-height:1.7">완료된 경기가 <b>${rows.length}개</b>뿐입니다 (최소 40개 필요).<br>
-  왼쪽 "최소 학습 경기 수"를 <b>200</b> 정도로 올리고 "시즌 데이터 불러오기"를 다시 누르면 이전 시즌이 보강되어 검증이 가능해집니다.</div></div>`;
+  <div class="small" style="line-height:1.7">${esc(LEAGUE_INFO[league]?.name||league)}의 완료된 경기가 <b>${rows.length}개</b>뿐입니다 (최소 40개 필요).<br>
+  시즌 초반이거나 무료 플랜이 최근 시즌을 막아둔 경우입니다. 왼쪽 "캐시 비우기" 후 "시즌 데이터 불러오기"를 다시 눌러 이전 시즌 보강을 시도해 보세요.</div></div>`;
   return;
  }
  const start=Math.max(20,Math.floor(rows.length*T.warmup()));
@@ -1231,7 +1288,8 @@ async function runBacktest(){
   const bb=bins[clamp(Math.floor(pv*10),0,9)];
   bb.sp+=pv;bb.hit+=(k===x.y?1:0);bb.cnt++;
  }));
- BT={metrics:M,bins,preds,base,source:SEASON.source,league:LEAGUE_INFO[SEASON.league]?.name||SEASON.league};
+ BT={metrics:M,bins,preds,base,source:DS.source,
+  leagueId:String(DS.league),league:LEAGUE_INFO[DS.league]?.name||DS.league};
  $('btDot').className=significant?'dot ok':'dot err';
  $('btStatus').textContent=`실제 ${M.n}경기 · 적중 ${(M.acc*100).toFixed(1)}% · ${significant?'유의미':'노이즈 수준'}`;
  renderBacktest();
@@ -1381,7 +1439,8 @@ function analyzeMatch(m,S,strength){
  const ht=findId(m.home.en),at=findId(m.away.en);
  const base={slot:m.slot,home:m.home.en,away:m.away.en,
   homeKo:m.home.ko,awayKo:m.away.ko,league:m.league,
-  leagueName:LEAGUE_INFO[m.league]?.name,flag:LEAGUE_INFO[m.league]?.flag,source:S.source};
+  leagueName:LEAGUE_INFO[m.league]?.name,flag:LEAGUE_INFO[m.league]?.flag,
+  source:S.source,mixedSource:!!S.mixedSource};
  if(!ht||!at)return {...base,error:`${!ht?m.home.en:m.away.en} 이(가) ${LEAGUE_INFO[m.league]?.name} 데이터에 없습니다. 리그 판정이 맞는지 확인해 주세요.`};
  if(ht.id===at.id)return {...base,error:'홈팀과 원정팀이 같습니다.'};
  const pr=predict(strength,ht.id,at.id);
@@ -1395,7 +1454,10 @@ function analyzeMatch(m,S,strength){
   {k:'홈팀 경기 표본',w:2,ok:nh>=5,applies:true},
   {k:'원정팀 경기 표본',w:2,ok:na>=5,applies:true},
   {k:'리그 데이터량',w:1,ok:strength.nMatches>=60,applies:true},
-  {k:'실제 경기 검증 통과',w:2,ok:!!(BT&&BT.metrics.significant),applies:true}
+  /* 백테스트는 한 리그에서만 돌립니다. 다른 리그의 검증 결과를 이 경기의
+     신뢰도로 인정하면 안 됩니다. */
+  {k:'실제 경기 검증 통과',w:2,
+   ok:!!(BT&&BT.metrics.significant&&BT.leagueId===String(m.league)),applies:true}
  ];
  const totW=layers.reduce((x,y)=>x+y.w,0),okW=layers.reduce((x,y)=>x+(y.ok?y.w:0),0);
  const conf=Math.round(100*(okW/totW)*(S.source==='primary'?1:.9));
@@ -1410,12 +1472,15 @@ function analyzeMatch(m,S,strength){
   homeTeamId:ht.id,awayTeamId:at.id};
 }
 async function runV4Analysis(){
- const {byLeague,problems}=currentPlan();
- const leagues=Object.keys(byLeague);
- if(!leagues.length)return alert('팀 이름을 입력하세요. 리그는 자동으로 판정됩니다.');
- const btn=document.querySelector('.btn-analyze');if(btn)btn.disabled=true;
+ /* currentPlan()이 try 밖에 있으면 팀 해석 중 예외가 났을 때 아무 메시지도
+    없이 분석이 멈추고 버튼도 잠긴 채로 남습니다. 전부 try 안으로 넣습니다. */
+ const btn=document.querySelector('.btn-analyze');
  const rows=[];
  try{
+  const {byLeague,problems}=currentPlan();
+  const leagues=Object.keys(byLeague);
+  if(!leagues.length){alert('팀 이름을 입력하세요. 리그는 자동으로 판정됩니다.');return}
+  btn&&(btn.disabled=true);
   for(let i=0;i<leagues.length;i++){
    const lg=leagues[i],info=LEAGUE_INFO[lg];
    $('resultArea').innerHTML=`<div class="card loading">${info.flag} ${info.name} 데이터 불러오는 중... (${i+1}/${leagues.length})</div>`;
@@ -1461,7 +1526,8 @@ function render(rows){
   <div class="pro-kpi"><b>분석 리그</b><span>${lgs.length}</span></div>
   <div class="pro-kpi"><b>픽 생성</b><span>${ok.filter(x=>x.pick!=='NO BET').length}</span></div>
   <div class="pro-kpi"><b>NO BET</b><span>${ok.filter(x=>x.pick==='NO BET').length}</span></div>
-  <div class="pro-kpi"><b>검증</b><span>${BT?(BT.metrics.significant?'✅ 통과':'⚠️ 불충분'):'미실행'}</span></div>
+  <div class="pro-kpi"><b>검증</b><span>${BT?(BT.metrics.significant?'✅ 통과':'⚠️ 불충분'):'미실행'}</span>
+   ${BT?`<div class="small">${esc(BT.league)} 한정</div>`:''}</div>
  </div>
  <div style="margin-top:10px">${lgs.map(l=>`<span class="lg-badge on">${LEAGUE_INFO[l].flag} ${LEAGUE_INFO[l].name} ${ok.filter(r=>r.league===l).length}</span>`).join(' ')}</div>
  </div><div class="result-grid">`;
@@ -1545,7 +1611,8 @@ function briefingPrompt(rows){
   else if(r.news)
    L.push('- 최신 뉴스: 자동 수집 실패(브라우저 CORS 제한). 이 부분은 직접 최신 정보를 확인해 주세요.');
   const warn=[];
-  if(r.source!=='primary')warn.push('대체 소스(TheSportsDB) 데이터');
+  if(r.mixedSource)warn.push('시즌별로 데이터 출처가 달라 팀 표본이 나뉘어 있을 수 있음');
+  else if(r.source!=='primary')warn.push('대체 소스(TheSportsDB) 데이터');
   if(r.played[0]<5||r.played[1]<5)warn.push('한 팀 이상 경기 표본 5경기 미만 — 강도 추정 불안정');
   if(r.league==='2')warn.push('서로 다른 리그 소속 — UEFA 대항전으로 처리했으며 표본이 적을 수 있음');
   if(warn.length)L.push(`- ⚠️ 주의: ${warn.join(' / ')}`);
