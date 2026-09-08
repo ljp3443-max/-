@@ -2,6 +2,11 @@
 <html lang="ko">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ULTIMATE SPORTS AI ANALYZER v4</title>
+<!-- CSS가 쓰는 세 폰트를 실제로 불러옵니다. 예전에는 링크가 없어 전부 기본
+     sans-serif로 렌더됐습니다. 오프라인이면 아래 대체 스택으로 떨어집니다. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+KR:wght@400;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
 :root{
     --bg:#060d18;
@@ -14,15 +19,20 @@
     --warning:#ffab00;
     --danger:#ff1744;
     --text:#cdd9e5;
-    --muted:#546e7a;
+    /* 예전 #546e7a 는 배경 대비 3.6:1 로 WCAG AA(4.5:1) 미달인데
+       0.66~0.75rem 작은 글씨에 광범위하게 쓰였습니다. */
+    --muted:#93a7b4;
     --border:rgba(0,229,255,0.1);
     --border2:rgba(255,255,255,0.06);
+    /* 예전에는 파일 뒤쪽에 :root 를 한 번 더 열어 정의했습니다. 여기로 합칩니다. */
+    --pro:#8b5cf6;
+    --pro2:#a78bfa;
 }
 *{margin:0;padding:0;box-sizing:border-box;}
 body{
     background:var(--bg);
     color:var(--text);
-    font-family:'Noto Sans KR',sans-serif;
+    font-family:'Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
     padding:24px;
     min-height:100vh;
     background-image:
@@ -38,16 +48,16 @@ body{
     border-bottom:1px solid var(--border);
 }
 .header-left h1{
-    font-family:'Bebas Neue',sans-serif;
+    font-family:'Bebas Neue','Arial Narrow',sans-serif;
     font-size:2.4rem;letter-spacing:3px;
     background:linear-gradient(90deg,var(--accent),var(--accent2));
     -webkit-background-clip:text;-webkit-text-fill-color:transparent;
 }
-.header-left p{font-size:0.8rem;color:var(--muted);margin-top:4px;font-family:'Space Mono',monospace;}
+.header-left p{font-size:0.8rem;color:var(--muted);margin-top:4px;font-family:'Space Mono','SFMono-Regular',Consolas,monospace;}
 .version-badge{
     background:rgba(0,229,255,0.1);border:1px solid var(--border);
     color:var(--accent);padding:6px 16px;border-radius:20px;
-    font-family:'Space Mono',monospace;font-size:0.75rem;
+    font-family:'Space Mono','SFMono-Regular',Consolas,monospace;font-size:0.75rem;
 }
 
 /* LAYOUT */
@@ -60,7 +70,7 @@ body{
     border-radius:16px;padding:20px;
 }
 .card-title{
-    font-family:'Space Mono',monospace;font-size:0.75rem;
+    font-family:'Space Mono','SFMono-Regular',Consolas,monospace;font-size:0.75rem;
     color:var(--accent);letter-spacing:2px;margin-bottom:16px;
     text-transform:uppercase;
 }
@@ -71,7 +81,7 @@ input,select{
     border:1px solid var(--border2);color:var(--text);
     padding:10px 14px;border-radius:8px;margin-top:8px;
     font-size:0.85rem;transition:border-color 0.2s;
-    font-family:'Noto Sans KR',sans-serif;
+    font-family:'Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
 }
 input:focus,select:focus{outline:none;border-color:var(--accent);}
 select option{background:var(--surface);}
@@ -81,7 +91,7 @@ select option{background:var(--surface);}
     width:100%;border:none;border-radius:10px;
     padding:13px;font-weight:700;cursor:pointer;
     margin-top:10px;font-size:0.9rem;transition:all 0.2s;
-    font-family:'Noto Sans KR',sans-serif;
+    font-family:'Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
 }
 .btn:hover{transform:translateY(-1px);filter:brightness(1.1);}
 .btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#000;}
@@ -93,24 +103,11 @@ select option{background:var(--surface);}
     display:flex;align-items:center;gap:8px;
     margin-top:10px;padding:8px 12px;
     background:var(--surface2);border-radius:8px;
-    font-size:0.8rem;font-family:'Space Mono',monospace;
+    font-size:0.8rem;font-family:'Space Mono','SFMono-Regular',Consolas,monospace;
 }
 .dot{width:7px;height:7px;border-radius:50%;background:var(--muted);}
 .dot.ok{background:var(--green);box-shadow:0 0 8px var(--green);}
 .dot.err{background:var(--danger);}
-
-/* FIXTURE LIST */
-.fixture-list{max-height:380px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;}
-.fixture-list::-webkit-scrollbar{width:4px;}
-.fixture-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
-.fixture-item{
-    background:var(--surface2);padding:11px 13px;
-    border-radius:9px;cursor:pointer;transition:all 0.2s;
-    border-left:3px solid transparent;
-}
-.fixture-item:hover{border-left-color:var(--accent);background:var(--surface3);}
-.fixture-item .fx-teams{font-size:0.85rem;font-weight:700;margin-bottom:3px;}
-.fixture-item .fx-meta{font-size:0.72rem;color:var(--muted);}
 
 /* MATCH GRID */
 .match-grid{
@@ -125,7 +122,7 @@ select option{background:var(--surface);}
 }
 .match-card.filled{border-color:rgba(0,230,118,0.3);}
 .match-num{
-    font-family:'Bebas Neue',sans-serif;font-size:1.1rem;
+    font-family:'Bebas Neue','Arial Narrow',sans-serif;font-size:1.1rem;
     color:var(--accent);letter-spacing:2px;margin-bottom:10px;
     display:flex;justify-content:space-between;align-items:center;
 }
@@ -137,9 +134,6 @@ select option{background:var(--surface);}
 .match-num .clear-x:hover{color:var(--danger);transform:none;filter:none;}
 .match-inputs{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
 .match-inputs input{margin-top:0;font-size:0.78rem;padding:7px 10px;}
-.match-inputs input.full{grid-column:1/-1;}
-.match-select{margin-top:6px;}
-.match-select select{margin-top:0;font-size:0.78rem;padding:7px 10px;}
 
 /* RESULT GRID */
 .result-grid{
@@ -155,58 +149,22 @@ select option{background:var(--surface);}
     content:'';position:absolute;top:0;left:0;right:0;height:3px;
     background:linear-gradient(90deg,var(--accent),var(--accent2));
 }
+/* NO BET·분석 실패 카드. 예전에는 .pick-card.block 으로만 정의돼 있어
+   result-card 에 붙은 block 클래스가 아무 일도 하지 않았습니다. */
+.result-card.block{border-color:rgba(255,23,68,0.28);opacity:.9}
+.result-card.block::before{background:linear-gradient(90deg,var(--danger),var(--warning))}
+.result-card.block .pick-main{color:var(--muted)}
 .r-match{font-weight:700;font-size:1.05rem;margin-bottom:4px;}
-.r-score{
-    font-family:'Bebas Neue',sans-serif;font-size:2.8rem;
-    letter-spacing:3px;color:var(--accent);line-height:1;
-    margin:8px 0 14px;
-}
-.r-stat{
-    display:flex;justify-content:space-between;align-items:center;
-    padding:7px 0;border-bottom:1px solid var(--border2);font-size:0.82rem;
-}
-.r-stat:last-of-type{border-bottom:none;}
-.r-stat .lbl{color:var(--muted);}
-.r-stat .val{font-weight:700;}
 .r-comment{
     margin-top:14px;padding:12px;background:var(--surface2);
     border-radius:10px;font-size:0.8rem;line-height:1.6;color:var(--text);
 }
 
-/* PROBABILITY BAR */
-.prob-bar-wrap{margin:12px 0 4px;}
-.prob-label{display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:4px;}
-.prob-bar{height:8px;background:var(--surface3);border-radius:4px;overflow:hidden;display:flex;}
-.prob-home{background:var(--accent);border-radius:4px 0 0 4px;transition:width 1s;}
-.prob-draw{background:var(--warning);}
-.prob-away{background:var(--accent2);border-radius:0 4px 4px 0;}
-
-/* BADGE */
-.badge{
-    padding:4px 10px;border-radius:20px;font-size:0.72rem;font-weight:700;
-    font-family:'Space Mono',monospace;
-}
-.b-safe{background:rgba(0,230,118,0.15);color:var(--green);border:1px solid rgba(0,230,118,0.3);}
-.b-medium{background:rgba(255,171,0,0.15);color:var(--warning);border:1px solid rgba(255,171,0,0.3);}
-.b-high{background:rgba(255,23,68,0.15);color:var(--danger);border:1px solid rgba(255,23,68,0.3);}
-
-/* POISSON TABLE */
-.poisson-grid{
-    display:grid;grid-template-columns:repeat(5,1fr);
-    gap:2px;margin-top:10px;
-}
-.pg-cell{
-    background:var(--surface3);border-radius:4px;padding:4px;
-    text-align:center;font-size:0.7rem;font-family:'Space Mono',monospace;
-}
-.pg-cell.hot{background:rgba(0,229,255,0.2);color:var(--accent);}
-.pg-cell.header{color:var(--muted);background:transparent;}
-
 /* BRIEFING */
 textarea{
     width:100%;min-height:280px;background:#000;
     border:1px solid var(--border);color:var(--green);
-    font-family:'Space Mono',monospace;font-size:0.75rem;
+    font-family:'Space Mono','SFMono-Regular',Consolas,monospace;font-size:0.75rem;
     padding:14px;border-radius:10px;margin-top:10px;
     resize:vertical;line-height:1.6;
 }
@@ -216,19 +174,10 @@ textarea{
     width:100%;background:linear-gradient(135deg,var(--accent),var(--accent2));
     color:#000;border:none;padding:18px;border-radius:12px;
     font-weight:900;font-size:1.2rem;cursor:pointer;margin-top:14px;
-    font-family:'Bebas Neue',sans-serif;letter-spacing:3px;
+    font-family:'Bebas Neue','Arial Narrow',sans-serif;letter-spacing:3px;
     transition:all 0.3s;
 }
 .btn-analyze:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(0,229,255,0.3);}
-
-/* TABS */
-.tab-bar{display:flex;gap:8px;margin-bottom:16px;}
-.tab{
-    padding:8px 18px;border-radius:8px;cursor:pointer;
-    font-size:0.8rem;font-weight:700;transition:all 0.2s;
-    background:var(--surface2);color:var(--muted);border:1px solid transparent;
-}
-.tab.active{background:rgba(0,229,255,0.1);color:var(--accent);border-color:var(--border);}
 
 @media(max-width:1100px){
     .layout{grid-template-columns:1fr;}
@@ -237,46 +186,29 @@ textarea{
 
 /* V4 ENGINE */
 .v4-note{font-size:.75rem;line-height:1.55;color:var(--muted);margin-top:8px}
-.engine-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.engine-kpi{background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:12px}
-.engine-kpi b{display:block;color:var(--accent);font-family:'Space Mono',monospace;font-size:.72rem;margin-bottom:5px}
-.engine-kpi span{font-size:1rem;font-weight:700}
-.status-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 9px;border-radius:20px;font-size:.7rem;font-weight:700}
-.s-high{background:rgba(0,230,118,.14);color:var(--green)}
-.s-med{background:rgba(255,171,0,.14);color:var(--warning)}
-.s-low{background:rgba(255,23,68,.14);color:var(--danger)}
 .data-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:12px}
 .data-row{background:var(--surface2);border-radius:8px;padding:8px 10px;display:flex;justify-content:space-between;font-size:.75rem}
-.data-row .dim{color:var(--muted)}
-.pick-card{border:1px solid rgba(0,230,118,.25);background:linear-gradient(145deg,var(--surface),var(--surface2))}
-.pick-card.warn{border-color:rgba(255,171,0,.25)}
-.pick-card.block{border-color:rgba(255,23,68,.25)}
 .pick-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}
-.pick-main{font-family:'Bebas Neue';font-size:1.7rem;letter-spacing:2px;color:var(--accent)}
-.confidence{font-family:'Space Mono';font-weight:700}
-.score-table{width:100%;border-collapse:collapse;margin-top:10px;font-size:.72rem}
-.score-table th,.score-table td{padding:6px;border-bottom:1px solid var(--border2);text-align:center}
-.score-table th{color:var(--muted)}
+.pick-main{font-family:'Bebas Neue','Arial Narrow',sans-serif;font-size:1.7rem;letter-spacing:2px;color:var(--accent)}
+.confidence{font-family:'Space Mono','SFMono-Regular',Consolas,monospace;font-weight:700}
 .coverage-table{width:100%;border-collapse:collapse;font-size:.72rem}
 .coverage-table th,.coverage-table td{padding:7px;border-bottom:1px solid var(--border2);text-align:left}
 .coverage-table th{color:var(--muted)}
-.legend{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
-.legend span{font-size:.68rem;color:var(--muted)}
-.loading{padding:18px;text-align:center;color:var(--muted);font-family:'Space Mono'}
-@media(max-width:1200px){.engine-grid{grid-template-columns:1fr 1fr}}
-@media(max-width:700px){.engine-grid,.data-grid{grid-template-columns:1fr}}
+.loading{padding:18px;text-align:center;color:var(--muted);font-family:'Space Mono','SFMono-Regular',Consolas,monospace}
+@media(max-width:700px){.data-grid{grid-template-columns:1fr}}
 
-:root{--pro:#8b5cf6;--pro2:#a78bfa}
 .probar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
-.protag{font:700 .65rem 'Space Mono';padding:5px 8px;border:1px solid var(--border2);border-radius:5px;background:var(--surface2);color:var(--pro2)}
+.protag{font:700 .65rem 'Space Mono','SFMono-Regular',Consolas,monospace;padding:5px 8px;border:1px solid var(--border2);border-radius:5px;background:var(--surface2);color:var(--pro2)}
 .layer-card{border:1px solid rgba(139,92,246,.25);background:linear-gradient(145deg,var(--surface),rgba(139,92,246,.035))}
-.layer-title{font-family:'Bebas Neue';font-size:1.1rem;letter-spacing:1px;color:var(--pro2);margin-bottom:7px}
+.layer-title{font-family:'Bebas Neue','Arial Narrow',sans-serif;font-size:1.1rem;letter-spacing:1px;color:var(--pro2);margin-bottom:7px}
 .small{font-size:.68rem;color:var(--muted);line-height:1.5}
 .pro-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .pro-kpi{padding:9px;background:var(--surface2);border-radius:8px}
-.pro-kpi b{display:block;font:700 .62rem 'Space Mono';color:var(--muted);margin-bottom:4px}
+.pro-kpi b{display:block;font:700 .62rem 'Space Mono','SFMono-Regular',Consolas,monospace;color:var(--muted);margin-bottom:4px}
 .pro-kpi span{font-weight:800}
-.badge{display:inline-block;border-radius:20px;padding:3px 7px;font-size:.62rem;font-weight:800}
+/* .badge 는 예전에 두 번 정의돼 뒤 선언이 앞을 통째로 덮고 있었습니다. */
+.badge{display:inline-block;border-radius:20px;padding:3px 7px;
+ font-size:.62rem;font-weight:800;font-family:'Space Mono',monospace}
 .real{background:rgba(0,230,118,.13);color:var(--green)}
 .partial{background:rgba(255,171,0,.13);color:var(--warning)}
 .none{background:rgba(255,23,68,.12);color:var(--danger)}
@@ -286,19 +218,47 @@ textarea{
 .slot-note{font-size:.66rem;color:var(--warning);margin-top:6px;line-height:1.5}
 .plan-bar{padding:10px 12px;background:var(--surface2);border:1px solid var(--border2);
   border-radius:8px;margin-bottom:12px;line-height:2}
-.snapshots{max-height:180px;overflow:auto;margin-top:8px}
 .brief-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .brief-actions .btn{margin-top:10px}
-.snap{display:flex;justify-content:space-between;border-bottom:1px solid var(--border2);padding:6px 0;font-size:.66rem}
 details summary{cursor:pointer;color:var(--pro2);font-size:.72rem;font-weight:700}
 @media(max-width:900px){.pro-grid{grid-template-columns:1fr 1fr}}
+
+/* 입력 라벨 — 예전에는 placeholder만 있어 스크린리더가 읽을 이름이 없었습니다 */
+.field-label{display:block;font-size:.7rem;color:var(--muted);
+ font-family:'Space Mono','SFMono-Regular',Consolas,monospace;letter-spacing:1px;text-transform:uppercase}
+
+/* 결과 카드 안의 경고 상자 */
+.warn-box{margin-top:10px;padding:10px 12px;border-radius:9px;
+ background:rgba(255,171,0,.09);border:1px solid rgba(255,171,0,.28);
+ color:var(--warning);font-size:.72rem;line-height:1.6}
+
+/* alert() 대체 안내 */
+.toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,140%);
+ max-width:min(560px,92vw);padding:13px 18px;border-radius:11px;
+ background:var(--surface3);border:1px solid var(--border);color:var(--text);
+ font-size:.82rem;line-height:1.5;box-shadow:0 10px 40px rgba(0,0,0,.5);
+ transition:transform .25s ease;z-index:50;pointer-events:none}
+.toast.show{transform:translate(-50%,0)}
+.toast.bad{border-color:rgba(255,23,68,.45);color:#ff8aa2}
+
+/* 키보드 사용자를 위한 초점 표시 */
+:where(button,input,select,textarea,summary,a):focus-visible{
+ outline:2px solid var(--accent);outline-offset:2px}
+button[disabled]{opacity:.5;cursor:not-allowed}
+body[aria-busy="true"] .btn-analyze{opacity:.6;cursor:progress}
+
+/* 모션을 줄이도록 설정한 사용자 존중 */
+@media(prefers-reduced-motion:reduce){
+ *{transition:none!important;animation:none!important}
+ .btn:hover,.btn-analyze:hover{transform:none}
+}
 </style></head>
 <body>
 <div class="container">
   <div class="header">
     <div class="header-left">
       <h1>ULTIMATE SPORTS AI ANALYZER</h1>
-      <p>V4 LITE · POISSON + 팀 폼 + 슈팅 통계 (API 저부하 모드)</p>
+      <p>DIXON-COLES 강도 모델 · 시즌 1회 수집 후 브라우저 계산 · 워크포워드 백테스트</p>
     </div>
     <div class="version-badge">v4.0 · 2026</div>
   </div>
@@ -307,10 +267,11 @@ details summary{cursor:pointer;color:var(--pro2);font-size:.72rem;font-weight:70
     <div class="sidebar">
       <div class="card">
         <div class="card-title">🔑 API SETTINGS</div>
-        <input type="password" id="apiKey" placeholder="API-FOOTBALL KEY">
-        <div class="api-status-bar"><div class="dot" id="apiDot"></div><span id="apiStatus">API 연결 대기중...</span></div>
+        <label class="field-label" for="apiKey">API-Football 키</label>
+        <input type="password" id="apiKey" placeholder="API-FOOTBALL KEY" autocomplete="off" spellcheck="false">
+        <div class="api-status-bar" role="status" aria-live="polite"><div class="dot" id="apiDot"></div><span id="apiStatus">API 연결 대기중...</span></div>
         <button class="btn btn-primary" onclick="validateApi()">연결 확인</button>
-        <div class="v4-note">키는 브라우저 메모리에 저장하지 않습니다. V4는 API에서 실제로 반환된 값만 사용하며 없는 값은 N/A로 표시합니다.</div>
+        <div class="v4-note">키는 <b>저장되지 않습니다</b> — 이 입력칸에만 있고 새로고침하면 사라집니다. localStorage에도 기록하지 않으며, api-sports.io 외의 어디로도 보내지 않습니다. 다만 페이지가 열려 있는 동안에는 메모리에 있으므로 공용 PC에서는 사용 후 탭을 닫으세요.<br>모델은 API가 실제로 돌려준 값만 사용하고, 없는 값은 N/A로 둡니다.</div>
       </div>
 
       <div class="card layer-card">
@@ -318,9 +279,9 @@ details summary{cursor:pointer;color:var(--pro2);font-size:.72rem;font-weight:70
         <div class="probar">
           <span class="protag">PRIMARY: API-FOOTBALL</span><span class="protag">FALLBACK: TheSportsDB</span>
         </div>
-        <div class="small">API 키가 없거나, 키가 유효하지 않거나, 쿼터 초과 등으로 API-Football 요청이 실패하면 <b>자동으로</b> 무료 공개 데이터(TheSportsDB)에서 대신 가져옵니다. "경기 일정 불러오기"와 개별 경기의 팀 폼 계산 모두에 적용되며, 사용자가 따로 설정할 필요는 없습니다.</div>
-        <div class="small" style="margin-top:6px">⚠️ 대체 소스는 슈팅 통계를 제공하지 않아 해당 항목은 N/A로 표시되며, 리그 커버리지가 API-Football보다 좁을 수 있습니다.</div>
-        <div class="api-status-bar"><div class="dot" id="fallbackDot"></div><span id="fallbackStatus">분석 전 · 대기중</span></div>
+        <div class="small">API 키가 없거나, 유효하지 않거나, 쿼터를 넘겨 API-Football 요청이 실패하면 <b>시즌 단위로</b> 무료 공개 데이터(TheSportsDB)에서 대신 가져옵니다. 429·5xx는 최대 3회까지 간격을 늘려 재시도한 뒤에야 대체 소스로 넘어갑니다.</div>
+        <div class="small" style="margin-top:6px">⚠️ 대체 소스는 리그 커버리지가 좁고 팀 ID 체계가 달라, 시즌마다 출처가 갈리면 같은 팀이 둘로 쪼개질 수 있습니다. 이 경우 이름을 기준으로 자동 통합하고 <b>아래 시즌 카드에 경고를 띄웁니다</b>. 대체 소스로 만든 데이터셋은 신뢰도에 0.9를 곱합니다.</div>
+        <div class="api-status-bar" role="status" aria-live="polite"><div class="dot" id="fallbackDot"></div><span id="fallbackStatus">분석 전 · 대기중</span></div>
       </div>
 
       <div class="card layer-card">
@@ -335,31 +296,48 @@ details summary{cursor:pointer;color:var(--pro2);font-size:.72rem;font-weight:70
 
       <div class="card layer-card">
         <div class="layer-title">📦 시즌 데이터</div>
-        <div class="small">모든 계산의 토대입니다. 시즌 전체 경기를 <b>한 번</b> 받아와 브라우저에서 계산하므로, 14경기를 돌려도 추가 호출이 없습니다. 경기가 부족하면 이전 시즌을 자동으로 보강합니다.</div>
-        <button class="btn btn-primary" onclick="loadSeasonData()">📥 시즌 데이터 불러오기</button>
-        <button class="btn btn-secondary" onclick="showTeamList()">🔍 불러온 팀 목록</button>
+        <div class="small">모든 계산의 토대입니다. <b>입력한 경기의 리그</b>를 골라 시즌 전체 경기를 한 번 받아오고, 이후 계산은 전부 브라우저에서 합니다. 14경기를 돌려도 추가 호출이 없습니다. 완료 경기가 적으면 직전 시즌까지 자동으로 보강합니다(최대 3시즌).</div>
+        <button class="btn btn-primary" onclick="loadPlannedSeasons()">📥 입력한 리그 데이터 불러오기</button>
+        <button class="btn btn-secondary" onclick="showTeamList()">🔍 등록된 팀 목록</button>
         <button class="btn btn-secondary" onclick="clearSeasonCache()">🗑 캐시 비우기</button>
-        <div class="api-status-bar"><div class="dot" id="seasonDot"></div><span id="seasonStatus">미로드</span></div>
+        <div class="api-status-bar" role="status" aria-live="polite"><div class="dot" id="seasonDot"></div><span id="seasonStatus">미로드</span></div>
         <div id="seasonSummary" class="small" style="margin-top:8px"></div>
+        <div class="v4-note">굳이 먼저 누르지 않아도 됩니다. 분석을 실행하면 필요한 리그를 알아서 불러옵니다.</div>
       </div>
 
       <div class="card layer-card">
         <div class="layer-title">🔬 실제 경기 검증</div>
-        <div class="small">이미 끝난 <b>실제 경기</b>에 모델을 적용해 성적을 측정합니다. 각 경기는 그 경기 이전 데이터만으로 예측하므로 정보 누출이 없고, 결과는 경기별로 확인·다운로드할 수 있습니다.</div>
+        <div class="small">이미 끝난 <b>실제 경기</b>에 모델을 적용해 성적을 측정합니다(워크포워드). 각 경기는 그 경기 이전 데이터만으로 예측하므로 정보 누출이 없고, 결과는 경기별로 확인·CSV 다운로드할 수 있습니다.</div>
+        <div class="small" style="margin-top:6px">검증은 <b>입력한 경기가 가장 많은 리그 하나</b>에 대해서만 돌아갑니다. 그 결과는 <b>같은 리그 경기의 신뢰도에만</b> 반영됩니다.</div>
         <button class="btn btn-primary" onclick="runBacktest()">🔬 검증 실행</button>
-        <div class="api-status-bar"><div class="dot" id="btDot"></div><span id="btStatus">미실행</span></div>
+        <div class="api-status-bar" role="status" aria-live="polite"><div class="dot" id="btDot"></div><span id="btStatus">미실행</span></div>
       </div>
 
       <div class="card layer-card">
-        <div class="layer-title">MODEL GOVERNANCE · LITE MODE</div>
-        <details open><summary>데이터 계층과 계산 원칙</summary>
+        <div class="layer-title">모델이 하는 일 · 하지 않는 일</div>
+        <details open><summary>계산 방식</summary>
         <div class="small" style="margin-top:8px">
-        <b>⚡ LITE MODE:</b> 일괄 분석은 <b>팀 폼</b>과 <b>슈팅 통계</b> 두 계층만 조회합니다. 경기당 호출 = 팀 검색(2, ID 캐시되면 0) + fixture(1) + 폼(2) + 슈팅(슈팅표본×2).<br>
-        <b>폼층:</b> 최근 N경기의 득점·실점·승점을 최신 경기에 더 높은 가중치(0.9^i)를 주어 계산.<br>
-        <b>슈팅층:</b> 최근 경기의 슈팅 수 · 유효슈팅 평균.<br>
-        <b>자동 대체 소스:</b> API-Football이 실패하면 TheSportsDB로 자동 전환합니다. 슈팅 통계는 제공되지 않으므로 <b>신뢰도 계산에서 제외</b>되고(감점이 아님), 대신 소스 신뢰도 계수 0.85가 곱해집니다.<br>
-        <b>데이터 부족 시:</b> 폼 득실점이 하나라도 없으면 예상득점을 <b>추정하지 않고</b> 해당 경기를 "데이터 부족"으로 표시합니다. 0으로 대체해 억지로 계산하지 않습니다.<br>
-        <b>순서 보존:</b> 결과 카드는 신뢰도순으로 정렬되지만, 각 카드와 브리핑은 항상 원래 <b>입력 슬롯 번호(MATCH n)</b>를 표시합니다.
+        <b>수집:</b> 리그당 시즌 전체 경기를 한 번 받아옵니다(페이지당 1회, 요청 간 최소 1.2초). 경기 수만큼 호출이 늘지 않습니다.<br>
+        <b>강도 추정:</b> Dixon-Coles 방식입니다. 반복 스케일링으로 팀별 공격력·수비력을 리그 평균 1.00 기준으로 맞추고, 경기 시점에 반감기 <b>120일</b>의 지수 감쇠를 겁니다. 강한 상대를 이긴 것이 더 크게 반영됩니다.<br>
+        <b>표본 보정:</b> Kish 유효표본수 기준으로 표본이 적은 팀을 리그 평균 쪽으로 당깁니다(수축 계수 5).<br>
+        <b>홈 이점:</b> 리그 전체 홈 평균에 더해 팀별 홈 강세를 40%만 반영하고, 0.80~1.25로 제한합니다.<br>
+        <b>확률:</b> 두 팀의 예상 득점(λ)으로 12×12 스코어 격자를 만들고, 0-0·1-0·0-1·1-1에 Dixon-Coles 저스코어 보정(ρ=-0.13)을 적용해 정규화합니다.<br>
+        <b>대체 소스:</b> API-Football 실패 시 TheSportsDB로 시즌 단위 전환. 해당 데이터셋의 신뢰도에 <b>0.9</b>를 곱합니다.<br>
+        <b>데이터 부족 시:</b> 완료 경기 10건 미만이면 모델을 만들지 않고, 팀을 데이터에서 확정하지 못하면 그 경기를 실패로 표시합니다. 없는 값을 0으로 채워 억지로 계산하지 않습니다.<br>
+        <b>정렬:</b> 결과 카드는 <b>입력 슬롯 번호(MATCH n) 순서</b> 그대로 나옵니다. 신뢰도는 각 카드의 CONF 배지로 확인하세요.
+        </div></details>
+        <details><summary>이 모델이 반영하지 않는 것</summary>
+        <div class="small" style="margin-top:8px">
+        부상·출전정지·로테이션·감독 교체·이적·날씨·동기부여·일정 과부하·<b>배당</b>을 전혀 보지 않습니다.
+        오직 <b>득점 결과</b>만 씁니다. 슈팅·xG·점유율도 쓰지 않습니다.<br>
+        따라서 이 화면의 확률은 "지금까지의 득점 기록만 봤을 때"의 값이고,
+        그 밖의 정보는 AI 브리핑을 붙여넣어 사람이나 LLM이 보정하도록 설계돼 있습니다.
+        </div></details>
+        <details><summary>CONF(신뢰도)의 의미</summary>
+        <div class="small" style="margin-top:8px">
+        CONF는 <b>적중 확률이 아니라 데이터 확보율</b>입니다. 네 항목(홈 표본 5경기·원정 표본 5경기·리그 완료 60경기·이 리그 백테스트 통과)을 가중 합산한 뒤, 대체 소스면 0.9를 곱합니다.<br>
+        백테스트를 돌리지 않았거나 <b>다른 리그</b>에서 돌렸다면 그 항목은 인정되지 않아 최대 71점입니다.<br>
+        CONF가 높아도 확률이 33/33/33이면 픽할 이유가 없으므로, <b>최고 확률 40% 이상</b>과 <b>1·2위 확률 차 8%p 이상</b>을 함께 요구합니다. 하나라도 미달이면 NO BET입니다.
         </div></details>
       </div>
 
@@ -370,7 +348,8 @@ details summary{cursor:pointer;color:var(--pro2);font-size:.72rem;font-weight:70
           <button class="btn btn-primary" onclick="copyBriefing(this)">📋 전체 복사</button>
           <button class="btn btn-secondary" onclick="downloadBriefing()">⬇️ .md 저장</button>
         </div>
-        <div id="copyStatus" class="small" style="margin-top:8px"></div>
+        <button class="btn btn-danger" id="briefSwap" hidden onclick="applyPendingBriefing()">🔄 새 브리핑으로 교체 (수정 내용 버림)</button>
+        <div id="copyStatus" class="small" style="margin-top:8px" role="status" aria-live="polite"></div>
         <div class="v4-note">복사가 안 되면 텍스트 영역을 클릭한 뒤 <b>Ctrl+A → Ctrl+C</b>로 직접 복사하세요. 내용은 자유롭게 수정할 수 있습니다.</div>
       </div>
     </div>
@@ -383,12 +362,14 @@ details summary{cursor:pointer;color:var(--pro2);font-size:.72rem;font-weight:70
         <div class="match-grid" id="matchGrid"></div>
         <button class="btn-analyze" onclick="runV4Analysis()">⚡ V4 FULL ANALYSIS · 14 MATCH RANKING</button>
       </div>
+      <div id="teamListArea"></div>
       <div id="backtestArea"></div>
       <div id="resultArea"></div>
       <datalist id="teamList"></datalist>
     </div>
   </div>
 </div>
+<div id="toast" class="toast" role="status" aria-live="assertive"></div>
 
 
 <script>
@@ -668,9 +649,19 @@ function tokenScore(a,b){
    한글·영문·약칭 모두 같은 경로로 처리됩니다.
    이 함수는 입력 이벤트와 분석 진입점 양쪽에서 불리므로 절대 예외를 던지지
    않습니다. 던지면 배지·경고문 갱신이 멈추고 분석 버튼이 조용히 죽습니다. */
+/* 등록부는 고정이므로 같은 문자열은 항상 같은 결과입니다. 키 입력 한 번에
+   14슬롯 × 2팀 = 30회 가까이 불리고 매번 팀 230개와 편집거리를 재므로
+   메모이즈가 체감 차이를 만듭니다. */
+const _resolveCache=new Map();
 function resolveTeam(input){
- try{return resolveTeamRaw(input)}
- catch(e){console.error('팀 이름 해석 실패:',input,e);return {ok:false,unknown:true,failed:e.message}}
+ const key=String(input??'');
+ if(_resolveCache.has(key))return _resolveCache.get(key);
+ let out;
+ try{out=resolveTeamRaw(key)}
+ catch(e){console.error('팀 이름 해석 실패:',key,e);out={ok:false,unknown:true,failed:e.message}}
+ if(_resolveCache.size>2000)_resolveCache.clear();
+ _resolveCache.set(key,out);
+ return out;
 }
 function resolveTeamRaw(input){
  const raw=String(input||'').trim();
@@ -716,14 +707,17 @@ function matchLeague(homeRes,awayRes){
 /* ================= 대시보드 =================
    14개 슬롯. 사용자는 팀 이름만 입력하고, 리그는 프로그램이 판정합니다. */
 function buildSlots(){
- const g=$('matchGrid');g.innerHTML='';
- for(let i=1;i<=14;i++)g.innerHTML+=`<div class="match-card" id="match-${i}">
-<div class="match-num">MATCH ${i}<span class="lg-badge" id="lg-${i}"></span><button class="clear-x" onclick="clearMatch(${i})">✕</button></div>
+ /* innerHTML+=를 14번 돌리면 그때마다 이미 만든 DOM을 통째로 다시 파싱합니다.
+    문자열로 모아 한 번에 넣습니다. */
+ const html=[];
+ for(let i=1;i<=14;i++)html.push(`<div class="match-card" id="match-${i}">
+<div class="match-num"><span>MATCH ${i}</span><span class="lg-badge" id="lg-${i}"></span><button class="clear-x" onclick="clearMatch(${i})" aria-label="MATCH ${i} 입력 지우기" title="입력 지우기">✕</button></div>
 <div class="match-inputs">
- <input id="home-${i}" list="teamList" placeholder="홈팀 (한글/영문)" autocomplete="off">
- <input id="away-${i}" list="teamList" placeholder="원정팀 (한글/영문)" autocomplete="off">
+ <input id="home-${i}" list="teamList" placeholder="홈팀 (한글/영문)" autocomplete="off" aria-label="MATCH ${i} 홈팀">
+ <input id="away-${i}" list="teamList" placeholder="원정팀 (한글/영문)" autocomplete="off" aria-label="MATCH ${i} 원정팀">
 </div>
-<div class="slot-note" id="note-${i}"></div></div>`;
+<div class="slot-note" id="note-${i}" role="status" aria-live="polite"></div></div>`);
+ $('matchGrid').innerHTML=html.join('');
  for(let i=1;i<=14;i++)['home-'+i,'away-'+i].forEach(id=>
   $(id).addEventListener('input',()=>refreshSlot(i)));
  // 자동완성: 영문 + 한글 둘 다 넣습니다
@@ -745,8 +739,8 @@ function refreshSlot(i){
  const hv=$('home-'+i).value.trim(),av=$('away-'+i).value.trim();
  const badge=$('lg-'+i),note=$('note-'+i),card=$('match-'+i);
  card.classList.toggle('filled',!!(hv&&av));
- if(!hv&&!av){badge.textContent='';badge.className='lg-badge';note.textContent='';paintRegistryInfo();
-refreshPlan();return}
+ /* paintRegistryInfo()는 고정된 등록부만 그리므로 키 입력마다 부를 이유가 없습니다. */
+ if(!hv&&!av){badge.textContent='';badge.className='lg-badge';note.textContent='';refreshPlanSoon();return}
  const rh=resolveTeam(hv),ra=resolveTeam(av);
  const msgs=[];
  [[rh,hv,'홈팀'],[ra,av,'원정팀']].forEach(([r,v,lbl])=>{
@@ -766,8 +760,11 @@ refreshPlan();return}
   if(rh.league!==ra.league)msgs.push('서로 다른 리그 소속 → UEFA 대항전으로 처리합니다');
  }else{badge.textContent='';badge.className='lg-badge'}
  note.innerHTML=msgs.map(esc).join('<br>');
- refreshPlan();
+ refreshPlanSoon();
 }
+/* 계획 바는 14슬롯 전체를 다시 해석합니다. 타자마다 돌리지 않고 잠깐 모읍니다. */
+let _planTimer=null;
+function refreshPlanSoon(){clearTimeout(_planTimer);_planTimer=setTimeout(refreshPlan,120)}
 function refreshAllSlots(){for(let i=1;i<=14;i++)refreshSlot(i)}
 
 /* 입력된 경기들을 리그별로 묶어, 무엇을 불러와야 하는지 미리 보여줍니다. */
@@ -799,9 +796,23 @@ function refreshPlan(){
 const API_BASE='https://v3.football.api-sports.io';
 /* v2: TSDB 시각 파싱(UTC)과 혼합 소스 팀 ID 통합이 바뀌어 v1 캐시는 못 씁니다. */
 const SEASON_KEY='usai_season_cache_v2';
-let fixtures=[],lastRows=[],SEASON=null,BT=null;
+let SEASON=null,BT=null;
 
 const $=id=>document.getElementById(id);
+/* 네트워크 작업이 겹치면 상태 표시와 SEASON이 서로를 덮어씁니다.
+   예전에는 분석 버튼만 잠갔고 시즌 로드·검증은 연타가 가능했습니다. */
+let BUSY=null;
+function busyGuard(what){
+ if(BUSY){toast(`${BUSY} 작업이 진행 중입니다. 끝난 뒤 다시 눌러주세요.`,true);return false}
+ BUSY=what;document.body.setAttribute('aria-busy','true');return true;
+}
+function busyDone(){BUSY=null;document.body.removeAttribute('aria-busy')}
+/* alert()는 페이지를 멈춥니다. 화면 안내로 대체합니다. */
+function toast(msg,bad){
+ const el=$('toast');if(!el){console.log(msg);return}
+ el.textContent=msg;el.className='toast show'+(bad?' bad':'');
+ clearTimeout(toast._t);toast._t=setTimeout(()=>{el.className='toast'},4000);
+}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function mean(a){a=a.filter(Number.isFinite);return a.length?a.reduce((x,y)=>x+y,0)/a.length:null;}
 function clamp(x,a,b){return Math.max(a,Math.min(b,x));}
@@ -810,10 +821,22 @@ function n(x,d=2){return Number.isFinite(x)?x.toFixed(d):'N/A';}
 function poisson(l,k){return Math.exp(-l)*Math.pow(l,k)/factorial(k)}
 function factorial(k){let r=1;for(let i=2;i<=k;i++)r*=i;return r}
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+/* 백테스트는 같은 행의 날짜를 수백 번 다시 읽습니다. 행에 필드를 붙이면
+   그 값이 localStorage 캐시에까지 직렬화되므로 WeakMap에 따로 담습니다. */
+const _tsCache=new WeakMap();
+function rowTime(r){
+ let t=_tsCache.get(r);
+ if(t===undefined){t=new Date(r.date).getTime();_tsCache.set(r,t)}
+ return t;
+}
+/* 재현 가능한 난수 — 부트스트랩 결과가 새로고침마다 달라지면 신뢰하기 어렵습니다. */
+function lcg(seed){let x=seed>>>0;return ()=>{x=(x*1664525+1013904223)>>>0;return x/4294967296}}
 
 /* ---------- tuning (all values are genuinely used) ---------- */
-/* 모델 상수 — 검증으로 정해둔 값입니다. 사용자가 돌려가며 맞출 수 있게 하면
-   같은 데이터에 과적합되기 쉬워서, 손잡이를 없애고 고정했습니다. */
+/* 모델 상수 — 사용자가 돌려가며 맞출 수 있게 하면 눈앞의 데이터에 과적합되기
+   쉬워서 손잡이를 없애고 고정했습니다.
+   다만 이 값들이 검증 대상 리그와 무관하게 정해진 것은 아니므로, 백테스트
+   결과는 완전한 out-of-sample이 아닙니다. 화면과 브리핑에 그렇게 적어 둡니다. */
 const T={
  halfLife:()=>120,      // 가중치 반감기(일)
  rho:()=>-0.13,         // Dixon-Coles 저스코어 보정
@@ -821,23 +844,51 @@ const T={
  shrink:()=>5,          // 표본 적은 팀을 평균으로 당기는 강도
  iters:()=>6,           // 강도 추정 반복(6회면 수렴)
  pickThreshold:()=>55,  // 이 신뢰도 미만이면 NO BET
+ minTopProb:()=>0.40,   // 최고 확률이 이보다 낮으면 NO BET
+ minMargin:()=>0.08,    // 1위와 2위 확률 차가 이보다 작으면 NO BET
  warmup:()=>0.35,       // 백테스트 워밍업 비율
- minMatches:()=>200     // 이 수만큼 완료 경기가 모일 때까지 이전 시즌 자동 보강
+ minMatches:()=>200,    // 이 수만큼 완료 경기가 모일 때까지 이전 시즌 자동 보강
+ maxFits:()=>150        // 백테스트 재학습 횟수 상한 (O(n²) 방지)
 };
 /* ---------- API ---------- */
 function getApiKey(){return ($('apiKey')?.value||'').trim()}
-function api(path){
- const key=getApiKey();
- if(!key)return Promise.reject(new Error('API 키가 없습니다.'));
- return fetch(API_BASE+path,{headers:{'x-apisports-key':key}}).then(async r=>{
-  let d={};try{d=await r.json()}catch{}
-  if(r.status===429)throw new Error('요청 한도 초과(429).');
-  if(!r.ok)throw new Error('HTTP '+r.status);
-  if(d.errors&&Object.keys(d.errors).length){
-   const e=d.errors;throw new Error(String(Array.isArray(e)?e[0]:Object.values(e)[0]));
-  }
-  return d;
+/* 무료 플랜은 분당 요청 수가 빡빡합니다. 요청 사이에 최소 간격을 두고,
+   429/5xx는 지수 백오프로 다시 시도합니다. 예전에는 250ms 간격으로 몰아쳐
+   429를 맞고 곧장 대체 소스로 떨어졌습니다. */
+const API_MIN_GAP=1200;
+let _apiLast=0,_apiChain=Promise.resolve();
+function apiGate(){
+ _apiChain=_apiChain.then(async()=>{
+  const wait=_apiLast+API_MIN_GAP-Date.now();
+  if(wait>0)await sleep(wait);
+  _apiLast=Date.now();
  });
+ return _apiChain;
+}
+async function api(path,attempt=0){
+ const key=getApiKey();
+ if(!key)throw new Error('API 키가 없습니다.');
+ await apiGate();
+ let r;
+ try{r=await fetch(API_BASE+path,{headers:{'x-apisports-key':key}})}
+ catch(e){
+  if(attempt<3){await sleep(1500*Math.pow(2,attempt));return api(path,attempt+1)}
+  throw new Error('네트워크 오류: '+e.message);
+ }
+ let d={};try{d=await r.json()}catch{}
+ if(r.status===429||r.status>=500){
+  if(attempt<3){
+   const retryAfter=Number(r.headers?.get?.('retry-after'))*1000;
+   await sleep(Number.isFinite(retryAfter)&&retryAfter>0?retryAfter:1500*Math.pow(2,attempt));
+   return api(path,attempt+1);
+  }
+  throw new Error(r.status===429?'요청 한도 초과(429) — 재시도 3회 후에도 실패했습니다.':'서버 오류 HTTP '+r.status);
+ }
+ if(!r.ok)throw new Error('HTTP '+r.status);
+ if(d.errors&&Object.keys(d.errors).length){
+  const e=d.errors;throw new Error(String(Array.isArray(e)?e[0]:Object.values(e)[0]));
+ }
+ return d;
 }
 function validateApi(){
  if(!getApiKey()){$('apiDot').className='dot err';$('apiStatus').textContent='❌ API 키를 입력하세요';return}
@@ -850,13 +901,15 @@ function validateApi(){
 }
 
 /* ---------- competitions ---------- */
-const CUP_LEAGUES={'2':{name:'UEFA 챔피언스리그',short:'UCL'},'3':{name:'UEFA 유로파리그',short:'UEL'},'848':{name:'UEFA 컨퍼런스리그',short:'UECL'}};
-const isCup=l=>!!CUP_LEAGUES[String(l)];
-const TSDB_LEAGUE_ID={'39':4328,'78':4331,'135':4332,'61':4334,'140':4335,'253':4346,'2':4480,'3':4481,'848':5071};
-const TSDB_LEAGUE_HINT={'292':'k league 1','293':'k league 2','98':'j1 league','99':'j2 league','2':'champions league','3':'europa league','848':'conference league'};
+/* 달력연도로 도는 리그만 TSDB에서 'YYYY' 형태를 먼저 시도합니다. */
+const isCalendarSeason=l=>LEAGUE_INFO[String(l)]?.season==='cal';
+const TSDB_LEAGUE_ID={'39':4328,'78':4331,'135':4332,'61':4334,'140':4335,'253':4346,'2':4480};
+const TSDB_LEAGUE_HINT={'292':'k league 1','98':'j1 league','2':'champions league'};
 
 /* ---------- TheSportsDB fallback ---------- */
-const TSDB_KEYS=['3','123','1'];let _tsdbKey=null,_tsdbLeagues=null;
+/* '3'이 TheSportsDB의 공개 무료 테스트 키입니다.
+   예전에 함께 넣어둔 '123'은 후원자용 키라 쓰지 않습니다. */
+const TSDB_KEYS=['3'];let _tsdbKey=null,_tsdbLeagues=null;
 async function tsdb(path){
  const keys=_tsdbKey?[_tsdbKey]:TSDB_KEYS;let last=null;
  for(const k of keys){
@@ -917,8 +970,7 @@ async function fetchSeasonPrimary(league,season){
   calls++;
   rows.push(...(d.response||[]).map(apiToRow));
   total=d.paging?.total||1;page++;
-  if(page<=total)await sleep(250);
- }while(page<=total&&page<=8);
+ }while(page<=total&&page<=8);   /* 요청 간격은 apiGate가 관리합니다 */
  if(!rows.length)throw new Error('시즌 경기 데이터가 비어 있습니다.');
  return {rows,source:'primary',calls};
 }
@@ -926,7 +978,7 @@ async function fetchSeasonFallback(league,season){
  const lid=await tsdbResolveLeagueId(league);
  if(!lid)throw new Error('대체 소스에서 리그를 찾지 못했습니다.');
  const y=Number(season);
- const tries=isCup(league)||league!=='253'?[`${y}-${y+1}`,`${y}`]:[`${y}`,`${y}-${y+1}`];
+ const tries=isCalendarSeason(league)?[`${y}`,`${y}-${y+1}`]:[`${y}-${y+1}`,`${y}`];
  for(const sv of tries){
   try{
    const d=await tsdb(`/eventsseason.php?id=${lid}&s=${sv}`);
@@ -940,10 +992,7 @@ async function fetchSeasonFallback(league,season){
    그래서 완료 경기가 최소치에 못 미치면 이전 시즌을 자동으로 끌어와 합칩니다.
    시간 감쇠(반감기)가 오래된 경기의 가중치를 알아서 낮추므로, 옛 시즌이
    섞여도 최근 폼이 지배적으로 반영됩니다. */
-/* 현재 드롭다운 선택과 메모리에 있는 데이터가 일치하는지 확인합니다.
-   이게 없으면 EPL을 불러온 뒤 라리가로 바꿔 분석할 때
-   라리가 팀을 EPL 목록에서 찾게 되어 "이 리그에 없는 팀" 오류가 납니다. */
-/* 리그의 기본 시즌: 유럽은 시즌 시작 연도, MLS는 달력연도. */
+/* 리그의 기본 시즌: 추춘제는 시즌 시작 연도, 춘추제(K리그·MLS)는 달력연도. */
 function currentSeasonFor(league){
  const now=new Date(),y=now.getFullYear();
  if(LEAGUE_INFO[league]?.season==='cal')return y;
@@ -956,13 +1005,33 @@ async function ensureLeague(league){
  return loadSeasonData(league,currentSeasonFor(league));
 }
 const DATASETS={};   // 리그ID -> 시즌 데이터
+/* 사이드바 버튼은 인자 없이 loadSeasonData()를 불러서 항상 EPL(기본값 '39')만
+   받아왔습니다. 입력된 경기의 리그를 실제로 불러옵니다. */
+async function loadPlannedSeasons(){
+ if(!busyGuard('시즌 데이터 로드'))return;
+ try{
+  const {byLeague}=currentPlan();
+  const lgs=Object.keys(byLeague).sort((a,b)=>byLeague[b].length-byLeague[a].length);
+  if(!lgs.length){
+   $('seasonDot').className='dot err';
+   $('seasonStatus').textContent='먼저 경기를 입력하세요';
+   $('seasonSummary').innerHTML='<span class="small">팀 이름을 넣으면 어떤 리그를 받아야 하는지 자동으로 정해집니다.</span>';
+   return;
+  }
+  for(let i=0;i<lgs.length;i++){
+   const info=LEAGUE_INFO[lgs[i]];
+   $('seasonStatus').textContent=`${info.flag} ${info.name} (${i+1}/${lgs.length}) 불러오는 중...`;
+   await loadSeasonData(lgs[i],currentSeasonFor(lgs[i]));
+  }
+ }finally{busyDone()}
+}
 async function loadSeasonData(leagueArg,seasonArg){
  const league=String(leagueArg||'39'),season=Number(seasonArg||currentSeasonFor(league));
  const minM=T.minMatches(),cacheKey=`${league}-${season}-${minM}`;
  $('seasonDot').className='dot';$('seasonStatus').textContent='불러오는 중...';
  $('seasonSummary').textContent='';
  const cached=readSeasonCache(cacheKey);
- if(cached){SEASON=cached;DATASETS[league]=cached;paintSeasonStatus();return SEASON}
+ if(cached){SEASON=cached;DATASETS[league]=cached;paintSeasonStatus();paintFallbackStatus();return SEASON}
  let rows=[],calls=0,source=null,used=[],errs=[];
  for(let back=0;back<=2;back++){
   const sv=season-back;
@@ -1027,7 +1096,7 @@ async function loadSeasonData(leagueArg,seasonArg){
   sources,mixedSource,mergedIds};
  DATASETS[league]=SEASON;
  writeSeasonCache(cacheKey,SEASON);
- paintSeasonStatus();
+ paintSeasonStatus();paintFallbackStatus();
  return SEASON;
 }
 function teamIndex(rows){
@@ -1035,34 +1104,53 @@ function teamIndex(rows){
  rows.forEach(r=>{if(r.homeId)m.set(r.homeId,r.homeName);if(r.awayId)m.set(r.awayId,r.awayName)});
  return [...m].map(([id,name])=>({id,name}));
 }
-function readSeasonCache(k){
- try{
-  const all=JSON.parse(localStorage.getItem(SEASON_KEY)||'{}');
-  const c=all[k];
-  if(c&&Date.now()-c.ts<6*3600*1000)return c;
- }catch{}
- return null;
+const CACHE_TTL=6*3600*1000;
+function readAllCache(){
+ try{const all=JSON.parse(localStorage.getItem(SEASON_KEY)||'{}');
+  return (all&&typeof all==='object')?all:{}}
+ catch{return {}}
 }
+function readSeasonCache(k){
+ const c=readAllCache()[k];
+ return (c&&Date.now()-c.ts<CACHE_TTL)?c:null;
+}
+/* 예전에는 만료 항목을 읽을 때 무시만 하고 지우지 않아 저장소가 계속 불어났고,
+   5MB 쿼터를 넘기면 catch가 조용히 삼켜서 그 뒤로 캐시가 영영 동작하지
+   않았습니다. 쓰기 전에 만료분을 치우고, 그래도 넘치면 오래된 것부터 버립니다. */
 function writeSeasonCache(k,v){
- try{
-  const all=JSON.parse(localStorage.getItem(SEASON_KEY)||'{}');
-  all[k]=v;localStorage.setItem(SEASON_KEY,JSON.stringify(all));
- }catch(e){console.warn('cache write failed',e)}
+ const all=readAllCache();
+ Object.keys(all).forEach(x=>{if(!all[x]||!all[x].ts||Date.now()-all[x].ts>CACHE_TTL)delete all[x]});
+ all[k]=v;
+ for(;;){
+  try{localStorage.setItem(SEASON_KEY,JSON.stringify(all));return}
+  catch(e){
+   const older=Object.keys(all).filter(x=>x!==k).sort((a,b)=>all[a].ts-all[b].ts);
+   if(!older.length){
+    console.warn('시즌 캐시 저장 실패(용량 초과). 이번 세션은 메모리로만 동작합니다.',e);
+    try{localStorage.removeItem(SEASON_KEY)}catch{}
+    return;
+   }
+   delete all[older[0]];
+  }
+ }
 }
 function clearSeasonCache(){
+ if(BUSY){toast(`${BUSY} 작업 중에는 캐시를 비울 수 없습니다.`,true);return}
  try{localStorage.removeItem(SEASON_KEY)}catch{}
  /* DATASETS를 비우지 않으면 ensureLeague()가 계속 옛 데이터를 돌려주어
     "캐시 비우기"가 아무 효과도 없었습니다. */
  Object.keys(DATASETS).forEach(k=>delete DATASETS[k]);
  SEASON=null;BT=null;$('backtestArea').innerHTML='';
  $('btDot').className='dot';$('btStatus').textContent='미실행';
- paintSeasonStatus();
+ paintSeasonStatus();paintFallbackStatus();
+ toast('캐시와 메모리 데이터를 모두 비웠습니다.');
 }
 /* 등록부 전체 보기 — 어떤 팀을 어떤 이름으로 부를 수 있는지 확인용 */
 function showTeamList(){
  const byLg={};
  ALL_TEAMS.forEach(en=>{const l=TEAM_LEAGUE[en];(byLg[l]=byLg[l]||[]).push(en)});
- let h=`<div class="card layer-card"><div class="card-title">🔍 등록된 팀 ${ALL_TEAMS.length}개</div>
+ let h=`<div class="card layer-card"><div class="card-title">🔍 등록된 팀 ${ALL_TEAMS.length}개
+ <button class="clear-x" style="float:right" onclick="$('teamListArea').innerHTML=''" aria-label="팀 목록 닫기">✕</button></div>
  <div class="small" style="margin-bottom:8px">아래 이름 중 아무거나 입력하시면 됩니다. 리그는 자동으로 판정됩니다.</div>`;
  Object.keys(byLg).sort((a,b)=>byLg[b].length-byLg[a].length).forEach(l=>{
   const I=LEAGUE_INFO[l];
@@ -1071,14 +1159,29 @@ function showTeamList(){
    byLg[l].sort().map(en=>`<tr><td>${esc(en)}</td><td>${esc(TEAM_KO[en]||'—')}</td></tr>`).join('')
   }</table></details>`;
  });
- $('backtestArea').innerHTML=h+'</div>';
- $('backtestArea').scrollIntoView?.({behavior:'smooth',block:'start'});
+ /* 예전에는 backtestArea에 써서 검증 결과를 통째로 날렸습니다. */
+ $('teamListArea').innerHTML=h+'</div>';
+ $('teamListArea').scrollIntoView?.({behavior:'smooth',block:'start'});
 }
 function paintRegistryInfo(){
  if($('regCount'))$('regCount').textContent=ALL_TEAMS.length;
  const byLg={};ALL_TEAMS.forEach(en=>{const l=TEAM_LEAGUE[en];byLg[l]=(byLg[l]||0)+1});
  if($('regLeagues'))$('regLeagues').innerHTML=Object.keys(byLg)
   .map(l=>`${LEAGUE_INFO[l].flag}${LEAGUE_INFO[l].name}`).join(' · ');
+}
+/* 이 표시등은 "분석 전 · 대기중"에서 한 번도 바뀌지 않았습니다.
+   실제로 어떤 소스가 쓰였는지 보여줍니다. */
+function paintFallbackStatus(){
+ const dot=$('fallbackDot'),st=$('fallbackStatus');
+ if(!dot||!st)return;
+ const ds=Object.values(DATASETS);
+ if(!ds.length){dot.className='dot';st.textContent='분석 전 · 대기중';return}
+ const srcs=new Set();ds.forEach(d=>(d.sources||[d.source]).forEach(x=>x&&srcs.add(x)));
+ if(srcs.has('fallback')&&srcs.has('primary')){
+  dot.className='dot err';st.textContent='혼합 · 일부 시즌은 대체 소스';
+ }else if(srcs.has('fallback')){
+  dot.className='dot err';st.textContent='대체 소스(TheSportsDB) 사용 중';
+ }else{dot.className='dot ok';st.textContent='API-Football 정상 · 대체 미사용'}
 }
 function paintSeasonStatus(){
  const dot=$('seasonDot'),st=$('seasonStatus'),sum=$('seasonSummary');
@@ -1098,11 +1201,13 @@ function paintSeasonStatus(){
  if(SEASON.errs&&SEASON.errs.length)
   h+=`<br><details style="margin-top:6px"><summary style="color:var(--warning)">데이터 수집 경고 ${SEASON.errs.length}건 (펼쳐보기)</summary>`
    +SEASON.errs.map(e=>`<span style="color:var(--danger)">· ${esc(e)}</span>`).join('<br>')+'</details>';
+ /* 예전 안내는 이 화면에 존재하지도 않는 입력칸과 드롭다운을 조작하라고
+    했습니다. 실제로 할 수 있는 일만 적습니다. */
  if(thin)
   h+=`<br><span style="color:var(--danger)"><b>⚠️ 데이터 부족.</b> 팀 ${nTeams}개 / 완료 ${fin}경기로는 정상 분석이 어렵습니다.<br>`
-   +`① 무료 플랜은 최근 시즌을 막아둘 수 있습니다 → 시즌을 <b>2023</b>으로 낮춰 시도 `
-   +`② 시즌 개막 직후 → "최소 학습 경기 수"를 <b>300</b>으로 상향 `
-   +`③ 위 경고를 펼쳐 API가 돌려준 실제 사유를 확인하세요.</span>`;
+   +`① 위 "데이터 수집 경고"를 펼쳐 API가 돌려준 실제 사유를 확인하세요. 무료 플랜은 최근 시즌을 막아두는 경우가 많습니다.<br>`
+   +`② 시즌 개막 직후라면 완료 경기 자체가 없습니다. 이 프로그램은 직전 시즌까지 자동으로 보강하지만, 그래도 부족하면 시간이 지나야 합니다.<br>`
+   +`③ "캐시 비우기" 후 다시 불러오면 실패한 시즌을 재시도합니다.</span>`;
  /* 자동완성 목록은 등록부가 관리하므로 여기서 건드리지 않습니다. */
  sum.innerHTML=h;
 }
@@ -1115,25 +1220,28 @@ function paintSeasonStatus(){
 function fitStrength(rows,refDate){
  const ref=refDate?new Date(refDate).getTime():Date.now();
  const hl=T.halfLife(),k=T.shrink(),iters=T.iters(),hsplit=T.homeSplit();
- const ms=rows.filter(r=>r.finished&&new Date(r.date).getTime()<ref);
+ const ms=rows.filter(r=>r.finished&&rowTime(r)<ref);
  if(ms.length<10){fitStrength.lastReason=`완료된 경기 ${ms.length}개 (최소 10개 필요)`;return null}
  fitStrength.lastReason='';
- ms.forEach(r=>{
-  const days=(ref-new Date(r.date).getTime())/86400000;
-  r._w=Math.pow(0.5,days/hl);
- });
+ /* 가중치는 지역 배열에 둡니다. 예전에는 r._w로 원본 행을 덮어써서 캐시에
+    직렬화되고, 백테스트가 매 반복마다 공유 데이터를 흔들었습니다. */
+ const N=ms.length,W=new Float64Array(N);
+ for(let i=0;i<N;i++)W[i]=Math.pow(0.5,((ref-rowTime(ms[i]))/86400000)/hl);
  let sw=0,shg=0,sag=0;
- ms.forEach(r=>{sw+=r._w;shg+=r._w*r.hg;sag+=r._w*r.ag});
+ for(let i=0;i<N;i++){sw+=W[i];shg+=W[i]*ms[i].hg;sag+=W[i]*ms[i].ag}
  const avgH=clamp(shg/sw,.3,4),avgA=clamp(sag/sw,.3,4);
  const ids=[...new Set(ms.flatMap(r=>[r.homeId,r.awayId]))];
- const att={},def={},cnt={},cnt2={},hW={},hW2={},hG={},aW={},aW2={},aG={};
- ids.forEach(i=>{att[i]=1;def[i]=1;cnt[i]=0;cnt2[i]=0;hW[i]=0;hW2[i]=0;hG[i]=0;aW[i]=0;aW2[i]=0;aG[i]=0});
- ms.forEach(r=>{
-  cnt[r.homeId]+=r._w;cnt2[r.homeId]+=r._w*r._w;
-  cnt[r.awayId]+=r._w;cnt2[r.awayId]+=r._w*r._w;
-  hW[r.homeId]+=r._w;hW2[r.homeId]+=r._w*r._w;hG[r.homeId]+=r._w*r.hg;
-  aW[r.awayId]+=r._w;aW2[r.awayId]+=r._w*r._w;aG[r.awayId]+=r._w*r.ag;
- });
+ const att={},def={},cnt={},cnt2={},hW={},hW2={},hG={},aW={},aW2={},aG={},played={};
+ ids.forEach(i=>{att[i]=1;def[i]=1;cnt[i]=0;cnt2[i]=0;hW[i]=0;hW2[i]=0;hG[i]=0;aW[i]=0;aW2[i]=0;aG[i]=0;played[i]=0});
+ /* played를 여기서 같이 세어 둡니다. 예전에는 팀마다 전체 경기를 다시 훑어서
+    (팀 수 × 경기 수) 연산이 fit 한 번마다 통째로 더 붙었습니다. */
+ for(let i=0;i<N;i++){
+  const r=ms[i],w=W[i],w2=w*w;
+  cnt[r.homeId]+=w;cnt2[r.homeId]+=w2;played[r.homeId]++;
+  cnt[r.awayId]+=w;cnt2[r.awayId]+=w2;played[r.awayId]++;
+  hW[r.homeId]+=w;hW2[r.homeId]+=w2;hG[r.homeId]+=w*r.hg;
+  aW[r.awayId]+=w;aW2[r.awayId]+=w2;aG[r.awayId]+=w*r.ag;
+ }
  /* Kish 유효표본수 (Σw)²/Σw² — 가중치 스케일에 영향받지 않습니다.
     이전에는 가중합을 그대로 써서, 오래된 시즌이면 38경기 팀을 2경기 팀처럼
     취급해 강도를 70% 넘게 깎아버리는 버그가 있었습니다. */
@@ -1141,13 +1249,13 @@ function fitStrength(rows,refDate){
  for(let it=0;it<iters;it++){
   const anum={},aden={},dnum={},dden={};
   ids.forEach(i=>{anum[i]=0;aden[i]=0;dnum[i]=0;dden[i]=0});
-  ms.forEach(r=>{
-   const w=r._w;
+  for(let i=0;i<N;i++){
+   const r=ms[i],w=W[i];
    anum[r.homeId]+=w*r.hg; aden[r.homeId]+=w*avgH*def[r.awayId];
    anum[r.awayId]+=w*r.ag; aden[r.awayId]+=w*avgA*def[r.homeId];
    dnum[r.awayId]+=w*r.hg; dden[r.awayId]+=w*avgH*att[r.homeId];
    dnum[r.homeId]+=w*r.ag; dden[r.homeId]+=w*avgA*att[r.awayId];
-  });
+  }
   ids.forEach(i=>{
    if(aden[i]>0)att[i]=clamp(anum[i]/aden[i],.2,3);
    if(dden[i]>0)def[i]=clamp(dnum[i]/dden[i],.2,3);
@@ -1171,8 +1279,7 @@ function fitStrength(rows,refDate){
   }
   hf[i]=clamp(1+(r-1)*hsplit,.8,1.25);
  });
- return {avgH,avgA,att,def,hf,ids,nMatches:ms.length,
-  played:Object.fromEntries(ids.map(i=>[i,ms.filter(r=>r.homeId===i||r.awayId===i).length])),
+ return {avgH,avgA,att,def,hf,ids,nMatches:N,played,
   nEff:Object.fromEntries(ids.map(i=>[i,nEffOf(cnt[i],cnt2[i])]))};
 }
 /* Dixon-Coles low-score correction: plain Poisson under-predicts 0-0 and 1-1 */
@@ -1211,7 +1318,32 @@ function scoreMatrix(lh,la,rho){
 /* ================= MODULE 3: BACKTEST / CALIBRATION ================= */
 function brier(p,y){return p.reduce((s,x,i)=>s+Math.pow(x-(i===y?1:0),2),0)}
 function logloss(p,y){return -Math.log(clamp(p[y],1e-9,1))}
+/* 이동블록 부트스트랩 — 시계열의 자기상관을 유지한 채 재표집합니다.
+   블록 길이는 n^(1/3) (Politis-Romano 계열의 표준적인 경험칙).
+   난수는 고정 시드라 같은 데이터면 항상 같은 구간이 나옵니다. */
+function blockBootstrapCI(d,B=1000){
+ const n=d.length;
+ if(n<30)return null;
+ const L=clamp(Math.round(Math.cbrt(n)),2,Math.max(2,Math.floor(n/4)));
+ const nb=Math.ceil(n/L),rnd=lcg(20260908);
+ const means=[];
+ for(let b=0;b<B;b++){
+  let sum=0,c=0;
+  for(let k=0;k<nb&&c<n;k++){
+   const st=Math.floor(rnd()*(n-L+1));
+   for(let j=0;j<L&&c<n;j++,c++)sum+=d[st+j];
+  }
+  means.push(sum/c);
+ }
+ means.sort((a,b)=>a-b);
+ const q=pp=>means[clamp(Math.round(pp*(B-1)),0,B-1)];
+ return {lo:q(.025),hi:q(.975),L,B};
+}
 async function runBacktest(){
+ if(!busyGuard('검증'))return;
+ try{await runBacktestInner()}finally{busyDone()}
+}
+async function runBacktestInner(){
  /* 검증 대상 리그를 명시적으로 정합니다.
     예전에는 전역 SEASON이 비어 있을 때만 리그를 골랐기 때문에, EPL을 한 번
     불러온 뒤 라리가 경기를 입력하고 검증을 누르면 EPL 데이터로 돌려놓고
@@ -1225,7 +1357,7 @@ async function runBacktest(){
  const DS=await ensureLeague(league);
  if(!DS){$('btDot').className='dot err';
   $('btStatus').textContent=`${LEAGUE_INFO[league]?.name||league} 데이터를 불러오지 못했습니다`;return}
- const rows=DS.rows.filter(r=>r.finished).sort((a,b)=>new Date(a.date)-new Date(b.date));
+ const rows=DS.rows.filter(r=>r.finished).sort((a,b)=>rowTime(a)-rowTime(b));
  if(rows.length<40){
   $('btDot').className='dot err';
   $('btStatus').textContent=`완료 경기 ${rows.length}개 — 최소 40개 필요`;
@@ -1235,19 +1367,28 @@ async function runBacktest(){
   return;
  }
  const start=Math.max(20,Math.floor(rows.length*T.warmup()));
+ /* 경기마다 전체 재학습하면 O(n²)이라 1,000경기에서 브라우저가 수십 초 멈춥니다.
+    재학습 간격을 두어 fit 횟수를 최대 T.maxFits()회로 제한합니다. 반감기가 120일인
+    모델에서 몇 경기치 최신 정보를 늦게 반영하는 대가는 무시할 수준이고,
+    학습에 쓰는 데이터는 여전히 "그 경기 이전"뿐이라 정보 누출은 없습니다. */
+ const evalN=rows.length-start;
+ const refit=Math.max(1,Math.ceil(evalN/T.maxFits()));
  $('btDot').className='dot';$('btStatus').textContent='실행 중... 0%';
  const preds=[];
+ let S=null,trainedUpto=0,fits=0;
  for(let i=start;i<rows.length;i++){
   const m=rows[i];
-  const S=fitStrength(rows.slice(0,i),m.date);   // 해당 경기 이전 데이터만 사용
+  if(!S||i-trainedUpto>=refit){
+   S=fitStrength(rows.slice(0,i),m.date);trainedUpto=i;fits++;
+  }
   if(!S)continue;
   const pr=predict(S,m.homeId,m.awayId);
   if(!pr)continue;
   const y=m.hg>m.ag?0:m.hg===m.ag?1:2;
   preds.push({p:[pr.home,pr.draw,pr.away],y,date:m.date,season:m.season,
-   home:m.homeName,away:m.awayName,hg:m.hg,ag:m.ag,lh:pr.lh,la:pr.la,trained:i});
+   home:m.homeName,away:m.awayName,hg:m.hg,ag:m.ag,lh:pr.lh,la:pr.la,trained:trainedUpto});
   if((i-start)%20===0){
-   $('btStatus').textContent=`실행 중... ${Math.round((i-start)/(rows.length-start)*100)}%`;
+   $('btStatus').textContent=`실행 중... ${Math.round((i-start)/evalN*100)}%`;
    await sleep(0);
   }
  }
@@ -1262,19 +1403,24 @@ async function runBacktest(){
   x.hit=x.p.indexOf(Math.max(...x.p))===x.y;
  });
  /* 짝지은 차이의 95% 신뢰구간 — "기준보다 나은 게 우연인지" 판정합니다.
-    구간이 0을 포함하면 표본 노이즈와 구분되지 않는다는 뜻입니다. */
+    구간이 0을 포함하면 표본 노이즈와 구분되지 않는다는 뜻입니다.
+    단, 인접한 예측은 학습 데이터가 거의 같고 같은 팀이 반복 등장하므로
+    독립이 아닙니다. sd/√n 을 그대로 쓰면 구간이 실제보다 좁아져 "유의미"가
+    쉽게 나옵니다. 이동블록 부트스트랩으로 그 자기상관을 반영합니다. */
  const d=preds.map(x=>x.bm-x.bb);
  const md=mean(d);
  const sd=Math.sqrt(d.reduce((s2,v)=>s2+(v-md)*(v-md),0)/Math.max(1,d.length-1));
  const se=sd/Math.sqrt(d.length);
- const ci=[md-1.96*se,md+1.96*se];
+ const naiveCi=[md-1.96*se,md+1.96*se];
+ const boot=blockBootstrapCI(d);
+ const ci=boot?[boot.lo,boot.hi]:naiveCi;
  const significant=ci[1]<0;
  const byOutcome=[0,1,2].map(k=>{
   const sub=preds.filter(x=>x.y===k);
   return {k,n:sub.length,hit:sub.filter(x=>x.hit).length};
  });
  const M={
-  n:preds.length,
+  n:preds.length,fits,refit,naiveCi,boot,
   acc:preds.filter(x=>x.hit).length/preds.length,
   brier:mean(preds.map(x=>x.bm)),ll:mean(preds.map(x=>x.lm)),
   baseAcc:preds.filter(x=>base.indexOf(Math.max(...base))===x.y).length/preds.length,
@@ -1303,7 +1449,8 @@ function renderBacktest(){
  <div class="small" style="margin-bottom:10px;line-height:1.7">
   대상: <b>${esc(BT.league)}</b> 실제 경기 <b>${M.n}건</b> · ${fmtD(M.from)} ~ ${fmtD(M.to)}
   ${M.seasons.length?` · ${M.seasons.join(', ')} 시즌`:''}<br>
-  출처: ${BT.source==='primary'?'API-Football':'TheSportsDB'} · 각 경기는 <b>그 경기 이전 데이터만</b>으로 예측했습니다.
+  출처: ${BT.source==='primary'?'API-Football':'TheSportsDB'} · 각 경기는 <b>그 경기 이전 데이터만</b>으로 예측했습니다.<br>
+  모델 재학습 ${M.fits}회(${M.refit}경기마다). 학습 데이터는 항상 예측 대상 경기 이전으로 잘라내므로 정보 누출은 없습니다.
  </div>
  <div class="pro-grid">
   <div class="pro-kpi"><b>적중률</b><span>${(M.acc*100).toFixed(1)}%</span></div>
@@ -1324,6 +1471,23 @@ function renderBacktest(){
    ? '✅ 구간이 전부 0보다 작으므로, 기준보다 나은 것이 <b>표본 우연으로 보기 어렵습니다.</b>'
    : '⚠️ 구간이 0을 포함하므로, 이 차이는 <b>표본 노이즈와 구분되지 않습니다.</b> 경기 수를 늘리거나(이전 시즌 보강) 예측을 신뢰하지 마세요.'}
  </div>
+ <details style="margin-top:10px"><summary>이 구간을 어떻게 구했고, 무엇을 보장하지 않는지</summary>
+ <div class="small" style="margin-top:8px;line-height:1.75">
+  <b>① 구간 계산법.</b> ${M.boot
+   ? `이동블록 부트스트랩(블록 길이 ${M.boot.L}경기, 재표집 ${M.boot.B}회)입니다.
+      인접한 예측은 학습 데이터가 거의 같고 같은 팀이 반복 등장해 서로 독립이 아닙니다.
+      단순 <i>sd/√n</i> 으로 계산하면 구간이 실제보다 좁아져 "유의미"가 쉽게 나옵니다.
+      참고로 그 단순 계산값은 [${M.naiveCi[0].toFixed(4)}, ${M.naiveCi[1].toFixed(4)}] 로,
+      블록 부트스트랩 구간보다 ${((M.naiveCi[1]-M.naiveCi[0])<(M.ci[1]-M.ci[0]))?'좁습니다':'넓습니다'}.`
+   : `표본이 30건 미만이라 부트스트랩을 쓰지 못하고 단순 정규근사(sd/√n)를 썼습니다.
+      인접 예측의 상관을 반영하지 못하므로 실제보다 좁은 구간입니다.`}<br>
+  <b>② 같은 데이터로 상수를 정했습니다.</b> 반감기·ρ·수축 같은 모델 상수는 고정값이지만
+   이 리그 데이터와 무관하게 정해진 값이 아닙니다. 즉 이 결과는 완전한 out-of-sample이
+   아니며, 진짜 성능은 여기 나온 수치보다 나쁠 가능성이 큽니다.<br>
+  <b>③ 배당을 이기는 것과는 다릅니다.</b> 여기서 말하는 "기준"은 워밍업 구간의 홈/무/원정
+   빈도일 뿐입니다. 북메이커 배당보다 낫다는 뜻이 아닙니다.<br>
+  <b>④ 반영하지 않은 것.</b> 부상·출전정지·로테이션·감독 교체·날씨·동기부여.
+ </div></details>
  <table class="coverage-table" style="margin-top:12px">
   <tr><th>실제 결과</th><th>경기 수</th><th>모델이 맞힌 비율</th></tr>
   ${M.byOutcome.map(o=>`<tr><td>${names[o.k]}</td><td>${o.n}</td><td>${o.n?((o.hit/o.n)*100).toFixed(1):'—'}%</td></tr>`).join('')}
@@ -1378,22 +1542,8 @@ function downloadBacktestCsv(){
   a.href=url;a.download=`backtest_${new Date().toISOString().slice(0,10)}.csv`;
   document.body.appendChild(a);a.click();document.body.removeChild(a);
   setTimeout(()=>URL.revokeObjectURL(url),1000);
- }catch(e){console.warn(e);alert('CSV 저장 실패: '+e.message)}
+ }catch(e){console.warn(e);toast('CSV 저장 실패: '+e.message,true)}
 }
-
-/* ---------- fixture list ---------- */
-
-/* ---------- match slots ---------- */
-/* ================= 한글 팀명 사전 & 매칭 =================
-   API-Football / TheSportsDB 모두 한글 검색을 지원하지 않습니다.
-   그래서 한글 → 영문 정식명으로 먼저 바꾼 뒤, 시즌 데이터의 실제 팀명과
-   유사도 매칭을 합니다. 별칭(맨유, 뮌헨 등)도 함께 등록되어 있습니다. */
-
-/* Levenshtein 유사도 — 영문끼리 "Man United" vs "Manchester United" 같은 표기차 흡수 */
-/* 팀명 매칭: 한글이면 사전으로 영문 변환 → 시즌 데이터 팀명과 유사도 비교.
-   결과가 애매하면 후보 목록을 함께 돌려줘 사용자가 고를 수 있게 합니다. */
-/* 토큰 유사도 — "Man United" vs "Manchester United" 처럼 축약 표기를 잡습니다.
-   완전 일치 1.0, 접두사 일치 0.6으로 채점합니다. */
 
 /* ---------- 최근 폼 · 상대전적 (이미 받아둔 시즌 데이터에서 계산, 네트워크 호출 없음) ---------- */
 /* 결과 카드용 최근폼·상대전적 블록. 전부 이미 받아둔 시즌 데이터에서 계산하므로
@@ -1414,12 +1564,12 @@ function h2hFromSeason(homeId,awayId,DS,limit=5){
  const S=DS||SEASON; if(!S)return [];
  return S.rows.filter(r=>r.finished&&
    ((r.homeId===homeId&&r.awayId===awayId)||(r.homeId===awayId&&r.awayId===homeId)))
-  .sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,limit);
+  .sort((a,b)=>rowTime(b)-rowTime(a)).slice(0,limit);
 }
 function recentFor(teamId,limit=5,DS){
  const S=DS||SEASON; if(!S)return [];
  return S.rows.filter(r=>r.finished&&(r.homeId===teamId||r.awayId===teamId))
-  .sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,limit)
+  .sort((a,b)=>rowTime(b)-rowTime(a)).slice(0,limit)
   .map(r=>{
    const home=r.homeId===teamId;
    const gf=home?r.hg:r.ag,ga=home?r.ag:r.hg;
@@ -1431,17 +1581,37 @@ function recentFor(teamId,limit=5,DS){
 /* ---------- analysis ---------- */
 /* 해석이 끝난 경기 하나를 분석합니다. 팀 식별은 이미 대시보드에서 끝났습니다. */
 function analyzeMatch(m,S,strength){
+ /* 예전에는 부분문자열이 "처음 걸리는" 팀을 그대로 골랐습니다. 'Inter'가
+    'Inter Miami'에 먼저 걸리는 식의 조용한 오매칭이 가능했습니다.
+    이미 있는 점수 함수로 전 팀을 채점해 최고점을 고르고, 1·2위가 붙어 있으면
+    찍지 않고 실패로 돌립니다. */
  const findId=en=>{
-  const t=S.teams.find(x=>normName(x.name)===normName(en));
-  if(t)return t;
-  return S.teams.find(x=>normName(x.name).includes(normName(en))||normName(en).includes(normName(x.name)))||null;
+  const q=normName(en);
+  const exact=S.teams.filter(x=>normName(x.name)===q);
+  if(exact.length===1)return {t:exact[0]};
+  if(exact.length>1)return {err:`"${en}"와 이름이 같은 팀이 데이터에 ${exact.length}개 있습니다.`};
+  let best=null,second=null;
+  S.teams.forEach(x=>{
+   const nx=normName(x.name);
+   let sc=Math.max(tokenScore(en,x.name),simRatio(q,nx));
+   if(nx.includes(q)||q.includes(nx))
+    sc=Math.max(sc,.8*Math.min(q.length,nx.length)/Math.max(q.length,nx.length,1));
+   if(!best||sc>best.sc){second=best;best={t:x,sc}}
+   else if(!second||sc>second.sc)second={t:x,sc};
+  });
+  if(!best||best.sc<.6)
+   return {err:`"${en}" 와 충분히 일치하는 팀이 ${LEAGUE_INFO[m.league]?.name} 데이터에 없습니다.`};
+  if(second&&best.sc-second.sc<.08)
+   return {err:`"${en}" 가 ${best.t.name} / ${second.t.name} 중 어느 쪽인지 확정할 수 없어 분석을 중단했습니다.`};
+  return {t:best.t};
  };
- const ht=findId(m.home.en),at=findId(m.away.en);
+ const fh=findId(m.home.en),fa=findId(m.away.en);
+ const ht=fh.t,at=fa.t;
  const base={slot:m.slot,home:m.home.en,away:m.away.en,
   homeKo:m.home.ko,awayKo:m.away.ko,league:m.league,
   leagueName:LEAGUE_INFO[m.league]?.name,flag:LEAGUE_INFO[m.league]?.flag,
   source:S.source,mixedSource:!!S.mixedSource};
- if(!ht||!at)return {...base,error:`${!ht?m.home.en:m.away.en} 이(가) ${LEAGUE_INFO[m.league]?.name} 데이터에 없습니다. 리그 판정이 맞는지 확인해 주세요.`};
+ if(!ht||!at)return {...base,error:(fh.err||fa.err)+' 리그 판정이 맞는지 확인해 주세요.'};
  if(ht.id===at.id)return {...base,error:'홈팀과 원정팀이 같습니다.'};
  const pr=predict(strength,ht.id,at.id);
  if(!pr){
@@ -1451,21 +1621,29 @@ function analyzeMatch(m,S,strength){
  const nh=strength.played[ht.id]||0,na=strength.played[at.id]||0;
  const probs=[pr.home,pr.draw,pr.away];
  const layers=[
-  {k:'홈팀 경기 표본',w:2,ok:nh>=5,applies:true},
-  {k:'원정팀 경기 표본',w:2,ok:na>=5,applies:true},
-  {k:'리그 데이터량',w:1,ok:strength.nMatches>=60,applies:true},
+  {k:'홈팀 경기 표본 5경기 이상',w:2,ok:nh>=5},
+  {k:'원정팀 경기 표본 5경기 이상',w:2,ok:na>=5},
+  {k:'리그 완료 경기 60건 이상',w:1,ok:strength.nMatches>=60},
   /* 백테스트는 한 리그에서만 돌립니다. 다른 리그의 검증 결과를 이 경기의
      신뢰도로 인정하면 안 됩니다. */
-  {k:'실제 경기 검증 통과',w:2,
-   ok:!!(BT&&BT.metrics.significant&&BT.leagueId===String(m.league)),applies:true}
+  {k:'이 리그 백테스트 통과',w:2,
+   ok:!!(BT&&BT.metrics.significant&&BT.leagueId===String(m.league))}
  ];
  const totW=layers.reduce((x,y)=>x+y.w,0),okW=layers.reduce((x,y)=>x+(y.ok?y.w:0),0);
  const conf=Math.round(100*(okW/totW)*(S.source==='primary'?1:.9));
  const labels=['HOME','DRAW','AWAY'];
- const top=probs.map((p,j)=>({p,j})).sort((x,y)=>y.p-x.p)[0];
+ /* CONF는 "데이터를 얼마나 갖췄나"일 뿐이라, 데이터가 충분해도 세 결과가
+    33/33/33이면 픽할 이유가 없습니다. 확률 자체의 우위도 함께 봅니다. */
+ const ranked=probs.map((p,j)=>({p,j})).sort((x,y)=>y.p-x.p);
+ const top=ranked[0],margin=top.p-ranked[1].p;
+ const noBet=[];
+ if(conf<T.pickThreshold())noBet.push(`신뢰도 ${conf} < ${T.pickThreshold()}`);
+ if(top.p<T.minTopProb())noBet.push(`최고 확률 ${pct(top.p)} < ${pct(T.minTopProb())}`);
+ if(margin<T.minMargin())noBet.push(`1·2위 확률 차 ${pct(margin)} < ${pct(T.minMargin())}`);
  return {...base,e:{lh:pr.lh,la:pr.la},
   m:{score:pr.score,scoreP:pr.scoreP,over:pr.over,btts:pr.btts},
-  probs,conf,pick:conf<T.pickThreshold()?'NO BET':labels[top.j],layers,
+  probs,conf,margin,topProb:top.p,noBetReason:noBet,
+  pick:noBet.length?'NO BET':labels[top.j],layers,
   att:[strength.att[ht.id],strength.att[at.id]],
   def:[strength.def[ht.id],strength.def[at.id]],
   hfac:strength.hf[ht.id],played:[nh,na],
@@ -1474,12 +1652,13 @@ function analyzeMatch(m,S,strength){
 async function runV4Analysis(){
  /* currentPlan()이 try 밖에 있으면 팀 해석 중 예외가 났을 때 아무 메시지도
     없이 분석이 멈추고 버튼도 잠긴 채로 남습니다. 전부 try 안으로 넣습니다. */
+ if(!busyGuard('분석'))return;
  const btn=document.querySelector('.btn-analyze');
  const rows=[];
  try{
   const {byLeague,problems}=currentPlan();
   const leagues=Object.keys(byLeague);
-  if(!leagues.length){alert('팀 이름을 입력하세요. 리그는 자동으로 판정됩니다.');return}
+  if(!leagues.length){toast('팀 이름을 입력하세요. 리그는 자동으로 판정됩니다.',true);return}
   btn&&(btn.disabled=true);
   for(let i=0;i<leagues.length;i++){
    const lg=leagues[i],info=LEAGUE_INFO[lg];
@@ -1503,7 +1682,6 @@ async function runV4Analysis(){
      r.h2h=h2hFromSeason(r.homeTeamId,r.awayTeamId,S);
      r.recentH=recentFor(r.homeTeamId,5,S);
      r.recentA=recentFor(r.awayTeamId,5,S);
-     r.strengthRef=strength;
     }
     rows.push(r);
    });
@@ -1511,11 +1689,19 @@ async function runV4Analysis(){
   problems.forEach(slot=>rows.push({slot,home:$('home-'+slot).value,away:$('away-'+slot).value,
    error:'팀 이름을 인식하지 못했습니다. 자동완성 목록에서 골라 주세요.'}));
   rows.sort((a,b)=>a.slot-b.slot);
-  lastRows=rows;
   render(rows);
-  $('briefing').value=briefing(rows);setCopyStatus('');
+  /* 사용자가 손댄 브리핑을 경고 없이 날리지 않습니다. */
+  const ta=$('briefing'),next=briefing(rows);
+  if(ta.value&&ta.value!==_lastBriefing){
+   _pendingBriefing=next;
+   setCopyStatus('새 브리핑이 준비됐습니다. 지금 내용은 직접 수정하신 것이라 그대로 두었습니다 — "새 브리핑으로 교체"를 누르면 바뀝니다.',true);
+   $('briefSwap').hidden=false;
+  }else{
+   ta.value=next;_lastBriefing=next;_pendingBriefing=null;
+   $('briefSwap').hidden=true;setCopyStatus('');
+  }
  }catch(e){console.error(e);$('resultArea').innerHTML=`<div class="card" style="color:var(--danger)">오류: ${esc(e.message)}</div>`}
- finally{if(btn)btn.disabled=false}
+ finally{if(btn)btn.disabled=false;busyDone()}
 }
 function render(rows){
  const list=rows.slice().sort((a,b)=>a.slot-b.slot);
@@ -1525,7 +1711,8 @@ function render(rows){
  <div class="pro-grid">
   <div class="pro-kpi"><b>분석 리그</b><span>${lgs.length}</span></div>
   <div class="pro-kpi"><b>픽 생성</b><span>${ok.filter(x=>x.pick!=='NO BET').length}</span></div>
-  <div class="pro-kpi"><b>NO BET</b><span>${ok.filter(x=>x.pick==='NO BET').length}</span></div>
+  <div class="pro-kpi"><b>NO BET</b><span>${ok.filter(x=>x.pick==='NO BET').length}</span>
+   <div class="small">신뢰도 ${T.pickThreshold()} 미만이거나 확률 우위 부족</div></div>
   <div class="pro-kpi"><b>검증</b><span>${BT?(BT.metrics.significant?'✅ 통과':'⚠️ 불충분'):'미실행'}</span>
    ${BT?`<div class="small">${esc(BT.league)} 한정</div>`:''}</div>
  </div>
@@ -1537,12 +1724,19 @@ function render(rows){
    <div class="r-comment">${esc(r.error)}</div></div>`;return;
   }
   const cls=r.conf>=75?'real':r.conf>=55?'partial':'none',p=r.probs;
+  const cardWarn=[];
+  if(r.mixedSource)cardWarn.push('시즌별 데이터 출처가 달라 팀 표본이 나뉘어 있을 수 있습니다.');
+  else if(r.source!=='primary')cardWarn.push('대체 소스(TheSportsDB) 데이터입니다. 슈팅 등 세부 지표가 없습니다.');
+  if(r.league==='2')cardWarn.push('서로 다른 리그 소속이라 UEFA 대항전 데이터로 분석했습니다. 이 데이터는 여러 리그 팀이 한 풀에 섞여 있어 공격/수비 강도의 "리그 평균 1.00" 기준이 리그 내 비교만큼 의미 있지 않습니다.');
+  if(r.played[0]<5||r.played[1]<5)cardWarn.push('한 팀 이상 표본이 5경기 미만이라 강도 추정이 불안정합니다.');
   h+=`<div class="result-card ${r.pick==='NO BET'?'block':''}">
    <div class="pick-head"><div class="r-match">MATCH ${r.slot} · ${esc(r.homeKo||r.home)} vs ${esc(r.awayKo||r.away)}</div>
     <span class="badge ${cls}">CONF ${r.conf}</span></div>
    <div class="small" style="color:var(--muted);margin-bottom:6px">${r.flag} ${esc(r.leagueName)} · ${esc(r.home)} vs ${esc(r.away)}</div>
    <div class="pick-main">${r.pick}</div>
    <div class="confidence">H ${pct(p[0])} · D ${pct(p[1])} · A ${pct(p[2])}</div>
+   ${r.pick==='NO BET'&&r.noBetReason?.length
+     ?`<div class="small" style="margin-top:4px">NO BET 사유: ${esc(r.noBetReason.join(' · '))}</div>`:''}
    <div class="data-grid">
     <div class="data-row"><span>예상득점 λ</span><b>${n(r.e.lh)} / ${n(r.e.la)}</b></div>
     <div class="data-row"><span>최빈 스코어</span><b>${r.m.score} (${pct(r.m.scoreP)})</b></div>
@@ -1552,6 +1746,7 @@ function render(rows){
     <div class="data-row"><span>수비강도</span><b>${n(r.def[0])} / ${n(r.def[1])}</b></div>
    </div>
    <div class="r-comment">공격/수비 강도는 리그 평균 1.00 기준입니다. 공격 1.20이면 평균보다 20% 더 득점, 수비 0.85면 15% 덜 실점하는 팀입니다. 홈 보정 ${n(r.hfac)}.</div>
+   ${cardWarn.length?`<div class="warn-box">⚠️ ${cardWarn.map(esc).join('<br>⚠️ ')}</div>`:''}
    ${recentBlock(r)}
    <details style="margin-top:10px"><summary>신뢰도 구성</summary><table class="coverage-table">${
     r.layers.map(x=>`<tr><td>${esc(x.k)}</td><td><span class="badge ${x.ok?'real':'none'}">${x.ok?'OK':'부족'}</span></td></tr>`).join('')
@@ -1562,7 +1757,10 @@ function render(rows){
 }
 /* ---------- AI BRIEFING ---------- */
 
-function srcLabel(r){return r.source==='primary'?'API-Football':'TheSportsDB(대체)'}
+function srcLabel(r){
+ if(r.mixedSource)return 'API-Football + TheSportsDB(혼합)';
+ return r.source==='primary'?'API-Football':'TheSportsDB(대체)';
+}
 function briefingPrompt(rows){
  const ok=rows.filter(x=>x&&!x.error), bad=rows.filter(x=>x&&x.error);
  const L=[];
@@ -1574,15 +1772,19 @@ function briefingPrompt(rows){
  L.push(`- 대회: ${lgs.join(', ')||'-'}`);
  L.push(`- 생성 시각: ${new Date().toLocaleString('ko-KR')}`);
  L.push('- 계산 방식: Dixon-Coles 공격/수비 강도 모델. 시즌 전체 경기로 각 팀의 공격력·수비력을 리그 평균 1.00 기준으로 추정하고(상대 수준·경기 시점 가중 반영), 저스코어 보정을 적용한 포아송으로 확률 산출');
- L.push(`- 설정: 반감기 ${T.halfLife()}일 / 무승부보정 ρ=${T.rho()} / 홈개별성 ${Math.round(T.homeSplit()*100)}% / 수축 ${T.shrink()} / 픽기준 ${T.pickThreshold()}`);
+ L.push(`- 설정: 반감기 ${T.halfLife()}일 / 저스코어보정 ρ=${T.rho()} / 홈개별성 ${Math.round(T.homeSplit()*100)}% / 수축 ${T.shrink()} / 픽기준 CONF ${T.pickThreshold()}·확률 ${pct(T.minTopProb())}·마진 ${pct(T.minMargin())}`);
  if(BT){const M=BT.metrics;
   L.push(`- **실제 경기 검증**: ${BT.league} 실제 ${M.n}경기(${new Date(M.from).toISOString().slice(0,10)}~${new Date(M.to).toISOString().slice(0,10)}), 각 경기를 그 이전 데이터만으로 예측`);
   L.push(`  · 적중률 ${(M.acc*100).toFixed(1)}% (기준 ${(M.baseAcc*100).toFixed(1)}%) · Brier ${M.brier.toFixed(4)} (기준 ${M.baseBrier.toFixed(4)}) · Log Loss ${M.ll.toFixed(4)} (기준 ${M.baseLl.toFixed(4)})`);
-  L.push(`  · Brier 차이 95% 신뢰구간 [${M.ci[0].toFixed(4)}, ${M.ci[1].toFixed(4)}]`);
+  L.push(`  · Brier 차이 95% 신뢰구간 [${M.ci[0].toFixed(4)}, ${M.ci[1].toFixed(4)}]`
+   +(M.boot?` (이동블록 부트스트랩, 블록 ${M.boot.L}경기 · ${M.boot.B}회 재표집 — 인접 예측의 상관을 반영)`:' (정규근사 — 표본이 적어 상관 미반영)'));
+  L.push(`  · 모델 재학습 ${M.fits}회(${M.refit}경기마다), 학습 데이터는 항상 대상 경기 이전으로 제한`);
+  L.push('  · ⚠️ 모델 상수가 이 데이터와 무관하게 정해진 값이 아니므로 완전한 out-of-sample이 아닙니다. 실제 성능은 이 수치보다 나쁠 수 있습니다.');
+  L.push('  · ⚠️ 여기서 "기준"은 워밍업 구간의 홈/무/원정 빈도이며, 북메이커 배당을 이긴다는 뜻이 아닙니다.');
   L.push(`  · 판정: ${M.significant?'**통계적으로 유의미하게 기준보다 우수**':'**기준과의 차이가 표본 노이즈와 구분되지 않음 — 예측을 신뢰하지 마세요**'}`);
   L.push(`  · 결과별 적중률: ${M.byOutcome.map((o,i)=>['홈승','무','원정승'][i]+' '+(o.n?((o.hit/o.n)*100).toFixed(0):'-')+'%('+o.n+'건)').join(' / ')}`);
  }else{L.push('- ⚠️ 검증 미실행 — 이 모델의 실제 정확도는 확인되지 않았습니다. 예측을 참고 이상으로 받아들이지 마세요.');}
- L.push('- 신뢰도(CONF)는 데이터 확보율이지 예측 적중률이 아닙니다. 기준 미달이면 NO BET으로 표시됩니다.');
+ L.push(`- 신뢰도(CONF)는 데이터 확보율이지 예측 적중률이 아닙니다. CONF ${T.pickThreshold()} 미만이거나, 최고 확률이 ${pct(T.minTopProb())} 미만이거나, 1·2위 확률 차가 ${pct(T.minMargin())} 미만이면 NO BET입니다.`);
  L.push('- 이 모델은 부상, 출전정지, 로테이션, 감독 교체, 날씨, 동기부여, 배당을 전혀 반영하지 않습니다.');
  L.push('');
  L.push(`# 경기 데이터 (${ok.length}경기)`);
@@ -1590,7 +1792,8 @@ function briefingPrompt(rows){
  ok.forEach(r=>{
   L.push('');
   L.push(`## MATCH ${r.slot} — ${r.home} vs ${r.away} (${r.leagueName||"?"})`);
-  L.push(`- 모델 픽: **${r.pick}** (신뢰도 ${r.conf}/100, 데이터 출처 ${srcLabel(r)})`);
+  L.push(`- 모델 픽: **${r.pick}** (신뢰도 ${r.conf}/100, 데이터 출처 ${srcLabel(r)})`
+   +(r.pick==='NO BET'&&r.noBetReason?.length?` — NO BET 사유: ${r.noBetReason.join(' · ')}`:''));
   L.push(`- 승/무/패 확률: 홈 ${pct(r.probs[0])} / 무 ${pct(r.probs[1])} / 원정 ${pct(r.probs[2])}`);
   L.push(`- 예상 득점(λ): 홈 ${n(r.e.lh)} / 원정 ${n(r.e.la)}`);
   L.push(`- 최빈 스코어: ${r.m.score} (${pct(r.m.scoreP)}) · 오버2.5 ${pct(r.m.over)} · 양팀득점 ${pct(r.m.btts)}`);
@@ -1604,17 +1807,11 @@ function briefingPrompt(rows){
   }
   if(r.h2h&&r.h2h.length)
    L.push(`- 상대전적: ${r.h2h.map(x=>`${new Date(x.date).toISOString().slice(0,10)} ${x.homeName} ${x.hg}-${x.ag} ${x.awayName}`).join(' / ')}`);
-  if(Array.isArray(r.injuries))
-   L.push(`- 부상/결장: ${r.injuries.length?r.injuries.slice(0,10).map(x=>`${x.team} ${x.player}(${x.type||x.reason||'?'})`).join(', '):'보고된 결장자 없음'}`);
-  if(r.news?.ok&&r.news.items.length)
-   L.push(`- 최신 뉴스 헤드라인: ${r.news.items.map(x=>`"${x.title}"`).join(' / ')}`);
-  else if(r.news)
-   L.push('- 최신 뉴스: 자동 수집 실패(브라우저 CORS 제한). 이 부분은 직접 최신 정보를 확인해 주세요.');
   const warn=[];
   if(r.mixedSource)warn.push('시즌별로 데이터 출처가 달라 팀 표본이 나뉘어 있을 수 있음');
   else if(r.source!=='primary')warn.push('대체 소스(TheSportsDB) 데이터');
   if(r.played[0]<5||r.played[1]<5)warn.push('한 팀 이상 경기 표본 5경기 미만 — 강도 추정 불안정');
-  if(r.league==='2')warn.push('서로 다른 리그 소속 — UEFA 대항전으로 처리했으며 표본이 적을 수 있음');
+  if(r.league==='2')warn.push('서로 다른 리그 소속이라 UEFA 대항전 데이터로 분석 — 여러 리그 팀이 한 풀에 섞여 있어 "리그 평균 1.00" 기준의 의미가 약하고 표본도 적음');
   if(warn.length)L.push(`- ⚠️ 주의: ${warn.join(' / ')}`);
  });
  if(bad.length){
@@ -1637,6 +1834,12 @@ function briefingPrompt(rows){
 
 function briefing(rows){
  return briefingPrompt(rows);
+}
+let _lastBriefing='',_pendingBriefing=null;
+function applyPendingBriefing(){
+ if(_pendingBriefing==null)return;
+ $('briefing').value=_pendingBriefing;_lastBriefing=_pendingBriefing;_pendingBriefing=null;
+ $('briefSwap').hidden=true;setCopyStatus('새 브리핑으로 교체했습니다.');
 }
 function setCopyStatus(msg,bad){
  const el=$('copyStatus');if(!el)return;
