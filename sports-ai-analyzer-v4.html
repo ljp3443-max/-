@@ -258,7 +258,7 @@ body[aria-busy="true"] .btn-analyze{opacity:.6;cursor:progress}
   <div class="header">
     <div class="header-left">
       <h1>ULTIMATE SPORTS AI ANALYZER</h1>
-      <p>DIXON-COLES 강도 모델 · 시즌 1회 수집 후 브라우저 계산 · 워크포워드 백테스트</p>
+      <p>DIXON-COLES 강도 모델 · 26개 리그 국내전 + 리그 간 경기 · 워크포워드 백테스트</p>
     </div>
     <div class="version-badge">v4.0 · 2026</div>
   </div>
@@ -286,9 +286,9 @@ body[aria-busy="true"] .btn-analyze{opacity:.6;cursor:progress}
 
       <div class="card layer-card">
         <div class="layer-title">🧭 자동 리그 판정</div>
-        <div class="small">리그를 고를 필요가 없습니다. 팀 이름을 입력하면 소속 리그를 스스로 찾아내고, 필요한 시즌 데이터만 골라서 불러옵니다.</div>
+        <div class="small">리그를 고를 필요가 없습니다. 팀 이름을 입력하면 <b>소속 국내 리그</b>를 찾아내고, 필요한 시즌 데이터만 골라서 불러옵니다. 두 팀의 소속이 다르면 리그 간 경기로 판정해 <b>양쪽 리그 데이터를 함께</b> 씁니다.</div>
         <div class="probar" style="margin-top:8px">
-          <span class="protag">한글 · 영문 호환</span><span class="protag">약칭 지원</span><span class="protag">리그 자동 감지</span>
+          <span class="protag">한글 · 영문 호환</span><span class="protag">약칭 지원</span><span class="protag">국내 리그 자동 감지</span><span class="protag">리그 간 경기 지원</span>
         </div>
         <div class="small" style="margin-top:8px">등록된 팀 <b id="regCount">0</b>개 · <span id="regLeagues"></span></div>
         <button class="btn btn-secondary" onclick="showTeamList()">🔍 등록된 팀 전체 보기</button>
@@ -308,7 +308,7 @@ body[aria-busy="true"] .btn-analyze{opacity:.6;cursor:progress}
       <div class="card layer-card">
         <div class="layer-title">🔬 실제 경기 검증</div>
         <div class="small">이미 끝난 <b>실제 경기</b>에 모델을 적용해 성적을 측정합니다(워크포워드). 각 경기는 그 경기 이전 데이터만으로 예측하므로 정보 누출이 없고, 결과는 경기별로 확인·CSV 다운로드할 수 있습니다.</div>
-        <div class="small" style="margin-top:6px">검증은 <b>입력한 경기가 가장 많은 리그 하나</b>에 대해서만 돌아갑니다. 그 결과는 <b>같은 리그 경기의 신뢰도에만</b> 반영됩니다.</div>
+        <div class="small" style="margin-top:6px">검증은 <b>입력한 같은 리그 경기가 가장 많은 리그 하나</b>에 대해서만 돌아갑니다. 그 결과는 <b>같은 리그 경기의 신뢰도에만</b> 반영됩니다. 리그 간 경기는 한 리그의 워크포워드 검증으로 확인할 수 없어 대상에서 제외됩니다.</div>
         <button class="btn btn-primary" onclick="runBacktest()">🔬 검증 실행</button>
         <div class="api-status-bar" role="status" aria-live="polite"><div class="dot" id="btDot"></div><span id="btStatus">미실행</span></div>
       </div>
@@ -323,6 +323,7 @@ body[aria-busy="true"] .btn-analyze{opacity:.6;cursor:progress}
         <b>홈 이점:</b> 리그 전체 홈 평균에 더해 팀별 홈 강세를 40%만 반영하고, 0.80~1.25로 제한합니다.<br>
         <b>확률:</b> 두 팀의 예상 득점(λ)으로 12×12 스코어 격자를 만들고, 0-0·1-0·0-1·1-1에 Dixon-Coles 저스코어 보정(ρ=-0.13)을 적용해 정규화합니다.<br>
         <b>대체 소스:</b> API-Football 실패 시 TheSportsDB로 시즌 단위 전환. 해당 데이터셋의 신뢰도에 <b>0.9</b>를 곱합니다.<br>
+        <b>리그 간 경기:</b> 두 팀의 국내 리그 데이터를 각각 쓰고 리그 수준 계수로 결합합니다(아래 항목 참조).<br>
         <b>데이터 부족 시:</b> 완료 경기 10건 미만이면 모델을 만들지 않고, 팀을 데이터에서 확정하지 못하면 그 경기를 실패로 표시합니다. 없는 값을 0으로 채워 억지로 계산하지 않습니다.<br>
         <b>정렬:</b> 결과 카드는 <b>입력 슬롯 번호(MATCH n) 순서</b> 그대로 나옵니다. 신뢰도는 각 카드의 CONF 배지로 확인하세요.
         </div></details>
@@ -333,9 +334,36 @@ body[aria-busy="true"] .btn-analyze{opacity:.6;cursor:progress}
         따라서 이 화면의 확률은 "지금까지의 득점 기록만 봤을 때"의 값이고,
         그 밖의 정보는 AI 브리핑을 붙여넣어 사람이나 LLM이 보정하도록 설계돼 있습니다.
         </div></details>
+        <details><summary>리그 간 경기는 어떻게 계산하나</summary>
+        <div class="small" style="margin-top:8px">
+        공격/수비 강도는 <b>그 리그 평균 1.00</b> 기준입니다. 셀틱의 공격 1.60(스코틀랜드 기준)과
+        도르트문트의 1.30(독일 기준)은 애초에 같은 자로 잰 값이 아니라 그대로 비교할 수 없습니다.<br>
+        <b>예전 방식의 문제:</b> 소속이 다르면 무조건 챔피언스리그 데이터로 분석했습니다.
+        그래서 ① 벤피카 vs 포르투 같은 <b>포르투갈 리그 경기</b>가 챔스 데이터로 계산됐고,
+        ② 진짜 리그 간 경기도 조별리그 30~40경기라는 빈약한 표본에, 여러 리그가 한 풀에
+        섞여 "리그 평균 1.00"이 무엇의 평균인지 알 수 없는 데이터로 계산됐습니다.<br>
+        <b>지금 방식:</b> 두 팀의 강도를 <b>각자의 국내 리그</b>에서 시즌 전체 표본으로 따로
+        추정한 뒤, 리그 수준 계수 k로 눈금을 맞춥니다(홈 λ에 ×k, 원정 λ에 ÷k).
+        기준 득점률은 두 리그 평균의 중간값을 씁니다.<br>
+        <b>k는 가정입니다.</b> UEFA 국가계수(최근 5년) 순위를 100점 기준으로 정규화한 값이며,
+        측정값이 아닙니다. 가정이 결과를 지배하지 않도록 지수 0.35로 눌러 반영하고
+        0.70~1.43으로 잘라냅니다. 그래도 <b>이 계수는 어떤 백테스트로도 검증되지 않습니다</b> —
+        워크포워드 검증은 한 리그 안에서만 성립하기 때문입니다.<br>
+        그래서 리그 간 경기는 신뢰도 항목에서 "백테스트 검증 불가"가 항상 미달로 잡혀
+        점수가 낮게 나오고, 카드에도 계수와 경고를 함께 표시합니다.
+        K리그·J리그·MLS는 UEFA 계수가 없어 대략적인 위치만 잡아둔 값이라, 유럽 팀과의
+        비교는 특히 거칠다는 경고가 하나 더 붙습니다.
+        </div></details>
+        <details><summary>리그 ID가 틀리면 어떻게 되나</summary>
+        <div class="small" style="margin-top:8px">
+        각 리그는 API-Football의 숫자 ID로 지정돼 있습니다. 이 ID가 틀리면 조용히 엉뚱한
+        리그를 분석하게 됩니다. 그래서 불러온 데이터가 스스로 밝힌 <b>리그 이름과 국가</b>를
+        등록된 값과 대조하고, 어긋나면 시즌 카드의 "데이터 수집 경고"에 표시합니다.
+        표기 차이(Türkiye/Turkey 등)로 오탐이 날 수 있어 분석을 막지는 않습니다.
+        </div></details>
         <details><summary>CONF(신뢰도)의 의미</summary>
         <div class="small" style="margin-top:8px">
-        CONF는 <b>적중 확률이 아니라 데이터 확보율</b>입니다. 네 항목(홈 표본 5경기·원정 표본 5경기·리그 완료 60경기·이 리그 백테스트 통과)을 가중 합산한 뒤, 대체 소스면 0.9를 곱합니다.<br>
+        CONF는 <b>적중 확률이 아니라 데이터 확보율</b>입니다. 같은 리그 경기는 네 항목(홈 표본 5경기·원정 표본 5경기·리그 완료 60경기·이 리그 백테스트 통과)을, 리그 간 경기는 여기에 두 항목(백테스트 검증 불가·양쪽 UEFA 계수 보유)을 더해 가중 합산한 뒤, 대체 소스면 0.9를 곱합니다.<br>
         백테스트를 돌리지 않았거나 <b>다른 리그</b>에서 돌렸다면 그 항목은 인정되지 않아 최대 71점입니다.<br>
         CONF가 높아도 확률이 33/33/33이면 픽할 이유가 없으므로, <b>최고 확률 40% 이상</b>과 <b>1·2위 확률 차 8%p 이상</b>을 함께 요구합니다. 하나라도 미달이면 NO BET입니다.
         </div></details>
@@ -479,40 +507,40 @@ const TEAM_DB={
  'Metz':'메스|#61',
  'Lorient':'로리앙|#61',
  'Paris FC':'파리FC|#61',
- 'Ajax':'아약스|#2',
- 'PSV Eindhoven':'PSV|에인트호번|PSV에인트호번|#2',
- 'Feyenoord':'페예노르트|#2',
- 'AZ Alkmaar':'AZ알크마르|알크마르|#2',
- 'Benfica':'벤피카|#2',
- 'FC Porto':'포르투|#2',
- 'Sporting CP':'스포르팅|스포르팅CP|#2',
- 'Braga':'브라가|#2',
- 'Celtic':'셀틱|#2',
- 'Rangers':'레인저스|#2',
- 'Galatasaray':'갈라타사라이|#2',
- 'Fenerbahce':'페네르바체|#2',
- 'Besiktas':'베식타시|#2',
- 'Shakhtar Donetsk':'샤흐타르|샤흐타르도네츠크|#2',
- 'Dynamo Kyiv':'디나모키예프|디나모키이우|#2',
- 'Red Bull Salzburg':'잘츠부르크|레드불잘츠부르크|#2',
- 'Club Brugge KV':'클럽브뤼헤|브뤼헤|#2',
- 'Anderlecht':'안더레흐트|#2',
- 'Olympiakos Piraeus':'올림피아코스|#2',
- 'Panathinaikos':'파나시나이코스|#2',
- 'Slavia Praha':'슬라비아프라하|#2',
- 'Sparta Praha':'스파르타프라하|#2',
- 'FC Copenhagen':'코펜하겐|#2',
- 'Malmo FF':'말뫼|#2',
- 'Young Boys':'영보이스|BSC영보이스|#2',
- 'Basel':'바젤|#2',
- 'Dinamo Zagreb':'디나모자그레브|#2',
- 'Red Star Belgrade':'츠르베나즈베즈다|레드스타베오그라드|#2',
- 'Bodo/Glimt':'보되글림트|보도글림트|#2',
- 'Ferencvarosi TC':'페렌츠바로시|#2',
- 'Qarabag FK':'카라바흐|#2',
- 'Union St. Gilloise':'생질루아즈|위니옹생질루아즈|#2',
- 'Zenit St. Petersburg':'제니트|#2',
- 'Sturm Graz':'슈투름그라츠|#2',
+ 'Ajax':'아약스|#88',
+ 'PSV Eindhoven':'PSV|에인트호번|PSV에인트호번|#88',
+ 'Feyenoord':'페예노르트|#88',
+ 'AZ Alkmaar':'AZ알크마르|알크마르|#88',
+ 'Benfica':'벤피카|#94',
+ 'FC Porto':'포르투|#94',
+ 'Sporting CP':'스포르팅|스포르팅CP|#94',
+ 'Braga':'브라가|#94',
+ 'Celtic':'셀틱|#179',
+ 'Rangers':'레인저스|#179',
+ 'Galatasaray':'갈라타사라이|#203',
+ 'Fenerbahce':'페네르바체|#203',
+ 'Besiktas':'베식타시|#203',
+ 'Shakhtar Donetsk':'샤흐타르|샤흐타르도네츠크|#333',
+ 'Dynamo Kyiv':'디나모키예프|디나모키이우|#333',
+ 'Red Bull Salzburg':'잘츠부르크|레드불잘츠부르크|#218',
+ 'Club Brugge KV':'클럽브뤼헤|브뤼헤|#144',
+ 'Anderlecht':'안더레흐트|#144',
+ 'Olympiakos Piraeus':'올림피아코스|#197',
+ 'Panathinaikos':'파나시나이코스|#197',
+ 'Slavia Praha':'슬라비아프라하|#345',
+ 'Sparta Praha':'스파르타프라하|#345',
+ 'FC Copenhagen':'코펜하겐|#119',
+ 'Malmo FF':'말뫼|#113',
+ 'Young Boys':'영보이스|BSC영보이스|#207',
+ 'Basel':'바젤|#207',
+ 'Dinamo Zagreb':'디나모자그레브|#210',
+ 'Red Star Belgrade':'츠르베나즈베즈다|레드스타베오그라드|#286',
+ 'Bodo/Glimt':'보되글림트|보도글림트|#103',
+ 'Ferencvarosi TC':'페렌츠바로시|#271',
+ 'Qarabag FK':'카라바흐|#419',
+ 'Union St. Gilloise':'생질루아즈|위니옹생질루아즈|#144',
+ 'Zenit St. Petersburg':'제니트|#235',
+ 'Sturm Graz':'슈투름그라츠|#218',
  'Jeonbuk Motors':'전북현대모터스|전북현대|전북|#292',
  'Ulsan Hyundai FC':'울산HD|울산현대|울산|#292',
  'Pohang Steelers':'포항스틸러스|포항|#292',
@@ -590,18 +618,58 @@ const TEAM_DB={
  'San Diego':'샌디에이고|#253',
 };
 /* 등록부를 조회 가능한 형태로 펼칩니다. */
+/* 리그 정보. apiName은 API-Football이 실제로 돌려주는 리그 이름으로, 아래
+   ID가 틀렸을 때(오타·API 개편) 조용히 엉뚱한 리그를 분석하지 않도록
+   불러온 데이터와 대조하는 데 씁니다.
+   season: 'y' = 추춘제(시즌 시작 연도), 'cal' = 춘추제(달력연도). */
 const LEAGUE_INFO={
- '39':{name:'프리미어리그',flag:'🏴',season:'y'},
- '140':{name:'라리가',flag:'🇪🇸',season:'y'},
- '135':{name:'세리에A',flag:'🇮🇹',season:'y'},
- '78':{name:'분데스리가',flag:'🇩🇪',season:'y'},
- '61':{name:'리그1',flag:'🇫🇷',season:'y'},
- '2':{name:'UEFA 대항전',flag:'🇪🇺',season:'y'},
+ '39' :{name:'프리미어리그',   flag:'🏴',season:'y',  apiName:'Premier League',country:'England'},
+ '140':{name:'라리가',        flag:'🇪🇸',season:'y',  apiName:'La Liga',country:'Spain'},
+ '135':{name:'세리에A',       flag:'🇮🇹',season:'y',  apiName:'Serie A',country:'Italy'},
+ '78' :{name:'분데스리가',     flag:'🇩🇪',season:'y',  apiName:'Bundesliga',country:'Germany'},
+ '61' :{name:'리그1',         flag:'🇫🇷',season:'y',  apiName:'Ligue 1',country:'France'},
+ '88' :{name:'에레디비시',     flag:'🇳🇱',season:'y',  apiName:'Eredivisie',country:'Netherlands'},
+ '94' :{name:'프리메이라리가', flag:'🇵🇹',season:'y',  apiName:'Primeira Liga',country:'Portugal'},
+ '144':{name:'벨기에 1부',     flag:'🇧🇪',season:'y',  apiName:'Jupiler Pro League',country:'Belgium'},
+ '179':{name:'스코틀랜드 1부', flag:'🏴',season:'y',  apiName:'Premiership',country:'Scotland'},
+ '203':{name:'쉬페르리그',     flag:'🇹🇷',season:'y',  apiName:'Süper Lig',country:'Turkey'},
+ '197':{name:'그리스 수페르리가',flag:'🇬🇷',season:'y', apiName:'Super League',country:'Greece'},
+ '207':{name:'스위스 슈퍼리그', flag:'🇨🇭',season:'y',  apiName:'Super League',country:'Switzerland'},
+ '218':{name:'오스트리아 분데스리가',flag:'🇦🇹',season:'y',apiName:'Bundesliga',country:'Austria'},
+ '345':{name:'체코 1부',       flag:'🇨🇿',season:'y',  apiName:'Czech Liga',country:'Czech-Republic'},
+ '210':{name:'크로아티아 1부', flag:'🇭🇷',season:'y',  apiName:'HNL',country:'Croatia'},
+ '286':{name:'세르비아 1부',   flag:'🇷🇸',season:'y',  apiName:'Super Liga',country:'Serbia'},
+ '333':{name:'우크라이나 1부', flag:'🇺🇦',season:'y',  apiName:'Premier League',country:'Ukraine'},
+ '271':{name:'헝가리 NB I',    flag:'🇭🇺',season:'y',  apiName:'NB I',country:'Hungary'},
+ '419':{name:'아제르바이잔 1부',flag:'🇦🇿',season:'y',  apiName:'Premyer Liqa',country:'Azerbaijan'},
+ '235':{name:'러시아 프리미어리그',flag:'🇷🇺',season:'y',apiName:'Premier League',country:'Russia'},
+ '119':{name:'덴마크 수페르리가',flag:'🇩🇰',season:'y', apiName:'Superliga',country:'Denmark'},
+ '113':{name:'알스벤스칸',     flag:'🇸🇪',season:'cal',apiName:'Allsvenskan',country:'Sweden'},
+ '103':{name:'엘리테세리엔',   flag:'🇳🇴',season:'cal',apiName:'Eliteserien',country:'Norway'},
  /* K리그는 2~11월 달력연도 시즌입니다. 'y'로 두면 3월에 지난 시즌을 요청합니다. */
- '292':{name:'K리그',flag:'🇰🇷',season:'cal'},
- '98':{name:'J리그',flag:'🇯🇵',season:'y'},
- '253':{name:'MLS',flag:'🇺🇸',season:'cal'}
+ '292':{name:'K리그',         flag:'🇰🇷',season:'cal',apiName:'K League 1',country:'South-Korea'},
+ '98' :{name:'J리그',         flag:'🇯🇵',season:'y',  apiName:'J1 League',country:'Japan'},
+ '253':{name:'MLS',           flag:'🇺🇸',season:'cal',apiName:'Major League Soccer',country:'USA'}
 };
+/* ---------- 리그 수준 계수 ----------
+   공격/수비 강도는 "그 리그 평균 1.00" 기준이라 리그가 다르면 그대로 비교할 수
+   없습니다. 셀틱의 공격 1.60(스코틀랜드 기준)과 도르트문트의 1.30(독일 기준)은
+   같은 자를 쓴 값이 아닙니다.
+   그래서 리그 간 경기에서는 아래 계수로 두 자의 눈금을 맞춥니다.
+   값은 UEFA 국가계수(최근 5년) 순위를 100점 기준으로 정규화한 것으로,
+   측정값이 아니라 <b>공개된 순위에 기반한 가정</b>입니다. 리그 간 예측에는
+   이 가정이 그대로 실려 있으므로, 해당 경기는 신뢰도를 깎고 카드에 명시합니다.
+   비유럽 리그(K·J·MLS)는 UEFA 계수가 없어 대략적인 위치만 잡아둔 값이라
+   유럽 팀과의 비교는 특히 거칠다는 점을 함께 표시합니다. */
+const LEAGUE_Q={
+ '39':100,'135':90,'140':84,'78':82,'61':71,
+ '88':64,'94':61,'144':58,'203':48,'345':45,'197':45,'218':43,
+ '103':40,'119':39,'207':37,'179':36,'333':34,'286':33,'210':32,
+ '113':30,'271':30,'419':29,'235':33,
+ '98':46,'292':42,'253':44
+};
+const UEFA_Q=new Set(['39','135','140','78','61','88','94','144','203','345',
+ '197','218','103','119','207','179','333','286','210','113','271','419','235']);
 const ALIAS={};   // 정규화된 이름 → 영문 정식명
 const TEAM_LEAGUE={};  // 영문 정식명 → 리그ID
 const TEAM_KO={};      // 영문 정식명 → 대표 한글명
@@ -697,11 +765,37 @@ function hit(en,how){
   leagueName:LEAGUE_INFO[TEAM_LEAGUE[en]]?.name||'?',
   flag:LEAGUE_INFO[TEAM_LEAGUE[en]]?.flag||'',how};
 }
-/* 두 팀이 서로 다른 리그면 UEFA 대항전으로 간주합니다. */
-function matchLeague(homeRes,awayRes){
+/* 두 팀이 어떤 데이터로 분석돼야 하는지 판정합니다.
+   예전에는 소속이 다르면 무조건 리그ID '2'(챔피언스리그)로 몰아넣었습니다.
+   그 결과 ① 벤피카 vs 포르투 같은 <b>국내 리그 경기</b>가 챔스 데이터로
+   분석되고 ② 진짜 리그 간 경기도 조별리그 30~40경기라는 빈약한 표본에,
+   여러 리그가 한 풀에 섞여 "리그 평균 1.00" 기준이 무의미해진 데이터로
+   계산됐습니다.
+   이제는 각 팀의 <b>국내 리그</b> 데이터를 각각 쓰고, 리그가 다를 때만
+   리그 수준 계수로 눈금을 맞춥니다. */
+function competitionFor(homeRes,awayRes){
  if(!homeRes.ok||!awayRes.ok)return null;
- if(homeRes.league===awayRes.league)return homeRes.league;
- return '2';
+ if(homeRes.league===awayRes.league)
+  return {kind:'domestic',league:homeRes.league,leagues:[homeRes.league]};
+ return {kind:'cross',homeLeague:homeRes.league,awayLeague:awayRes.league,
+  leagues:[homeRes.league,awayRes.league]};
+}
+/* 리그 간 경기의 눈금 보정 계수.
+   k>1 이면 홈팀 리그가 더 강하다는 뜻이고, 홈 예상득점에 k를,
+   원정 예상득점에 1/k를 곱합니다. 지수를 0.35로 둔 것은 계수 자체가
+   가정이라 그 가정이 결과를 지배하지 않게 하기 위해서이고, 마지막에
+   1/1.43 ~ 1.43 으로 한 번 더 잘라 극단값을 막습니다.
+   상하한을 서로 <b>역수</b>로 두는 것이 중요합니다. 0.70과 1.43처럼 어긋나면
+   같은 대진인데 홈·원정을 바꿨을 때 계수가 서로 역수가 되지 않아,
+   존재하지 않는 홈 이점이 계수에서 새어 나옵니다. */
+const TILT_MAX=1.43;
+function leagueTilt(homeLeague,awayLeague){
+ const qh=LEAGUE_Q[String(homeLeague)],qa=LEAGUE_Q[String(awayLeague)];
+ if(!qh||!qa)return {k:1,known:false,qh:qh||null,qa:qa||null};
+ const k=clamp(Math.pow(qh/qa,T.leagueTiltExp()),1/TILT_MAX,TILT_MAX);
+ return {k,known:true,qh,qa,
+  /* 두 리그 모두 UEFA 계수가 있는 경우에만 "같은 자로 잰 값"입니다. */
+  comparable:UEFA_Q.has(String(homeLeague))&&UEFA_Q.has(String(awayLeague))};
 }
 
 /* ================= 대시보드 =================
@@ -752,12 +846,17 @@ function refreshSlot(i){
    msgs.push(`⚠️ ${lbl} "${v}"는 ${r.candidates.map(c=>`${c.ko}(${c.en})`).join(' / ')} 중 어느 팀인가요?`);
   else if(!r.ok)msgs.push(`❌ ${lbl} "${v}" 를 찾지 못했습니다`);
  });
- const lg=matchLeague(rh,ra);
- if(lg){
-  const info=LEAGUE_INFO[lg];
+ const comp=competitionFor(rh,ra);
+ if(comp&&comp.kind==='domestic'){
+  const info=LEAGUE_INFO[comp.league];
   badge.textContent=`${info.flag} ${info.name}`;
   badge.className='lg-badge on';
-  if(rh.league!==ra.league)msgs.push('서로 다른 리그 소속 → UEFA 대항전으로 처리합니다');
+ }else if(comp){
+  const ih=LEAGUE_INFO[comp.homeLeague],ia=LEAGUE_INFO[comp.awayLeague];
+  badge.textContent=`${ih.flag}↔${ia.flag} 리그 간`;
+  badge.className='lg-badge on';
+  const tl=leagueTilt(comp.homeLeague,comp.awayLeague);
+  msgs.push(`소속이 다릅니다 → ${ih.name} · ${ia.name} 데이터를 각각 쓰고 리그 수준 계수(×${tl.k.toFixed(2)})로 맞춥니다`);
  }else{badge.textContent='';badge.className='lg-badge'}
  note.innerHTML=msgs.map(esc).join('<br>');
  refreshPlanSoon();
@@ -767,27 +866,34 @@ let _planTimer=null;
 function refreshPlanSoon(){clearTimeout(_planTimer);_planTimer=setTimeout(refreshPlan,120)}
 function refreshAllSlots(){for(let i=1;i<=14;i++)refreshSlot(i)}
 
-/* 입력된 경기들을 리그별로 묶어, 무엇을 불러와야 하는지 미리 보여줍니다. */
+/* 입력된 경기들을 훑어 무엇을 불러와야 하는지 미리 정리합니다.
+   리그 간 경기는 데이터셋 두 개가 필요하므로, "경기→리그" 가 아니라
+   "필요한 리그 집합"을 따로 냅니다. */
 function currentPlan(){
- const byLeague={},problems=[];
+ const matches=[],problems=[],needed=new Set(),byLeague={};
  for(let i=1;i<=14;i++){
   const hv=$('home-'+i).value.trim(),av=$('away-'+i).value.trim();
   if(!hv||!av)continue;
   const rh=resolveTeam(hv),ra=resolveTeam(av);
   if(!rh.ok||!ra.ok){problems.push(i);continue}
-  const lg=matchLeague(rh,ra);
-  (byLeague[lg]=byLeague[lg]||[]).push({slot:i,home:rh,away:ra,league:lg});
+  const comp=competitionFor(rh,ra);
+  const m={slot:i,home:rh,away:ra,comp};
+  matches.push(m);
+  comp.leagues.forEach(l=>{
+   needed.add(l);
+   (byLeague[l]=byLeague[l]||[]).push(m);
+  });
  }
- return {byLeague,problems};
+ return {matches,problems,needed:[...needed],byLeague,
+  crossCount:matches.filter(m=>m.comp.kind==='cross').length};
 }
 function refreshPlan(){
  const el=$('planBar');if(!el)return;
- const {byLeague,problems}=currentPlan();
- const ls=Object.keys(byLeague);
- if(!ls.length){el.innerHTML='<span class="small">팀 이름을 입력하면 리그가 자동으로 판정됩니다.</span>';return}
- const total=ls.reduce((s,l)=>s+byLeague[l].length,0);
- el.innerHTML=`<span class="small">분석 대상 <b>${total}</b>경기 · 불러올 리그 <b>${ls.length}</b>개: </span>`
-  +ls.map(l=>`<span class="lg-badge on">${LEAGUE_INFO[l].flag} ${LEAGUE_INFO[l].name} ${byLeague[l].length}</span>`).join(' ')
+ const {matches,problems,needed,byLeague,crossCount}=currentPlan();
+ if(!matches.length){el.innerHTML='<span class="small">팀 이름을 입력하면 리그가 자동으로 판정됩니다.</span>';return}
+ el.innerHTML=`<span class="small">분석 대상 <b>${matches.length}</b>경기 · 불러올 리그 <b>${needed.length}</b>개: </span>`
+  +needed.map(l=>`<span class="lg-badge on">${LEAGUE_INFO[l].flag} ${LEAGUE_INFO[l].name} ${byLeague[l].length}</span>`).join(' ')
+  +(crossCount?`<span class="small" style="color:var(--warning)"> · 리그 간 경기 ${crossCount}건(두 리그 데이터를 함께 사용)</span>`:'')
   +(problems.length?`<span class="small" style="color:var(--danger)"> · 인식 실패 ${problems.length}경기</span>`:'');
 }
 
@@ -848,7 +954,8 @@ const T={
  minMargin:()=>0.08,    // 1위와 2위 확률 차가 이보다 작으면 NO BET
  warmup:()=>0.35,       // 백테스트 워밍업 비율
  minMatches:()=>200,    // 이 수만큼 완료 경기가 모일 때까지 이전 시즌 자동 보강
- maxFits:()=>150        // 백테스트 재학습 횟수 상한 (O(n²) 방지)
+ maxFits:()=>150,       // 백테스트 재학습 횟수 상한 (O(n²) 방지)
+ leagueTiltExp:()=>0.35 // 리그 수준 계수를 얼마나 세게 반영할지 (0=무시, 1=그대로)
 };
 /* ---------- API ---------- */
 function getApiKey(){return ($('apiKey')?.value||'').trim()}
@@ -904,7 +1011,15 @@ function validateApi(){
 /* 달력연도로 도는 리그만 TSDB에서 'YYYY' 형태를 먼저 시도합니다. */
 const isCalendarSeason=l=>LEAGUE_INFO[String(l)]?.season==='cal';
 const TSDB_LEAGUE_ID={'39':4328,'78':4331,'135':4332,'61':4334,'140':4335,'253':4346,'2':4480};
-const TSDB_LEAGUE_HINT={'292':'k league 1','98':'j1 league','2':'champions league'};
+/* 숫자 ID를 추측하는 대신 리그 이름으로 찾게 둡니다. 못 찾으면 그 리그는
+   대체 소스를 쓰지 못할 뿐, 잘못된 리그를 가져오지는 않습니다. */
+const TSDB_LEAGUE_HINT={
+ '292':'k league 1','98':'j1 league',
+ '88':'eredivisie','94':'primeira liga','144':'belgian','179':'scottish premiership',
+ '203':'turkish','197':'greek','207':'swiss','218':'austrian bundesliga',
+ '345':'czech','210':'croatian','286':'serbian','333':'ukrainian','271':'hungarian',
+ '419':'azerbaijan','235':'russian','119':'danish','113':'allsvenskan','103':'eliteserien'
+};
 
 /* ---------- TheSportsDB fallback ---------- */
 /* '3'이 TheSportsDB의 공개 무료 테스트 키입니다.
@@ -964,15 +1079,47 @@ function apiToRow(f){
   finished:fin&&Number.isFinite(f.goals?.home)&&Number.isFinite(f.goals?.away)};
 }
 async function fetchSeasonPrimary(league,season){
- let rows=[],page=1,total=1,calls=0;
+ let rows=[],page=1,total=1,calls=0,seen=null;
  do{
   const d=await api(`/fixtures?league=${league}&season=${season}&page=${page}`);
   calls++;
+  /* 응답에 리그 이름·국가가 함께 들어옵니다. 추가 호출 없이 받아 두었다가
+     LEAGUE_INFO의 ID가 맞는지 대조하는 데 씁니다. */
+  if(!seen&&d.response?.[0]?.league)
+   seen={name:d.response[0].league.name,country:d.response[0].league.country};
   rows.push(...(d.response||[]).map(apiToRow));
   total=d.paging?.total||1;page++;
  }while(page<=total&&page<=8);   /* 요청 간격은 apiGate가 관리합니다 */
  if(!rows.length)throw new Error('시즌 경기 데이터가 비어 있습니다.');
- return {rows,source:'primary',calls};
+ return {rows,source:'primary',calls,seen};
+}
+/* 이 프로그램이 들고 있는 리그 ID가 실제로 그 리그인지 확인합니다.
+   ID가 틀리면(오타·API 개편) 조용히 엉뚱한 리그를 분석하게 되므로,
+   불러온 데이터가 스스로 밝힌 이름·국가와 대조해 어긋나면 경고합니다.
+   표기 차이(Türkiye/Turkey 등)로 오탐이 날 수 있어 차단이 아니라 경고입니다. */
+/* 같은 나라·리그를 API가 다르게 표기하는 알려진 경우들.
+   이걸 처리하지 않으면 정상 데이터에 계속 경고가 떠서 진짜 경고가 묻힙니다. */
+const NAME_ALIAS={
+ turkey:['turkiye'], czechrepublic:['czechia'],
+ southkorea:['korearepublic','republicofkorea'],
+ usa:['unitedstates','unitedstatesofamerica'],
+ russia:['russianfederation']
+};
+function verifyLeagueIdentity(league,seen){
+ const info=LEAGUE_INFO[String(league)];
+ if(!info||!seen||!seen.name)return null;
+ /* NFD로 분해해 결합기호를 떼면 Süper→Super, Türkiye→Turkiye 가 됩니다. */
+ const norm=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+  .toLowerCase().replace(/[^a-z0-9]/g,'');
+ const near=(a,b)=>{
+  const A=norm(a),B=norm(b);
+  if(!A||!B||A===B||A.includes(B)||B.includes(A)||simRatio(A,B)>=.7)return true;
+  return (NAME_ALIAS[A]||[]).includes(B)||(NAME_ALIAS[B]||[]).includes(A);
+ };
+ if(near(seen.name,info.apiName)&&near(seen.country,info.country))return null;
+ return `리그 ID ${league}는 이 프로그램에서 "${info.country} · ${info.apiName}"로 등록돼 있는데, `
+      +`API가 돌려준 데이터는 "${seen.country||'?'} · ${seen.name}"입니다. `
+      +`ID가 바뀌었을 수 있으니 결과를 그대로 믿지 마세요.`;
 }
 async function fetchSeasonFallback(league,season){
  const lid=await tsdbResolveLeagueId(league);
@@ -1010,8 +1157,9 @@ const DATASETS={};   // 리그ID -> 시즌 데이터
 async function loadPlannedSeasons(){
  if(!busyGuard('시즌 데이터 로드'))return;
  try{
-  const {byLeague}=currentPlan();
-  const lgs=Object.keys(byLeague).sort((a,b)=>byLeague[b].length-byLeague[a].length);
+  /* 리그 간 경기는 두 리그가 모두 필요하므로 needed(합집합)를 씁니다. */
+  const {needed,byLeague}=currentPlan();
+  const lgs=needed.slice().sort((a,b)=>byLeague[b].length-byLeague[a].length);
   if(!lgs.length){
    $('seasonDot').className='dot err';
    $('seasonStatus').textContent='먼저 경기를 입력하세요';
@@ -1046,6 +1194,7 @@ async function loadSeasonData(leagueArg,seasonArg){
   if(res){
    res.rows.forEach(r=>r.season=sv);
    if(!source)source=res.source;
+   if(res.seen){const bad=verifyLeagueIdentity(league,res.seen);if(bad)errs.push(`${sv} ⚠️ ${bad}`)}
    rows=rows.concat(res.rows);calls+=res.calls;
    used.push({season:sv,total:res.rows.length,finished:res.rows.filter(r=>r.finished).length,source:res.source});
   }
@@ -1348,11 +1497,18 @@ async function runBacktestInner(){
     예전에는 전역 SEASON이 비어 있을 때만 리그를 골랐기 때문에, EPL을 한 번
     불러온 뒤 라리가 경기를 입력하고 검증을 누르면 EPL 데이터로 돌려놓고
     화면에는 라리가라고 표시하는 문제가 있었습니다. */
- const {byLeague}=currentPlan();
- const lgs=Object.keys(byLeague).sort((a,b)=>byLeague[b].length-byLeague[a].length);
+ /* 검증은 한 리그 안에서만 성립합니다. 리그 간 경기는 어느 한 리그의
+    워크포워드 검증으로 확인할 수 없으므로 대상 선정에서 제외합니다. */
+ const {matches}=currentPlan();
+ const cnt={};
+ matches.filter(m=>m.comp.kind==='domestic')
+  .forEach(m=>{cnt[m.comp.league]=(cnt[m.comp.league]||0)+1});
+ const lgs=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]);
  const league=lgs[0]||(SEASON?SEASON.league:null);
  if(!league){$('btDot').className='dot err';
-  $('btStatus').textContent='먼저 경기를 입력하거나 분석을 실행하세요';return}
+  $('btStatus').textContent=matches.length
+   ?'입력된 경기가 전부 리그 간 경기입니다 — 검증은 같은 리그 경기에서만 가능합니다'
+   :'먼저 경기를 입력하거나 분석을 실행하세요';return}
  $('btDot').className='dot';$('btStatus').textContent='데이터 준비 중...';
  const DS=await ensureLeague(league);
  if(!DS){$('btDot').className='dot err';
@@ -1580,57 +1736,36 @@ function recentFor(teamId,limit=5,DS){
 
 /* ---------- analysis ---------- */
 /* 해석이 끝난 경기 하나를 분석합니다. 팀 식별은 이미 대시보드에서 끝났습니다. */
-function analyzeMatch(m,S,strength){
- /* 예전에는 부분문자열이 "처음 걸리는" 팀을 그대로 골랐습니다. 'Inter'가
-    'Inter Miami'에 먼저 걸리는 식의 조용한 오매칭이 가능했습니다.
-    이미 있는 점수 함수로 전 팀을 채점해 최고점을 고르고, 1·2위가 붙어 있으면
-    찍지 않고 실패로 돌립니다. */
- const findId=en=>{
-  const q=normName(en);
-  const exact=S.teams.filter(x=>normName(x.name)===q);
-  if(exact.length===1)return {t:exact[0]};
-  if(exact.length>1)return {err:`"${en}"와 이름이 같은 팀이 데이터에 ${exact.length}개 있습니다.`};
-  let best=null,second=null;
-  S.teams.forEach(x=>{
-   const nx=normName(x.name);
-   let sc=Math.max(tokenScore(en,x.name),simRatio(q,nx));
-   if(nx.includes(q)||q.includes(nx))
-    sc=Math.max(sc,.8*Math.min(q.length,nx.length)/Math.max(q.length,nx.length,1));
-   if(!best||sc>best.sc){second=best;best={t:x,sc}}
-   else if(!second||sc>second.sc)second={t:x,sc};
-  });
-  if(!best||best.sc<.6)
-   return {err:`"${en}" 와 충분히 일치하는 팀이 ${LEAGUE_INFO[m.league]?.name} 데이터에 없습니다.`};
-  if(second&&best.sc-second.sc<.08)
-   return {err:`"${en}" 가 ${best.t.name} / ${second.t.name} 중 어느 쪽인지 확정할 수 없어 분석을 중단했습니다.`};
-  return {t:best.t};
- };
- const fh=findId(m.home.en),fa=findId(m.away.en);
- const ht=fh.t,at=fa.t;
- const base={slot:m.slot,home:m.home.en,away:m.away.en,
-  homeKo:m.home.ko,awayKo:m.away.ko,league:m.league,
-  leagueName:LEAGUE_INFO[m.league]?.name,flag:LEAGUE_INFO[m.league]?.flag,
-  source:S.source,mixedSource:!!S.mixedSource};
- if(!ht||!at)return {...base,error:(fh.err||fa.err)+' 리그 판정이 맞는지 확인해 주세요.'};
- if(ht.id===at.id)return {...base,error:'홈팀과 원정팀이 같습니다.'};
- const pr=predict(strength,ht.id,at.id);
- if(!pr){
-  const miss=[ht,at].filter(t=>!strength.att[t.id]).map(t=>t.name);
-  return {...base,error:`${miss.join(', ')}의 경기 기록이 없어 강도를 추정할 수 없습니다.`};
- }
- const nh=strength.played[ht.id]||0,na=strength.played[at.id]||0;
+/* 등록부의 정식 영문명을 특정 시즌 데이터셋의 실제 팀으로 연결합니다.
+   부분문자열이 "처음 걸리는" 팀을 고르면 'Inter'가 'Inter Miami'에 먼저
+   걸리는 식의 조용한 오매칭이 나므로, 전 팀을 채점해 최고점을 고르고
+   1·2위가 붙어 있으면 찍지 않고 실패로 돌립니다. */
+function findTeamIn(S,en,leagueLabel){
+ const q=normName(en);
+ const exact=S.teams.filter(x=>normName(x.name)===q);
+ if(exact.length===1)return {t:exact[0]};
+ if(exact.length>1)return {err:`"${en}"와 이름이 같은 팀이 데이터에 ${exact.length}개 있습니다.`};
+ let best=null,second=null;
+ S.teams.forEach(x=>{
+  const nx=normName(x.name);
+  let sc=Math.max(tokenScore(en,x.name),simRatio(q,nx));
+  if(nx.includes(q)||q.includes(nx))
+   sc=Math.max(sc,.8*Math.min(q.length,nx.length)/Math.max(q.length,nx.length,1));
+  if(!best||sc>best.sc){second=best;best={t:x,sc}}
+  else if(!second||sc>second.sc)second={t:x,sc};
+ });
+ if(!best||best.sc<.6)
+  return {err:`"${en}" 와 충분히 일치하는 팀이 ${leagueLabel} 데이터에 없습니다.`};
+ if(second&&best.sc-second.sc<.08)
+  return {err:`"${en}" 가 ${best.t.name} / ${second.t.name} 중 어느 쪽인지 확정할 수 없어 분석을 중단했습니다.`};
+ return {t:best.t};
+}
+/* 확률·픽·신뢰도 산출은 국내전과 리그 간 경기가 완전히 같습니다.
+   달라지는 것은 λ를 어떻게 얻었는지(pr)와 신뢰도 항목(layers)뿐입니다. */
+function finishResult(base,pr,layers,srcPrimary,extra){
  const probs=[pr.home,pr.draw,pr.away];
- const layers=[
-  {k:'홈팀 경기 표본 5경기 이상',w:2,ok:nh>=5},
-  {k:'원정팀 경기 표본 5경기 이상',w:2,ok:na>=5},
-  {k:'리그 완료 경기 60건 이상',w:1,ok:strength.nMatches>=60},
-  /* 백테스트는 한 리그에서만 돌립니다. 다른 리그의 검증 결과를 이 경기의
-     신뢰도로 인정하면 안 됩니다. */
-  {k:'이 리그 백테스트 통과',w:2,
-   ok:!!(BT&&BT.metrics.significant&&BT.leagueId===String(m.league))}
- ];
  const totW=layers.reduce((x,y)=>x+y.w,0),okW=layers.reduce((x,y)=>x+(y.ok?y.w:0),0);
- const conf=Math.round(100*(okW/totW)*(S.source==='primary'?1:.9));
+ const conf=Math.round(100*(okW/totW)*(srcPrimary?1:.9));
  const labels=['HOME','DRAW','AWAY'];
  /* CONF는 "데이터를 얼마나 갖췄나"일 뿐이라, 데이터가 충분해도 세 결과가
     33/33/33이면 픽할 이유가 없습니다. 확률 자체의 우위도 함께 봅니다. */
@@ -1643,11 +1778,89 @@ function analyzeMatch(m,S,strength){
  return {...base,e:{lh:pr.lh,la:pr.la},
   m:{score:pr.score,scoreP:pr.scoreP,over:pr.over,btts:pr.btts},
   probs,conf,margin,topProb:top.p,noBetReason:noBet,
-  pick:noBet.length?'NO BET':labels[top.j],layers,
+  pick:noBet.length?'NO BET':labels[top.j],layers,...extra};
+}
+/* ---------- 같은 리그 경기 ---------- */
+function analyzeMatch(m,S,strength){
+ const league=m.comp.league;
+ const label=LEAGUE_INFO[league]?.name;
+ const base={slot:m.slot,home:m.home.en,away:m.away.en,
+  homeKo:m.home.ko,awayKo:m.away.ko,kind:'domestic',league,
+  leagueName:label,flag:LEAGUE_INFO[league]?.flag,
+  source:S.source,mixedSource:!!S.mixedSource};
+ const fh=findTeamIn(S,m.home.en,label),fa=findTeamIn(S,m.away.en,label);
+ const ht=fh.t,at=fa.t;
+ if(!ht||!at)return {...base,error:(fh.err||fa.err)+' 리그 판정이 맞는지 확인해 주세요.'};
+ if(ht.id===at.id)return {...base,error:'홈팀과 원정팀이 같습니다.'};
+ const pr=predict(strength,ht.id,at.id);
+ if(!pr){
+  const miss=[ht,at].filter(t=>!strength.att[t.id]).map(t=>t.name);
+  return {...base,error:`${miss.join(', ')}의 경기 기록이 없어 강도를 추정할 수 없습니다.`};
+ }
+ const nh=strength.played[ht.id]||0,na=strength.played[at.id]||0;
+ const layers=[
+  {k:'홈팀 경기 표본 5경기 이상',w:2,ok:nh>=5},
+  {k:'원정팀 경기 표본 5경기 이상',w:2,ok:na>=5},
+  {k:'리그 완료 경기 60건 이상',w:1,ok:strength.nMatches>=60},
+  /* 백테스트는 한 리그에서만 돌립니다. 다른 리그의 검증 결과를 이 경기의
+     신뢰도로 인정하면 안 됩니다. */
+  {k:'이 리그 백테스트 통과',w:2,
+   ok:!!(BT&&BT.metrics.significant&&BT.leagueId===String(league))}
+ ];
+ return finishResult(base,pr,layers,S.source==='primary',{
   att:[strength.att[ht.id],strength.att[at.id]],
   def:[strength.def[ht.id],strength.def[at.id]],
   hfac:strength.hf[ht.id],played:[nh,na],
-  homeTeamId:ht.id,awayTeamId:at.id};
+  homeTeamId:ht.id,awayTeamId:at.id});
+}
+/* ---------- 리그 간 경기 ----------
+   두 팀의 강도를 각자의 국내 리그에서 따로 추정한 뒤 한 자리에 놓습니다.
+   기준 득점률은 두 리그 평균의 중간값을 쓰고, 리그 수준 차이는 leagueTilt()의
+   계수 k로 홈 λ에 ×k, 원정 λ에 ÷k 를 적용해 반영합니다.
+   챔스 데이터 30~40경기로 계산하던 예전 방식보다 표본이 훨씬 크지만,
+   대신 "리그 수준 계수"라는 가정이 하나 들어갑니다. 그래서 신뢰도 항목에
+   그 가정을 명시적으로 넣고 카드에도 경고를 답니다. */
+function analyzeCrossMatch(m,SH,strengthH,SA,strengthA){
+ const lh=m.comp.homeLeague,la=m.comp.awayLeague;
+ const IH=LEAGUE_INFO[lh],IA=LEAGUE_INFO[la];
+ const tilt=leagueTilt(lh,la);
+ const base={slot:m.slot,home:m.home.en,away:m.away.en,
+  homeKo:m.home.ko,awayKo:m.away.ko,kind:'cross',
+  league:lh,homeLeague:lh,awayLeague:la,
+  leagueName:`${IH.name} ↔ ${IA.name}`,flag:`${IH.flag}${IA.flag}`,
+  tilt,source:(SH.source==='primary'&&SA.source==='primary')?'primary':'fallback',
+  mixedSource:!!(SH.mixedSource||SA.mixedSource)};
+ const fh=findTeamIn(SH,m.home.en,IH.name),fa=findTeamIn(SA,m.away.en,IA.name);
+ const ht=fh.t,at=fa.t;
+ if(!ht||!at)return {...base,error:(fh.err||fa.err)+' 리그 판정이 맞는지 확인해 주세요.'};
+ const missing=[[ht,strengthH],[at,strengthA]].filter(([t,st])=>!st.att[t.id]).map(([t])=>t.name);
+ if(missing.length)
+  return {...base,error:`${missing.join(', ')}의 경기 기록이 없어 강도를 추정할 수 없습니다.`};
+ /* 양쪽 리그의 홈/원정 기준 득점률을 평균해 중립적인 기준을 만듭니다. */
+ const avgH=(strengthH.avgH+strengthA.avgH)/2, avgA=(strengthH.avgA+strengthA.avgA)/2;
+ const lam_h=clamp(avgH*strengthH.att[ht.id]*strengthA.def[at.id]*(strengthH.hf[ht.id]||1)*tilt.k,.15,5);
+ const lam_a=clamp(avgA*strengthA.att[at.id]*strengthH.def[ht.id]/tilt.k,.15,5);
+ const pr={lh:lam_h,la:lam_a,...scoreMatrix(lam_h,lam_a,T.rho())};
+ const nh=strengthH.played[ht.id]||0,na=strengthA.played[at.id]||0;
+ const layers=[
+  {k:'홈팀 경기 표본 5경기 이상',w:2,ok:nh>=5},
+  {k:'원정팀 경기 표본 5경기 이상',w:2,ok:na>=5},
+  {k:'양쪽 리그 완료 경기 60건 이상',w:1,
+   ok:strengthH.nMatches>=60&&strengthA.nMatches>=60},
+  /* 리그 간 경기는 어느 한 리그의 백테스트로 검증되지 않습니다.
+     이 항목은 구조적으로 충족될 수 없으며, 그만큼 신뢰도가 낮게 나옵니다. */
+  {k:'리그 간 비교는 백테스트로 검증되지 않음',w:2,ok:false},
+  /* UEFA 계수가 없는 리그(K·J·MLS)가 끼면 눈금 맞추기가 더 거칠어집니다. */
+  {k:'양쪽 모두 UEFA 계수 보유 리그',w:1,ok:!!tilt.comparable}
+ ];
+ return finishResult(base,pr,layers,base.source==='primary',{
+  att:[strengthH.att[ht.id],strengthA.att[at.id]],
+  def:[strengthH.def[ht.id],strengthA.def[at.id]],
+  hfac:strengthH.hf[ht.id],played:[nh,na],
+  homeTeamId:ht.id,awayTeamId:at.id,
+  /* 리그 간 경기는 두 데이터셋에 걸쳐 있어 상대전적을 뽑을 공통 데이터가
+     없습니다. 최근 폼은 각자의 리그 데이터에서 따로 가져옵니다. */
+  crossDatasets:{home:SH,away:SA}});
 }
 async function runV4Analysis(){
  /* currentPlan()이 try 밖에 있으면 팀 해석 중 예외가 났을 때 아무 메시지도
@@ -1656,36 +1869,56 @@ async function runV4Analysis(){
  const btn=document.querySelector('.btn-analyze');
  const rows=[];
  try{
-  const {byLeague,problems}=currentPlan();
-  const leagues=Object.keys(byLeague);
-  if(!leagues.length){toast('팀 이름을 입력하세요. 리그는 자동으로 판정됩니다.',true);return}
+  const {matches,problems,needed}=currentPlan();
+  if(!matches.length){toast('팀 이름을 입력하세요. 리그는 자동으로 판정됩니다.',true);return}
   btn&&(btn.disabled=true);
-  for(let i=0;i<leagues.length;i++){
-   const lg=leagues[i],info=LEAGUE_INFO[lg];
-   $('resultArea').innerHTML=`<div class="card loading">${info.flag} ${info.name} 데이터 불러오는 중... (${i+1}/${leagues.length})</div>`;
+  /* 필요한 리그를 먼저 전부 확보합니다. 리그 간 경기는 두 리그를 함께
+     쓰므로, 경기 단위가 아니라 리그 단위로 한 번씩만 불러옵니다. */
+  const DS={},FIT={},loadErr={};
+  for(let i=0;i<needed.length;i++){
+   const lg=needed[i],info=LEAGUE_INFO[lg];
+   $('resultArea').innerHTML=`<div class="card loading">${info.flag} ${info.name} 데이터 불러오는 중... (${i+1}/${needed.length})</div>`;
    await sleep(0);
    const S=await ensureLeague(lg);
-   if(!S){byLeague[lg].forEach(m=>rows.push({slot:m.slot,home:m.home.en,away:m.away.en,
-    league:lg,leagueName:info.name,flag:info.flag,
-    error:`${info.name} 데이터를 불러오지 못했습니다.`}));continue}
-   const strength=fitStrength(S.rows,null);
-   if(!strength){
+   if(!S){loadErr[lg]=`${info.name} 데이터를 불러오지 못했습니다.`;continue}
+   const st=fitStrength(S.rows,null);
+   if(!st){
     const fin=S.rows.filter(r=>r.finished).length;
-    byLeague[lg].forEach(m=>rows.push({slot:m.slot,home:m.home.en,away:m.away.en,
-     league:lg,leagueName:info.name,flag:info.flag,
-     error:`${info.name}의 완료 경기가 ${fin}건뿐이라 모델을 만들 수 없습니다 (최소 10건).`}));
+    loadErr[lg]=`${info.name}의 완료 경기가 ${fin}건뿐이라 모델을 만들 수 없습니다 (최소 10건).`;
     continue;
    }
-   byLeague[lg].forEach(m=>{
-    const r=analyzeMatch(m,S,strength);
+   DS[lg]=S;FIT[lg]=st;
+  }
+  matches.forEach(m=>{
+   const c=m.comp;
+   const meta={slot:m.slot,home:m.home.en,away:m.away.en,
+    homeKo:m.home.ko,awayKo:m.away.ko,kind:c.kind};
+   const bad=c.leagues.filter(l=>loadErr[l]);
+   if(bad.length){rows.push({...meta,league:c.leagues[0],
+    leagueName:LEAGUE_INFO[c.leagues[0]]?.name,flag:LEAGUE_INFO[c.leagues[0]]?.flag,
+    error:bad.map(l=>loadErr[l]).join(' ')});return}
+   let r;
+   if(c.kind==='domestic'){
+    const S=DS[c.league];
+    r=analyzeMatch(m,S,FIT[c.league]);
     if(!r.error){
      r.h2h=h2hFromSeason(r.homeTeamId,r.awayTeamId,S);
      r.recentH=recentFor(r.homeTeamId,5,S);
      r.recentA=recentFor(r.awayTeamId,5,S);
     }
-    rows.push(r);
-   });
-  }
+   }else{
+    const SH=DS[c.homeLeague],SA=DS[c.awayLeague];
+    r=analyzeCrossMatch(m,SH,FIT[c.homeLeague],SA,FIT[c.awayLeague]);
+    if(!r.error){
+     /* 서로 다른 데이터셋이라 공통 상대전적은 없습니다. 최근 폼만 각자에서. */
+     r.h2h=[];
+     r.recentH=recentFor(r.homeTeamId,5,SH);
+     r.recentA=recentFor(r.awayTeamId,5,SA);
+     delete r.crossDatasets;
+    }
+   }
+   rows.push(r);
+  });
   problems.forEach(slot=>rows.push({slot,home:$('home-'+slot).value,away:$('away-'+slot).value,
    error:'팀 이름을 인식하지 못했습니다. 자동완성 목록에서 골라 주세요.'}));
   rows.sort((a,b)=>a.slot-b.slot);
@@ -1706,17 +1939,19 @@ async function runV4Analysis(){
 function render(rows){
  const list=rows.slice().sort((a,b)=>a.slot-b.slot);
  const ok=list.filter(x=>!x.error);
- const lgs=[...new Set(ok.map(r=>r.league))];
+ const lgs=[...new Set(ok.flatMap(r=>r.kind==='cross'?[r.homeLeague,r.awayLeague]:[r.league]))];
  let h=`<div class="card layer-card"><div class="card-title">🏆 분석 결과 · ${ok.length}/${list.length} 성공</div>
  <div class="pro-grid">
-  <div class="pro-kpi"><b>분석 리그</b><span>${lgs.length}</span></div>
+  <div class="pro-kpi"><b>분석 리그</b><span>${lgs.length}</span>
+   ${ok.some(x=>x.kind==='cross')?`<div class="small">리그 간 ${ok.filter(x=>x.kind==='cross').length}경기 포함</div>`:''}</div>
   <div class="pro-kpi"><b>픽 생성</b><span>${ok.filter(x=>x.pick!=='NO BET').length}</span></div>
   <div class="pro-kpi"><b>NO BET</b><span>${ok.filter(x=>x.pick==='NO BET').length}</span>
    <div class="small">신뢰도 ${T.pickThreshold()} 미만이거나 확률 우위 부족</div></div>
   <div class="pro-kpi"><b>검증</b><span>${BT?(BT.metrics.significant?'✅ 통과':'⚠️ 불충분'):'미실행'}</span>
    ${BT?`<div class="small">${esc(BT.league)} 한정</div>`:''}</div>
  </div>
- <div style="margin-top:10px">${lgs.map(l=>`<span class="lg-badge on">${LEAGUE_INFO[l].flag} ${LEAGUE_INFO[l].name} ${ok.filter(r=>r.league===l).length}</span>`).join(' ')}</div>
+ <div style="margin-top:10px">${lgs.map(l=>`<span class="lg-badge on">${LEAGUE_INFO[l].flag} ${LEAGUE_INFO[l].name} ${
+   ok.filter(r=>r.kind==='cross'?(r.homeLeague===l||r.awayLeague===l):r.league===l).length}</span>`).join(' ')}</div>
  </div><div class="result-grid">`;
  list.forEach(r=>{
   if(r.error){
@@ -1727,12 +1962,22 @@ function render(rows){
   const cardWarn=[];
   if(r.mixedSource)cardWarn.push('시즌별 데이터 출처가 달라 팀 표본이 나뉘어 있을 수 있습니다.');
   else if(r.source!=='primary')cardWarn.push('대체 소스(TheSportsDB) 데이터입니다. 슈팅 등 세부 지표가 없습니다.');
-  if(r.league==='2')cardWarn.push('서로 다른 리그 소속이라 UEFA 대항전 데이터로 분석했습니다. 이 데이터는 여러 리그 팀이 한 풀에 섞여 있어 공격/수비 강도의 "리그 평균 1.00" 기준이 리그 내 비교만큼 의미 있지 않습니다.');
+  if(r.kind==='cross'){
+   const IH=LEAGUE_INFO[r.homeLeague],IA=LEAGUE_INFO[r.awayLeague];
+   /* cardWarn 은 팀명이 섞일 수 있어 esc()로 이스케이프됩니다.
+      따라서 여기에 HTML 태그를 넣으면 그대로 글자로 보입니다. 평문으로 씁니다. */
+   cardWarn.push(`리그 간 경기입니다. 두 팀의 강도를 각자의 리그(${IH.name} / ${IA.name})에서 따로 추정한 뒤, `
+    +`리그 수준 계수 ×${n(r.tilt.k)} 로 눈금을 맞췄습니다. 이 계수는 UEFA 국가계수 순위에 기반한 "가정"이지 측정값이 아닙니다.`);
+   if(!r.tilt.comparable)
+    cardWarn.push('두 리그 중 한쪽은 UEFA 계수가 없는 리그(K·J·MLS)라 눈금 맞추기가 특히 거칩니다. 방향 참고 이상으로 쓰지 마세요.');
+   cardWarn.push('공격/수비 강도 값은 각자의 리그 평균 1.00 기준이므로, 두 열을 직접 비교하지 마세요.');
+  }
   if(r.played[0]<5||r.played[1]<5)cardWarn.push('한 팀 이상 표본이 5경기 미만이라 강도 추정이 불안정합니다.');
   h+=`<div class="result-card ${r.pick==='NO BET'?'block':''}">
    <div class="pick-head"><div class="r-match">MATCH ${r.slot} · ${esc(r.homeKo||r.home)} vs ${esc(r.awayKo||r.away)}</div>
     <span class="badge ${cls}">CONF ${r.conf}</span></div>
-   <div class="small" style="color:var(--muted);margin-bottom:6px">${r.flag} ${esc(r.leagueName)} · ${esc(r.home)} vs ${esc(r.away)}</div>
+   <div class="small" style="color:var(--muted);margin-bottom:6px">${r.flag} ${esc(r.leagueName)}${
+     r.kind==='cross'?` · 리그 수준 계수 ×${n(r.tilt.k)}`:''} · ${esc(r.home)} vs ${esc(r.away)}</div>
    <div class="pick-main">${r.pick}</div>
    <div class="confidence">H ${pct(p[0])} · D ${pct(p[1])} · A ${pct(p[2])}</div>
    ${r.pick==='NO BET'&&r.noBetReason?.length
@@ -1772,6 +2017,8 @@ function briefingPrompt(rows){
  L.push(`- 대회: ${lgs.join(', ')||'-'}`);
  L.push(`- 생성 시각: ${new Date().toLocaleString('ko-KR')}`);
  L.push('- 계산 방식: Dixon-Coles 공격/수비 강도 모델. 시즌 전체 경기로 각 팀의 공격력·수비력을 리그 평균 1.00 기준으로 추정하고(상대 수준·경기 시점 가중 반영), 저스코어 보정을 적용한 포아송으로 확률 산출');
+ if(ok.some(r=>r.kind==='cross'))
+  L.push('- 리그 간 경기: 두 팀의 강도를 각자의 국내 리그에서 따로 추정한 뒤, UEFA 국가계수 기반 리그 수준 계수로 눈금을 맞춰 결합했습니다. 이 계수는 **측정값이 아니라 가정**이며, 어떤 백테스트로도 검증되지 않았습니다. 리그 간 경기의 확률은 같은 리그 경기보다 훨씬 불확실하게 다뤄 주세요.');
  L.push(`- 설정: 반감기 ${T.halfLife()}일 / 저스코어보정 ρ=${T.rho()} / 홈개별성 ${Math.round(T.homeSplit()*100)}% / 수축 ${T.shrink()} / 픽기준 CONF ${T.pickThreshold()}·확률 ${pct(T.minTopProb())}·마진 ${pct(T.minMargin())}`);
  if(BT){const M=BT.metrics;
   L.push(`- **실제 경기 검증**: ${BT.league} 실제 ${M.n}경기(${new Date(M.from).toISOString().slice(0,10)}~${new Date(M.to).toISOString().slice(0,10)}), 각 경기를 그 이전 데이터만으로 예측`);
@@ -1791,7 +2038,7 @@ function briefingPrompt(rows){
  if(!ok.length)L.push('(분석에 성공한 경기가 없습니다)');
  ok.forEach(r=>{
   L.push('');
-  L.push(`## MATCH ${r.slot} — ${r.home} vs ${r.away} (${r.leagueName||"?"})`);
+  L.push(`## MATCH ${r.slot} — ${r.home} vs ${r.away} (${r.leagueName||"?"}${r.kind==='cross'?', 리그 간 경기':''})`);
   L.push(`- 모델 픽: **${r.pick}** (신뢰도 ${r.conf}/100, 데이터 출처 ${srcLabel(r)})`
    +(r.pick==='NO BET'&&r.noBetReason?.length?` — NO BET 사유: ${r.noBetReason.join(' · ')}`:''));
   L.push(`- 승/무/패 확률: 홈 ${pct(r.probs[0])} / 무 ${pct(r.probs[1])} / 원정 ${pct(r.probs[2])}`);
@@ -1811,7 +2058,11 @@ function briefingPrompt(rows){
   if(r.mixedSource)warn.push('시즌별로 데이터 출처가 달라 팀 표본이 나뉘어 있을 수 있음');
   else if(r.source!=='primary')warn.push('대체 소스(TheSportsDB) 데이터');
   if(r.played[0]<5||r.played[1]<5)warn.push('한 팀 이상 경기 표본 5경기 미만 — 강도 추정 불안정');
-  if(r.league==='2')warn.push('서로 다른 리그 소속이라 UEFA 대항전 데이터로 분석 — 여러 리그 팀이 한 풀에 섞여 있어 "리그 평균 1.00" 기준의 의미가 약하고 표본도 적음');
+  if(r.kind==='cross'){
+   warn.push(`리그 간 경기 — 두 팀 강도를 각자 리그에서 추정한 뒤 리그 수준 계수 ×${n(r.tilt.k)}로 보정. 이 계수는 UEFA 국가계수 기반 가정이지 측정값이 아님`);
+   warn.push('공격/수비 강도는 각자 리그 평균 1.00 기준이라 두 팀 값을 직접 비교하면 안 됨');
+   if(!r.tilt.comparable)warn.push('한쪽이 UEFA 계수 없는 리그(K·J·MLS)라 보정이 특히 거침');
+  }
   if(warn.length)L.push(`- ⚠️ 주의: ${warn.join(' / ')}`);
  });
  if(bad.length){
