@@ -309,7 +309,7 @@ body[aria-busy="true"] .btn-analyze{opacity:.6;cursor:progress}
           <div class="src-head"><span class="src-rank">2</span>
             <label class="field-label" for="fdKey">football-data.org <span class="src-note">9개 리그 · 무료 10회/분</span></label></div>
           <input type="password" id="fdKey" placeholder="football-data.org 토큰" autocomplete="off" spellcheck="false">
-          <label class="field-label" for="fdProxy" style="margin-top:8px">프록시 주소 <span class="src-note">주소만 · 뒤에 경로를 붙이지 마세요</span></label>
+          <label class="field-label" for="fdProxy" style="margin-top:8px">프록시 주소 <span class="src-note">프록시가 떠 있으면 자동으로 채워집니다</span></label>
           <input type="text" id="fdProxy" placeholder="http://127.0.0.1:8787" autocomplete="off" spellcheck="false">
           <div class="api-status-bar" role="status" aria-live="polite"><div class="dot" id="fdDot"></div><span id="fdStatus">대기중</span></div>
           <div class="brief-actions">
@@ -1429,6 +1429,32 @@ function validateFd(){
    ?`✅ 연결됨${px?'(프록시 경유)':''} · 사용 가능 대회 ${mine.length}/${Object.keys(FD_COMP).length} (${mine.join(', ')})`
    :'⚠️ 연결은 됐지만 이 프로그램이 쓰는 대회가 열려 있지 않습니다')+risk;
  }).catch(e=>{$('fdDot').className='dot err';$('fdStatus').textContent='❌ '+e.message});
+}
+/* 프록시가 떠 있으면 알아서 찾습니다.
+   주소를 사람이 옮겨 적을 이유가 없습니다 — 흔히 쓰는 포트를 살짝 두드려 보고,
+   fd-proxy가 응답하면 그 주소를 입력칸에 채웁니다.
+   이미 직접 입력한 값이 있으면 건드리지 않습니다. */
+const PROXY_PORTS=[8787,8788,9000];
+async function autoDetectProxy(){
+ if(getFdProxyRaw())return null;
+ for(const port of PROXY_PORTS){
+  const base=`http://127.0.0.1:${port}`;
+  try{
+   const c=new AbortController(),t=setTimeout(()=>c.abort(),1500);
+   const r=await fetch(base+'/__ping',{cache:'no-store',signal:c.signal});
+   clearTimeout(t);
+   const d=await r.json().catch(()=>({}));
+   if(d&&d.ok){
+    if($('fdProxy'))$('fdProxy').value=base;
+    if($('fdDot'))$('fdDot').className='dot ok';
+    if($('fdStatus'))$('fdStatus').textContent=`프록시를 자동으로 찾았습니다 — ${base}`;
+    return base;
+   }
+  }catch(e){/* 그 포트에 없을 뿐입니다 */}
+ }
+ if($('fdStatus')&&getFdKey()&&!getFdProxyRaw())
+  $('fdStatus').textContent='프록시를 찾지 못했습니다 · 실행 후 [프록시 진단]을 눌러보세요';
+ return null;
 }
 /* 프록시 진단.
    "연결하지 못했습니다" 한 줄로는 원인을 알 수 없습니다. 단계를 나눠
@@ -3184,6 +3210,7 @@ buildSlots();
 paintRegistryInfo();
 refreshPlan();
 applyDefaultKeys();
+autoDetectProxy();
 </script>
 
 </body></html>
