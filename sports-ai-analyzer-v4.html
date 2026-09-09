@@ -309,7 +309,7 @@ body[aria-busy="true"] .btn-analyze{opacity:.6;cursor:progress}
           <div class="src-head"><span class="src-rank">2</span>
             <label class="field-label" for="fdKey">football-data.org <span class="src-note">9개 리그 · 무료 10회/분</span></label></div>
           <input type="password" id="fdKey" placeholder="football-data.org 토큰" autocomplete="off" spellcheck="false">
-          <label class="field-label" for="fdProxy" style="margin-top:8px">프록시 주소 <span class="src-note">브라우저 직접 호출이 막힐 때만</span></label>
+          <label class="field-label" for="fdProxy" style="margin-top:8px">프록시 주소 <span class="src-note">주소만 · 뒤에 경로를 붙이지 마세요</span></label>
           <input type="text" id="fdProxy" placeholder="http://127.0.0.1:8787" autocomplete="off" spellcheck="false">
           <div class="api-status-bar" role="status" aria-live="polite"><div class="dot" id="fdDot"></div><span id="fdStatus">대기중</span></div>
           <div class="brief-actions">
@@ -320,6 +320,8 @@ body[aria-busy="true"] .btn-analyze{opacity:.6;cursor:progress}
           <div class="small" style="margin-top:6px">지원: 프리미어리그 · 라리가 · 세리에A · 분데스리가 · 리그1 · 에레디비시 · 프리메이라리가 · 챔피언십 · 챔피언스리그.<br>
           <b>K리그·J리그·MLS 등은 제공하지 않아</b> 그 리그에서는 이 소스를 건너뜁니다.</div>
           <div class="small" style="margin-top:6px">이 API는 서버용이라 브라우저에서 바로 부르면 <b>CORS로 막힙니다.</b> 함께 드린 <code>fd-proxy</code> 스크립트를 내 PC에서 실행하고 위 칸에 <code>http://127.0.0.1:8787</code>을 넣으세요. 토큰은 내 PC 밖으로 나가지 않습니다.<br>
+          이 칸에는 <b>주소만</b> 넣습니다 — <code>http://127.0.0.1:8787</code> (O) / <code>…:8787/__ping</code> (X).
+          확인용 <code>/__ping</code> 주소는 <b>브라우저 주소창</b>에 넣어 여는 것입니다.<br>
           연결이 안 되면 <b>프록시 진단</b>을 눌러 어느 단계에서 막히는지 확인하세요.</div>
         </div>
 
@@ -1443,6 +1445,11 @@ async function diagnoseFd(){
 
  add('info','진단을 시작합니다...');
  rows.length=0;
+ const rawPx=getFdProxyRaw();
+ if(rawPx&&rawPx!==px){
+  add('info',`입력하신 주소를 정리했습니다: "${rawPx}" → "${px}"`);
+  add('info','프록시 칸에는 확인용 주소(/__ping)가 아니라 프록시 자체 주소만 넣으면 됩니다.');
+ }
 
  /* ① 프록시 자체 */
  if(!px){
@@ -1462,7 +1469,8 @@ async function diagnoseFd(){
     add('info','① 프록시 창이 켜져 있나요? (node fd-proxy.js 또는 python fd-proxy.py)');
     add('info',`② 브라우저 주소창에 ${base}/__ping 을 열어보세요. 안 열리면 프록시가 안 떠 있는 것입니다.`);
     add('info','③ localhost 대신 127.0.0.1 로 바꿔보세요.');
-    add('info','④ 포트가 이미 쓰이는 중이면 프록시 창에 그 안내가 떠 있습니다. PORT=9000 으로 바꾸고 이 칸도 같이 바꾸세요.');
+    add('info','④ 이 칸에는 /__ping 이나 /v4 를 붙이지 마세요. 프록시 주소만 넣습니다.');
+    add('info','⑤ 포트가 이미 쓰이는 중이면 프록시 창에 그 안내가 떠 있습니다. PORT=9000 으로 바꾸고 이 칸도 같이 바꾸세요.');
    }
   }
  }
@@ -1537,7 +1545,23 @@ function fdGate(){
  return _fdChain;
 }
 function getFdKey(){return ($('fdKey')?.value||'').trim()}
-function getFdProxy(){return ($('fdProxy')?.value||'').trim()}
+/* 프록시 주소를 관대하게 받아들입니다.
+   실제로 확인 페이지 주소(.../__ping)를 이 칸에 그대로 넣는 일이 있었고,
+   그러면 요청이 .../__ping/v4/... 로 나가 무조건 실패합니다.
+   scheme 누락, 끝 슬래시, /__ping, /v4 꼬리표를 모두 정리해 줍니다.
+   {url} 자리표시자 형식은 손대지 않습니다. */
+function normalizeProxy(raw){
+ let v=String(raw||'').trim();
+ if(!v)return '';
+ if(v.includes('{url}'))return v;
+ if(!/^https?:\/\//i.test(v))v='http://'+v;
+ v=v.replace(/\/+$/,'');
+ v=v.replace(/\/__ping$/i,'');
+ v=v.replace(/\/v\d+$/i,'');
+ return v.replace(/\/+$/,'');
+}
+function getFdProxyRaw(){return ($('fdProxy')?.value||'').trim()}
+function getFdProxy(){return normalizeProxy(getFdProxyRaw())}
 /* football-data.org는 브라우저 직접 호출을 CORS로 막습니다(서버용 API).
    프록시 주소를 넣으면 그쪽을 거쳐 호출합니다. 두 가지 형식을 지원합니다.
      · 경로 이어붙이기 : http://localhost:8787       → http://localhost:8787/v4/...
