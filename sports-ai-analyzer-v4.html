@@ -300,10 +300,13 @@ body[aria-busy="true"] .btn-analyze{opacity:.6;cursor:progress}
           <div class="src-head"><span class="src-rank">2</span>
             <label class="field-label" for="fdKey">football-data.org <span class="src-note">9개 리그 · 무료 10회/분</span></label></div>
           <input type="password" id="fdKey" placeholder="football-data.org 토큰" autocomplete="off" spellcheck="false">
+          <label class="field-label" for="fdProxy" style="margin-top:8px">프록시 주소 <span class="src-note">브라우저 직접 호출이 막힐 때만</span></label>
+          <input type="text" id="fdProxy" placeholder="http://localhost:8787" autocomplete="off" spellcheck="false">
           <div class="api-status-bar" role="status" aria-live="polite"><div class="dot" id="fdDot"></div><span id="fdStatus">대기중</span></div>
           <button class="btn btn-secondary" onclick="validateFd()">연결 확인</button>
           <div class="small" style="margin-top:6px">지원: 프리미어리그 · 라리가 · 세리에A · 분데스리가 · 리그1 · 에레디비시 · 프리메이라리가 · 챔피언십 · 챔피언스리그.<br>
           <b>K리그·J리그·MLS 등은 제공하지 않아</b> 그 리그에서는 이 소스를 건너뜁니다.</div>
+          <div class="small" style="margin-top:6px">이 API는 서버용이라 브라우저에서 바로 부르면 <b>CORS로 막힙니다.</b> 함께 드린 <code>fd-proxy</code> 스크립트를 내 PC에서 실행하고 위 칸에 <code>http://localhost:8787</code>을 넣으세요. 토큰은 내 PC 밖으로 나가지 않습니다.</div>
         </div>
 
         <div class="src-row">
@@ -333,6 +336,7 @@ body[aria-busy="true"] .btn-analyze{opacity:.6;cursor:progress}
           <span class="protag">1 · API-FOOTBALL</span><span class="protag">2 · FOOTBALL-DATA.ORG</span><span class="protag">3 · OPENLIGADB</span><span class="protag">4 · TheSportsDB</span>
         </div>
         <div class="small">위 순서대로 <b>시즌 단위로</b> 시도하고, 하나가 성공하면 나머지는 호출하지 않습니다. 키가 없거나 그 소스가 해당 리그를 제공하지 않으면 요청을 보내지 않고 건너뜁니다(쿼터 낭비 방지). API-Football의 429·5xx는 최대 3회 재시도한 뒤에야 다음 소스로 넘어갑니다.</div>
+        <div class="small" style="margin-top:6px">한 소스가 CORS로 막혀도 <b>분석은 멈추지 않습니다</b> — 그 소스만 건너뛰고 다음으로 넘어가며, 무엇이 왜 실패했는지는 시즌 카드에 남습니다.</div>
         <div class="small" style="margin-top:6px">⚠️ 대체 소스는 리그 커버리지가 좁고 팀 ID 체계가 달라, 시즌마다 출처가 갈리면 같은 팀이 둘로 쪼개질 수 있습니다. 이 경우 이름을 기준으로 자동 통합하고 <b>아래 시즌 카드에 경고를 띄웁니다</b>. 대체 소스로 만든 데이터셋은 신뢰도에 0.9를 곱합니다.</div>
         <div class="api-status-bar" role="status" aria-live="polite"><div class="dot" id="fallbackDot"></div><span id="fallbackStatus">분석 전 · 대기중</span></div>
       </div>
@@ -1250,6 +1254,7 @@ function refreshPlan(){
 const DEFAULT_KEYS={
  apiKey :'',   // api-sports.io 키
  fdKey  :'',   // football-data.org 토큰
+ fdProxy:'',   // football-data.org CORS 프록시 (예: http://localhost:8787)
  tsdbKey:''    // TheSportsDB 후원자 키 (선택)
 };
 /* 내장 키를 입력칸에 채웁니다. 사용자가 이미 뭔가 입력했다면 건드리지 않습니다. */
@@ -1260,7 +1265,9 @@ function applyDefaultKeys(){
   if(el&&v&&!el.value){el.value=v;filled++}
  });
  if(DEFAULT_KEYS.fdKey&&$('fdStatus'))
-  $('fdStatus').textContent='내장 토큰이 채워져 있습니다 · 연결 확인을 눌러보세요';
+  $('fdStatus').textContent='내장 토큰이 채워져 있습니다'
+   +(DEFAULT_KEYS.fdProxy?` · 프록시 ${DEFAULT_KEYS.fdProxy} 경유`:' · 프록시 없음(직접 호출)')
+   +' · 연결 확인을 눌러보세요';
  if(DEFAULT_KEYS.apiKey&&$('apiStatus'))
   $('apiStatus').textContent='내장 키가 채워져 있습니다 · 연결 확인을 눌러보세요';
  if(DEFAULT_KEYS.tsdbKey&&$('tsdbStatus'))
@@ -1394,14 +1401,17 @@ function validateApi(){
    플랜마다 열린 대회가 다르므로, "연결됨"보다 이 숫자가 실제로 쓸모 있습니다. */
 function validateFd(){
  if(!getFdKey()){$('fdDot').className='dot err';$('fdStatus').textContent='❌ 토큰을 입력하세요';return}
- $('fdStatus').textContent='확인 중...';
+ const px=getFdProxy();
+ $('fdStatus').textContent=px?`확인 중... (프록시 경유)`:'확인 중... (직접 호출)';
  fdApi('/competitions').then(d=>{
   const codes=new Set((d.competitions||[]).map(c=>c.code));
   const mine=Object.values(FD_COMP).filter(c=>codes.has(c));
+  /* 프록시가 내 PC 밖이면 토큰이 그 서버를 지나갑니다. 조용히 넘어가면 안 됩니다. */
+  const risk=px&&!isLocalProxy(px)?' ⚠️ 외부 프록시라 토큰이 그 서버를 지나갑니다':'';
   $('fdDot').className=mine.length?'dot ok':'dot err';
-  $('fdStatus').textContent=mine.length
-   ?`✅ 연결됨 · 사용 가능 대회 ${mine.length}/${Object.keys(FD_COMP).length} (${mine.join(', ')})`
-   :'⚠️ 연결은 됐지만 이 프로그램이 쓰는 대회가 열려 있지 않습니다';
+  $('fdStatus').textContent=(mine.length
+   ?`✅ 연결됨${px?'(프록시 경유)':''} · 사용 가능 대회 ${mine.length}/${Object.keys(FD_COMP).length} (${mine.join(', ')})`
+   :'⚠️ 연결은 됐지만 이 프로그램이 쓰는 대회가 열려 있지 않습니다')+risk;
  }).catch(e=>{$('fdDot').className='dot err';$('fdStatus').textContent='❌ '+e.message});
 }
 /* OpenLigaDB 연결 확인. 키가 없으므로 브라우저에서 실제로 닿는지만 봅니다. */
@@ -1454,18 +1464,39 @@ function fdGate(){
  return _fdChain;
 }
 function getFdKey(){return ($('fdKey')?.value||'').trim()}
+function getFdProxy(){return ($('fdProxy')?.value||'').trim()}
+/* football-data.org는 브라우저 직접 호출을 CORS로 막습니다(서버용 API).
+   프록시 주소를 넣으면 그쪽을 거쳐 호출합니다. 두 가지 형식을 지원합니다.
+     · 경로 이어붙이기 : http://localhost:8787       → http://localhost:8787/v4/...
+     · 자리표시자      : https://어떤프록시/?{url}   → {url} 자리에 전체 주소를 넣어 전달
+   프록시는 <b>토큰이 지나가는 길</b>입니다. 내 PC에서 돌리는 프록시가 아니면
+   그 서버 운영자가 토큰을 볼 수 있으므로, 로컬이 아닐 때는 경고를 띄웁니다. */
+/* FD_BASE 에는 '/v4' 경로가 들어 있습니다. 프록시 뒤에 path 만 이어붙이면
+   그 접두사가 사라져 업스트림에서 404가 납니다(실제 브라우저 실행에서 잡힘).
+   FD_BASE 에서 접두사를 뽑아 항상 함께 넘깁니다. */
+const FD_PREFIX=(()=>{try{return new URL(FD_BASE).pathname.replace(/\/+$/,'')}catch{return '/v4'}})();
+function fdUrl(path){
+ const px=getFdProxy();
+ if(!px)return FD_BASE+path;
+ if(px.includes('{url}'))return px.replace('{url}',encodeURIComponent(FD_BASE+path));
+ return px.replace(/\/+$/,'')+FD_PREFIX+path;
+}
+const isLocalProxy=u=>/^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:|\/|$)/i.test(String(u||''));
 async function fdApi(path,attempt=0){
  const key=getFdKey();
  if(!key)throw new Error('football-data.org 키가 없습니다.');
  await fdGate();
  let r;
- try{r=await fetch(FD_BASE+path,{headers:{'X-Auth-Token':key}})}
+ try{r=await fetch(fdUrl(path),{headers:{'X-Auth-Token':key}})}
  catch(e){
   /* CORS 차단과 순수 네트워크 오류는 브라우저에서 똑같이 TypeError로 옵니다.
      재시도해도 CORS는 절대 풀리지 않으므로 한 번만 더 보고 접습니다. */
   if(attempt<1){await sleep(1200);return fdApi(path,attempt+1)}
-  throw new Error('브라우저에서 football-data.org 호출이 차단되었습니다(CORS 또는 네트워크). '
-   +'이 API는 서버용이라 브라우저 직접 호출을 막는 경우가 있습니다.');
+  throw new Error(getFdProxy()
+   ? `프록시(${getFdProxy()})에 연결하지 못했습니다. 로컬 프록시라면 실행 중인지, 포트가 맞는지 확인하세요.`
+   : '브라우저에서 football-data.org 직접 호출이 CORS로 차단되었습니다. '
+    +'이 API는 서버용이라 브라우저에서 바로 부를 수 없습니다. '
+    +'아래 "프록시 주소" 칸에 로컬 프록시(예: http://localhost:8787)를 넣으면 해결됩니다.');
  }
  FD_CALLS++;
  let d={};try{d=await r.json()}catch{}
