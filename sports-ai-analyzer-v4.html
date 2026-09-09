@@ -314,7 +314,9 @@ body[aria-busy="true"] .btn-analyze{opacity:.6;cursor:progress}
           <button class="btn btn-secondary" onclick="validateTsdb()">연결 확인</button>
         </div>
 
-        <div class="v4-note">세 키 모두 <b>저장되지 않습니다</b> — 입력칸에만 있고 새로고침하면 사라집니다. localStorage에 기록하지 않으며, 각 키는 해당 서비스로만 전송됩니다. 공용 PC에서는 사용 후 탭을 닫으세요.<br>모델은 API가 실제로 돌려준 값만 사용하고, 없는 값은 N/A로 둡니다.</div>
+        <div class="v4-note"><b>직접 입력한 키</b>는 저장되지 않습니다 — 입력칸에만 있고 새로고침하면 사라집니다. localStorage에 기록하지 않으며, 각 키는 해당 서비스로만 전송됩니다.<br>
+        <b>내장 키</b>(스크립트 맨 위 <code>DEFAULT_KEYS</code>)를 쓰면 그 값은 <b>이 HTML 파일 안에 그대로 남습니다.</b> 파일을 남에게 주거나 공개 저장소에 올리면 키도 함께 넘어가니, 공유용 사본에서는 비워 주세요.<br>
+        모델은 API가 실제로 돌려준 값만 사용하고, 없는 값은 N/A로 둡니다.</div>
       </div>
 
       <div class="card layer-card">
@@ -1180,6 +1182,38 @@ function refreshPlan(){
 }
 
 
+
+/* ================= 내장 기본 키 =================
+   여기에 값을 적어 두면 페이지를 열 때 해당 입력칸이 자동으로 채워지고,
+   그대로 각 API의 인증 헤더에 실려 나갑니다.
+     · API-Football      → x-apisports-key 헤더
+     · football-data.org → X-Auth-Token 헤더
+     · TheSportsDB       → URL 경로의 키 자리 (비우면 공개 키 '3')
+   입력칸에서 지우거나 다른 키로 바꾸면 그 값이 우선합니다.
+
+   ⚠️ 여기 적은 키는 <b>이 HTML 파일 안에 그대로 남습니다.</b>
+      파일을 남에게 주거나 공개 저장소에 올리면 키도 함께 넘어갑니다.
+      공유할 파일에는 비워 두세요. */
+const DEFAULT_KEYS={
+ apiKey :'',   // api-sports.io 키
+ fdKey  :'',   // football-data.org 토큰
+ tsdbKey:''    // TheSportsDB 후원자 키 (선택)
+};
+/* 내장 키를 입력칸에 채웁니다. 사용자가 이미 뭔가 입력했다면 건드리지 않습니다. */
+function applyDefaultKeys(){
+ let filled=0;
+ Object.entries(DEFAULT_KEYS).forEach(([id,v])=>{
+  const el=$(id);
+  if(el&&v&&!el.value){el.value=v;filled++}
+ });
+ if(DEFAULT_KEYS.fdKey&&$('fdStatus'))
+  $('fdStatus').textContent='내장 토큰이 채워져 있습니다 · 연결 확인을 눌러보세요';
+ if(DEFAULT_KEYS.apiKey&&$('apiStatus'))
+  $('apiStatus').textContent='내장 키가 채워져 있습니다 · 연결 확인을 눌러보세요';
+ if(DEFAULT_KEYS.tsdbKey&&$('tsdbStatus'))
+  $('tsdbStatus').textContent='내장 키가 채워져 있습니다 · 연결 확인을 눌러보세요';
+ return filled;
+}
 
 const API_BASE='https://v3.football.api-sports.io';
 /* v2: TSDB 시각 파싱(UTC)과 혼합 소스 팀 ID 통합이 바뀌어 v1 캐시는 못 씁니다. */
@@ -2853,6 +2887,7 @@ function downloadBriefing(){
 buildSlots();
 paintRegistryInfo();
 refreshPlan();
+applyDefaultKeys();
 </script>
 
 </body></html>
