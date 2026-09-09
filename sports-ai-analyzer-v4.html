@@ -277,7 +277,7 @@ body[aria-busy="true"] .btn-analyze{opacity:.6;cursor:progress}
   <div class="header">
     <div class="header-left">
       <h1>ULTIMATE SPORTS AI ANALYZER</h1>
-      <p>DIXON-COLES 강도 모델 · 29개 리그 국내전 + 리그 간 경기 · 워크포워드 백테스트</p>
+      <p>DIXON-COLES 강도 모델 · 30개 리그 · 데이터 소스 4중화 · 워크포워드 백테스트</p>
     </div>
     <div class="version-badge">v4.0 · 2026</div>
   </div>
@@ -286,7 +286,7 @@ body[aria-busy="true"] .btn-analyze{opacity:.6;cursor:progress}
     <div class="sidebar">
       <div class="card">
         <div class="card-title">🔑 API SETTINGS · 데이터 소스</div>
-        <div class="small" style="margin-bottom:10px">키를 넣은 소스를 <b>위에서부터 차례로</b> 시도하고, 하나가 성공하면 나머지는 호출하지 않습니다. 셋 다 비워도 TheSportsDB 공개 키로 동작하지만 커버리지가 좁습니다.</div>
+        <div class="small" style="margin-bottom:10px">소스를 <b>위에서부터 차례로</b> 시도하고, 하나가 성공하면 나머지는 호출하지 않습니다. 키를 다 비워도 OpenLigaDB(독일)와 TheSportsDB 공개 키로 동작하지만 커버리지가 좁습니다.</div>
 
         <div class="src-row">
           <div class="src-head"><span class="src-rank">1</span>
@@ -308,6 +308,14 @@ body[aria-busy="true"] .btn-analyze{opacity:.6;cursor:progress}
 
         <div class="src-row">
           <div class="src-head"><span class="src-rank">3</span>
+            <span class="field-label">OpenLigaDB <span class="src-note">키 불필요 · 독일 리그 전용</span></span></div>
+          <div class="api-status-bar" role="status" aria-live="polite"><div class="dot" id="oldbDot"></div><span id="oldbStatus">키 없이 사용 · 분데스리가 / 2. 분데스리가</span></div>
+          <button class="btn btn-secondary" onclick="validateOldb()">연결 확인</button>
+          <div class="small" style="margin-top:6px">독일 축구 커뮤니티가 운영하는 공개 API로 <b>키가 필요 없습니다</b>. 분데스리가·2. 분데스리가만 제공하므로 그 외 리그에서는 건너뜁니다.</div>
+        </div>
+
+        <div class="src-row">
+          <div class="src-head"><span class="src-rank">4</span>
             <label class="field-label" for="tsdbKey">TheSportsDB <span class="src-note">최후 대체 · 키 없어도 동작</span></label></div>
           <input type="password" id="tsdbKey" placeholder="후원자 키 (선택)" autocomplete="off" spellcheck="false">
           <div class="api-status-bar" role="status" aria-live="polite"><div class="dot" id="tsdbDot"></div><span id="tsdbStatus">공개 키 '3' 사용 중</span></div>
@@ -322,7 +330,7 @@ body[aria-busy="true"] .btn-analyze{opacity:.6;cursor:progress}
       <div class="card layer-card">
         <div class="layer-title">자동 대체 데이터 소스</div>
         <div class="probar">
-          <span class="protag">1 · API-FOOTBALL</span><span class="protag">2 · FOOTBALL-DATA.ORG</span><span class="protag">3 · TheSportsDB</span>
+          <span class="protag">1 · API-FOOTBALL</span><span class="protag">2 · FOOTBALL-DATA.ORG</span><span class="protag">3 · OPENLIGADB</span><span class="protag">4 · TheSportsDB</span>
         </div>
         <div class="small">위 순서대로 <b>시즌 단위로</b> 시도하고, 하나가 성공하면 나머지는 호출하지 않습니다. 키가 없거나 그 소스가 해당 리그를 제공하지 않으면 요청을 보내지 않고 건너뜁니다(쿼터 낭비 방지). API-Football의 429·5xx는 최대 3회 재시도한 뒤에야 다음 소스로 넘어갑니다.</div>
         <div class="small" style="margin-top:6px">⚠️ 대체 소스는 리그 커버리지가 좁고 팀 ID 체계가 달라, 시즌마다 출처가 갈리면 같은 팀이 둘로 쪼개질 수 있습니다. 이 경우 이름을 기준으로 자동 통합하고 <b>아래 시즌 카드에 경고를 띄웁니다</b>. 대체 소스로 만든 데이터셋은 신뢰도에 0.9를 곱합니다.</div>
@@ -370,9 +378,10 @@ body[aria-busy="true"] .btn-analyze{opacity:.6;cursor:progress}
         <b>표본 보정:</b> Kish 유효표본수 기준으로 표본이 적은 팀을 리그 평균 쪽으로 당깁니다(수축 계수 5).<br>
         <b>홈 이점:</b> 리그 전체 홈 평균에 더해 팀별 홈 강세를 40%만 반영하고, 0.80~1.25로 제한합니다.<br>
         <b>확률:</b> 두 팀의 예상 득점(λ)으로 12×12 스코어 격자를 만들고, 0-0·1-0·0-1·1-1에 Dixon-Coles 저스코어 보정(ρ=-0.13)을 적용해 정규화합니다.<br>
-        <b>데이터 소스:</b> API-Football → football-data.org → TheSportsDB 순으로 시즌 단위 시도.
-        신뢰 계수는 앞의 둘이 1.0(우리가 쓰는 항목인 득점·일시에서 품질 차이가 없음), TheSportsDB가 <b>0.9</b>입니다.
-        football-data.org는 9개 리그만 제공하므로 나머지 리그에서는 자동으로 건너뜁니다.<br>
+        <b>데이터 소스:</b> API-Football → football-data.org → OpenLigaDB → TheSportsDB 순으로 시즌 단위 시도.
+        신뢰 계수는 앞의 둘이 1.0(우리가 쓰는 항목인 득점·일시에서 품질 차이가 없음),
+        OpenLigaDB가 <b>0.95</b>(커뮤니티 운영), TheSportsDB가 <b>0.9</b>입니다.
+        football-data.org는 9개 리그, OpenLigaDB는 독일 2개 리그만 제공하므로 나머지 리그에서는 자동으로 건너뜁니다.<br>
         <b>리그 간 경기:</b> 두 팀의 국내 리그 데이터를 각각 쓰고 리그 수준 계수로 결합합니다(아래 항목 참조).<br>
         <b>데이터 부족 시:</b> 완료 경기 10건 미만이면 모델을 만들지 않고, 팀을 데이터에서 확정하지 못하면 그 경기를 실패로 표시합니다. 없는 값을 0으로 채워 억지로 계산하지 않습니다.<br>
         <b>정렬:</b> 결과 카드는 <b>입력 슬롯 번호(MATCH n) 순서</b> 그대로 나옵니다. 신뢰도는 각 카드의 CONF 배지로 확인하세요.
@@ -575,6 +584,21 @@ const TEAM_DB={
  'FC St. Pauli':'장크트파울리|상파울리|#78',
  'FC Heidenheim':'하이덴하임|#78',
  'Hamburger SV':'함부르크|함부르크SV|#78',
+ 'VfL Bochum':'보훔|#78',
+ 'Holstein Kiel':'홀슈타인킬|킬|#79',
+ 'Darmstadt 98':'다름슈타트|#79',
+ 'Fortuna Dusseldorf':'뒤셀도르프|포르투나뒤셀도르프|#79',
+ 'Hannover 96':'하노버|하노버96|#79',
+ 'Karlsruher SC':'칼스루에|#79',
+ 'SC Paderborn 07':'파더보른|#79',
+ 'Greuther Furth':'퓌르트|그로이터퓌르트|#79',
+ 'Eintracht Braunschweig':'브라운슈바이크|#79',
+ 'SV Elversberg':'엘버스베르크|#79',
+ 'FC Schalke 04':'샬케|샬케04|#79',
+ 'Hertha Berlin':'헤르타베를린|헤르타|#79',
+ 'FC Nurnberg':'뉘른베르크|#79',
+ 'SV Sandhausen':'잔트하우젠|#79',
+ 'Magdeburg':'마그데부르크|#79',
  'Paris Saint Germain':'파리생제르맹|PSG|파리|#61',
  'Marseille':'마르세유|올림피크마르세유|#61',
  'Monaco':'모나코|AS모나코|#61',
@@ -754,7 +778,8 @@ const LEAGUE_INFO={
  '40' :{name:'챔피언십',       flag:'🏴',season:'y',  apiName:'Championship',country:'England',alt:'39'},
  '140':{name:'라리가',        flag:'🇪🇸',season:'y',  apiName:'La Liga',country:'Spain'},
  '135':{name:'세리에A',       flag:'🇮🇹',season:'y',  apiName:'Serie A',country:'Italy'},
- '78' :{name:'분데스리가',     flag:'🇩🇪',season:'y',  apiName:'Bundesliga',country:'Germany'},
+ '78' :{name:'분데스리가',     flag:'🇩🇪',season:'y',  apiName:'Bundesliga',country:'Germany',alt:'79'},
+ '79' :{name:'2. 분데스리가',  flag:'🇩🇪',season:'y',  apiName:'2. Bundesliga',country:'Germany',alt:'78'},
  '61' :{name:'리그1',         flag:'🇫🇷',season:'y',  apiName:'Ligue 1',country:'France'},
  '88' :{name:'에레디비시',     flag:'🇳🇱',season:'y',  apiName:'Eredivisie',country:'Netherlands'},
  '94' :{name:'프리메이라리가', flag:'🇵🇹',season:'y',  apiName:'Primeira Liga',country:'Portugal'},
@@ -792,7 +817,7 @@ const LEAGUE_INFO={
    비유럽 리그(K·J·MLS)는 UEFA 계수가 없어 대략적인 위치만 잡아둔 값이라
    유럽 팀과의 비교는 특히 거칠다는 점을 함께 표시합니다. */
 const LEAGUE_Q={
- '39':100,'40':55,'135':90,'140':84,'78':82,'61':71,
+ '39':100,'40':55,'135':90,'140':84,'78':82,'79':52,'61':71,
  '88':64,'94':61,'144':58,'203':48,'345':45,'197':45,'218':43,
  '103':40,'119':39,'207':37,'179':36,'333':34,'286':33,'210':32,
  '113':30,'271':30,'419':29,'235':33,'106':36,
@@ -855,8 +880,21 @@ const LATIN_ALIAS={
  'Borussia Dortmund':['BV Borussia 09 Dortmund','Dortmund'],
  'Borussia Monchengladbach':['Borussia Monchengladbach','Monchengladbach','Gladbach'],
  'Bayer Leverkusen':['Bayer 04 Leverkusen','Leverkusen'],
- 'Eintracht Frankfurt':['Frankfurt'],
- 'VfB Stuttgart':['Stuttgart'],
+ 'Eintracht Frankfurt':['Frankfurt','Eintracht Frankfurt'],
+ 'VfB Stuttgart':['Stuttgart','VfB Stuttgart'],
+ /* OpenLigaDB는 독일어 정식 명칭을 씁니다. 이게 없으면 팀을 못 찾습니다. */
+ 'Werder Bremen':['SV Werder Bremen','Werder'],
+ '1899 Hoffenheim':['TSG 1899 Hoffenheim','TSG Hoffenheim','Hoffenheim'],
+ 'Mainz 05':['1. FSV Mainz 05','FSV Mainz 05','Mainz'],
+ 'Union Berlin':['1. FC Union Berlin','Union Berlin'],
+ 'FC Koln':['1. FC Köln','1. FC Koeln','FC Koeln','Köln','Koln','Cologne'],
+ 'FC Heidenheim':['1. FC Heidenheim 1846','1. FC Heidenheim','Heidenheim'],
+ 'FC St. Pauli':['FC St. Pauli','St. Pauli','St Pauli'],
+ 'Hamburger SV':['Hamburger SV','Hamburg','HSV'],
+ 'FC Augsburg':['FC Augsburg','Augsburg'],
+ 'SC Freiburg':['SC Freiburg','Freiburg'],
+ 'VfL Wolfsburg':['VfL Wolfsburg','Wolfsburg'],
+ 'RB Leipzig':['RasenBallsport Leipzig','RB Leipzig','Leipzig'],
  'Paris Saint Germain':['Paris Saint-Germain','PSG','Paris SG'],
  'Marseille':['Olympique Marseille','Olympique de Marseille'],
  'Lyon':['Olympique Lyonnais','Olympique Lyon'],
@@ -896,6 +934,21 @@ const LATIN_ALIAS={
  'Hearts':['Heart of Midlothian'],
  'Legia Warsaw':['Legia Warszawa'],
  'Rakow':['Rakow Czestochowa','Raków Częstochowa'],
+ 'VfL Bochum':['VfL Bochum 1848','Bochum'],
+ 'Holstein Kiel':['Holstein Kiel','KSV Holstein Kiel'],
+ 'Darmstadt 98':['SV Darmstadt 98','Darmstadt'],
+ 'Fortuna Dusseldorf':['Fortuna Düsseldorf','Düsseldorf','Dusseldorf'],
+ 'Hannover 96':['Hannover 96','Hannover'],
+ 'Karlsruher SC':['Karlsruher SC','Karlsruhe'],
+ 'SC Paderborn 07':['SC Paderborn 07','Paderborn'],
+ 'Greuther Furth':['SpVgg Greuther Fürth','Greuther Fürth','Fürth'],
+ 'Eintracht Braunschweig':['Eintracht Braunschweig','Braunschweig'],
+ 'SV Elversberg':['SV 07 Elversberg','Elversberg'],
+ 'FC Schalke 04':['FC Schalke 04','Schalke 04','Schalke'],
+ 'Hertha Berlin':['Hertha BSC','Hertha BSC Berlin','Hertha'],
+ 'FC Nurnberg':['1. FC Nürnberg','1. FC Nurnberg','Nürnberg','Nurnberg'],
+ 'SV Sandhausen':['SV Sandhausen','Sandhausen'],
+ 'Magdeburg':['1. FC Magdeburg','FC Magdeburg'],
  /* K리그: 공식 영문 표기가 데이터 소스마다 다릅니다. */
  'Jeonbuk Motors':['Jeonbuk Hyundai Motors','Jeonbuk Hyundai'],
  'Ulsan Hyundai FC':['Ulsan HD','Ulsan HD FC','Ulsan Hyundai'],
@@ -1351,6 +1404,17 @@ function validateFd(){
    :'⚠️ 연결은 됐지만 이 프로그램이 쓰는 대회가 열려 있지 않습니다';
  }).catch(e=>{$('fdDot').className='dot err';$('fdStatus').textContent='❌ '+e.message});
 }
+/* OpenLigaDB 연결 확인. 키가 없으므로 브라우저에서 실제로 닿는지만 봅니다. */
+function validateOldb(){
+ $('oldbStatus').textContent='확인 중...';
+ oldbApi('/getavailableleagues').then(d=>{
+  const list=Array.isArray(d)?d:[];
+  const de=list.filter(x=>['bl1','bl2'].includes(String(x.leagueShortcut||'').toLowerCase()));
+  $('oldbDot').className='dot ok';
+  $('oldbStatus').textContent=`✅ 연결됨 · 리그 ${list.length}개 확인`
+   +(de.length?` (분데스리가 계열 ${de.length}개 포함)`:'');
+ }).catch(e=>{$('oldbDot').className='dot err';$('oldbStatus').textContent='❌ '+e.message});
+}
 /* TheSportsDB 연결 확인. 키가 없으면 공개 키 '3'으로 확인합니다. */
 function validateTsdb(){
  const k=getTsdbKey();
@@ -1442,6 +1506,75 @@ async function fetchSeasonFD(league,season){
   code};
 }
 
+/* ================= 데이터 소스: OpenLigaDB =================
+   독일 축구 커뮤니티가 운영하는 공개 API입니다.
+   · 키가 필요 없습니다.
+   · 경기: /getmatchdata/{리그약칭}/{시즌시작연도}
+   · 독일 리그만 제공하므로 그 외 리그에서는 건너뜁니다. */
+const OLDB_BASE='https://api.openligadb.de';
+const OLDB_LEAGUE={'78':'bl1','79':'bl2'};
+const OLDB_MIN_GAP=800;
+let _oldbLast=0,_oldbChain=Promise.resolve(),OLDB_CALLS=0;
+function oldbGate(){
+ _oldbChain=_oldbChain.then(async()=>{
+  const wait=_oldbLast+OLDB_MIN_GAP-Date.now();
+  if(wait>0)await sleep(wait);
+  _oldbLast=Date.now();
+ });
+ return _oldbChain;
+}
+async function oldbApi(path,attempt=0){
+ await oldbGate();
+ let r;
+ try{r=await fetch(OLDB_BASE+path,{headers:{'Accept':'application/json'}})}
+ catch(e){
+  if(attempt<1){await sleep(1200);return oldbApi(path,attempt+1)}
+  throw new Error('브라우저에서 OpenLigaDB 호출이 차단되었습니다(CORS 또는 네트워크).');
+ }
+ OLDB_CALLS++;
+ if(r.status>=500&&attempt<2){await sleep(1500*Math.pow(2,attempt));return oldbApi(path,attempt+1)}
+ if(!r.ok)throw new Error(`OpenLigaDB HTTP ${r.status}`);
+ let d=null;try{d=await r.json()}catch{throw new Error('OpenLigaDB 응답을 해석하지 못했습니다.')}
+ return d;
+}
+/* 최종 스코어 고르기.
+   matchResults 에는 전반(resultTypeID 1)과 최종(2)이 함께 들어 있고 순서도
+   일정하지 않습니다. 첫 항목을 그냥 쓰면 전반 스코어를 최종으로 오인합니다.
+   최종(2)을 먼저 찾고, 없으면 resultOrderID 가 가장 큰 것을 씁니다. */
+function oldbFinalScore(m){
+ const rs=m.matchResults||[];
+ if(!rs.length)return {h:null,a:null};
+ let pick=rs.find(x=>Number(x.resultTypeID)===2);
+ if(!pick)pick=rs.slice().sort((x,y)=>Number(y.resultOrderID||0)-Number(x.resultOrderID||0))[0];
+ const h=Number(pick?.pointsTeam1),a=Number(pick?.pointsTeam2);
+ return {h:Number.isFinite(h)?h:null,a:Number.isFinite(a)?a:null};
+}
+function oldbToRow(m){
+ const {h,a}=oldbFinalScore(m);
+ /* matchDateTimeUTC 는 Z가 붙은 UTC입니다. 이게 없을 때만 로컬 표기인
+    matchDateTime 으로 물러섭니다(TSDB에서 겪은 시각 어긋남을 피하려는 것). */
+ const iso=m.matchDateTimeUTC||m.matchDateTime;
+ let ts=new Date(iso);
+ if(isNaN(ts))ts=new Date();
+ return {id:'oldb-'+m.matchID,date:ts.toISOString(),
+  homeId:'o'+m.team1?.teamId,homeName:m.team1?.teamName||m.team1?.shortName||'?',
+  awayId:'o'+m.team2?.teamId,awayName:m.team2?.teamName||m.team2?.shortName||'?',
+  hg:h,ag:a,
+  finished:!!m.matchIsFinished&&Number.isFinite(h)&&Number.isFinite(a)};
+}
+async function fetchSeasonOldb(league,season){
+ const sc=OLDB_LEAGUE[String(league)];
+ if(!sc)throw new Error('OpenLigaDB가 제공하지 않는 리그입니다.');
+ const d=await oldbApi(`/getmatchdata/${sc}/${season}`);
+ const ms=Array.isArray(d)?d:[];
+ if(!ms.length)throw new Error('OpenLigaDB에 해당 시즌 경기가 없습니다.');
+ const first=ms[0];
+ return {rows:ms.map(oldbToRow),source:'oldb',
+  seen:first.leagueName?{name:first.leagueName,
+   country:LEAGUE_INFO[String(league)]?.country}:null,
+  shortcut:first.leagueShortcut||sc};
+}
+
 /* ---------- competitions ---------- */
 /* 달력연도로 도는 리그만 TSDB에서 'YYYY' 형태를 먼저 시도합니다. */
 const isCalendarSeason=l=>LEAGUE_INFO[String(l)]?.season==='cal';
@@ -1457,14 +1590,18 @@ const TSDB_LEAGUE_HINT={
  '88':'eredivisie','94':'primeira liga','144':'belgian','179':'scottish premiership',
  '203':'turkish','197':'greek','207':'swiss','218':'austrian bundesliga',
  '345':'czech','210':'croatian','286':'serbian','333':'ukrainian','271':'hungarian','106':'ekstraklasa',
+ '79':'2 bundesliga',
  '419':'azerbaijan','235':'russian','119':'danish','113':'allsvenskan','103':'eliteserien'
 };
 
 /* 소스별 신뢰 계수. football-data.org는 우리가 쓰는 항목(득점·일시)에서
    API-Football과 품질 차이가 없어 1.0, TheSportsDB는 커버리지와 정밀도가
    떨어져 0.9입니다. */
-const SOURCE_TRUST={primary:1,fd:1,fallback:.9};
-const SOURCE_NAME={primary:'API-Football',fd:'football-data.org',fallback:'TheSportsDB'};
+/* OpenLigaDB는 커뮤니티가 관리합니다. 완료 경기의 최종 스코어는 신뢰할 만하지만
+   공식 피드는 아니어서 0.95를 둡니다. */
+const SOURCE_TRUST={primary:1,fd:1,oldb:.95,fallback:.9};
+const SOURCE_NAME={primary:'API-Football',fd:'football-data.org',
+ oldb:'OpenLigaDB',fallback:'TheSportsDB'};
 const srcTrust=x=>SOURCE_TRUST[x]??.9;
 const srcName=x=>SOURCE_NAME[x]||x;
 
@@ -1751,7 +1888,7 @@ async function loadPlannedSeasons(){
 async function loadSeasonData(leagueArg,seasonArg){
  const league=String(leagueArg||'39'),season=Number(seasonArg||currentSeasonFor(league));
  const minM=T.minMatches(),cacheKey=`${league}-${season}-${minM}`;
- const callsAtStart=API_CALLS,fdCallsAtStart=FD_CALLS;
+ const callsAtStart=API_CALLS,fdCallsAtStart=FD_CALLS,oldbCallsAtStart=OLDB_CALLS;
  $('seasonDot').className='dot';$('seasonStatus').textContent='불러오는 중...';
  $('seasonSummary').textContent='';
  const cached=readSeasonCache(cacheKey);
@@ -1779,6 +1916,11 @@ async function loadSeasonData(leagueArg,seasonArg){
    usable:()=>!!getFdKey()&&!!FD_COMP[String(league)],
    why:()=>getFdKey()?'이 소스가 제공하지 않는 리그':'키 미입력',
    run:sv=>fetchSeasonFD(league,sv)},
+  {id:'oldb',name:'OpenLigaDB',
+   /* 키가 필요 없으므로 독일 리그면 언제나 쓸 수 있습니다. */
+   usable:()=>!!OLDB_LEAGUE[String(league)],
+   why:()=>'독일 리그 전용',
+   run:sv=>fetchSeasonOldb(league,sv)},
   {id:'fallback',name:'TheSportsDB',
    usable:()=>true,
    why:()=>'',
@@ -1911,7 +2053,8 @@ async function loadSeasonData(leagueArg,seasonArg){
  }
  SEASON={league,season,seasonUsed,allowed,availableSeasons,fetchLeague,
   minM,cacheKey,ts:Date.now(),rows,source,calls:API_CALLS-callsAtStart,
-  fdCalls:FD_CALLS-fdCallsAtStart,skipped:[...skipped],
+  fdCalls:FD_CALLS-fdCallsAtStart,oldbCalls:OLDB_CALLS-oldbCallsAtStart,
+  skipped:[...skipped],
   used,errs,teams,rosterAdded,sources,mixedSource,mergedIds};
  DATASETS[league]=SEASON;
  writeSeasonCache(cacheKey,SEASON);
@@ -2012,6 +2155,7 @@ function paintSeasonStatus(){
  let h=`완료 <b>${fin}</b>경기 / 총 ${SEASON.rows.length} · 팀 <b>${nTeams}</b>`
   +` · API-Football ${SEASON.calls}회`
   +(SEASON.fdCalls?` · football-data.org ${SEASON.fdCalls}회`:'')
+  +(SEASON.oldbCalls?` · OpenLigaDB ${SEASON.oldbCalls}회`:'')
   +`(실패·재시도 포함)<br>`;
  /* 어떤 소스를 왜 건너뛰었는지 보이지 않으면, 키를 넣었는데 안 쓰이는 이유를
     알 수 없습니다. */
