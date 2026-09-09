@@ -227,6 +227,17 @@ details summary{cursor:pointer;color:var(--pro2);font-size:.72rem;font-weight:70
 .field-label{display:block;font-size:.7rem;color:var(--muted);
  font-family:'Space Mono','SFMono-Regular',Consolas,monospace;letter-spacing:1px;text-transform:uppercase}
 
+/* 소스별 키 입력 행 */
+.src-row{padding:10px 0;border-top:1px solid var(--border2)}
+.src-row:first-of-type{border-top:none;padding-top:0}
+.src-head{display:flex;align-items:center;gap:8px}
+.src-rank{display:inline-flex;align-items:center;justify-content:center;
+ width:18px;height:18px;border-radius:50%;flex:0 0 18px;
+ background:var(--surface3);color:var(--accent);
+ font:700 .62rem 'Space Mono','SFMono-Regular',Consolas,monospace}
+.src-note{color:var(--muted);text-transform:none;letter-spacing:0;font-weight:400}
+.src-row .btn{margin-top:8px;padding:9px}
+
 /* 진행률 표시 — 리그 로드는 네트워크 대기가 길어 무엇을 하는 중인지 보여야 합니다 */
 .progress-wrap{margin-top:12px}
 .progress-track{height:6px;background:var(--surface3);border-radius:3px;overflow:hidden}
@@ -274,20 +285,44 @@ body[aria-busy="true"] .btn-analyze{opacity:.6;cursor:progress}
   <div class="layout">
     <div class="sidebar">
       <div class="card">
-        <div class="card-title">🔑 API SETTINGS</div>
-        <label class="field-label" for="apiKey">API-Football 키</label>
-        <input type="password" id="apiKey" placeholder="API-FOOTBALL KEY" autocomplete="off" spellcheck="false">
-        <div class="api-status-bar" role="status" aria-live="polite"><div class="dot" id="apiDot"></div><span id="apiStatus">API 연결 대기중...</span></div>
-        <button class="btn btn-primary" onclick="validateApi()">연결 확인</button>
-        <div class="v4-note">키는 <b>저장되지 않습니다</b> — 이 입력칸에만 있고 새로고침하면 사라집니다. localStorage에도 기록하지 않으며, api-sports.io 외의 어디로도 보내지 않습니다. 다만 페이지가 열려 있는 동안에는 메모리에 있으므로 공용 PC에서는 사용 후 탭을 닫으세요.<br>모델은 API가 실제로 돌려준 값만 사용하고, 없는 값은 N/A로 둡니다.</div>
+        <div class="card-title">🔑 API SETTINGS · 데이터 소스</div>
+        <div class="small" style="margin-bottom:10px">키를 넣은 소스를 <b>위에서부터 차례로</b> 시도하고, 하나가 성공하면 나머지는 호출하지 않습니다. 셋 다 비워도 TheSportsDB 공개 키로 동작하지만 커버리지가 좁습니다.</div>
+
+        <div class="src-row">
+          <div class="src-head"><span class="src-rank">1</span>
+            <label class="field-label" for="apiKey">API-Football <span class="src-note">가장 넓은 커버리지 · 29개 리그 전부</span></label></div>
+          <input type="password" id="apiKey" placeholder="api-sports.io 키" autocomplete="off" spellcheck="false">
+          <div class="api-status-bar" role="status" aria-live="polite"><div class="dot" id="apiDot"></div><span id="apiStatus">대기중</span></div>
+          <button class="btn btn-secondary" onclick="validateApi()">연결 확인</button>
+        </div>
+
+        <div class="src-row">
+          <div class="src-head"><span class="src-rank">2</span>
+            <label class="field-label" for="fdKey">football-data.org <span class="src-note">9개 리그 · 무료 10회/분</span></label></div>
+          <input type="password" id="fdKey" placeholder="football-data.org 토큰" autocomplete="off" spellcheck="false">
+          <div class="api-status-bar" role="status" aria-live="polite"><div class="dot" id="fdDot"></div><span id="fdStatus">대기중</span></div>
+          <button class="btn btn-secondary" onclick="validateFd()">연결 확인</button>
+          <div class="small" style="margin-top:6px">지원: 프리미어리그 · 라리가 · 세리에A · 분데스리가 · 리그1 · 에레디비시 · 프리메이라리가 · 챔피언십 · 챔피언스리그.<br>
+          <b>K리그·J리그·MLS 등은 제공하지 않아</b> 그 리그에서는 이 소스를 건너뜁니다.</div>
+        </div>
+
+        <div class="src-row">
+          <div class="src-head"><span class="src-rank">3</span>
+            <label class="field-label" for="tsdbKey">TheSportsDB <span class="src-note">최후 대체 · 키 없어도 동작</span></label></div>
+          <input type="password" id="tsdbKey" placeholder="후원자 키 (선택)" autocomplete="off" spellcheck="false">
+          <div class="api-status-bar" role="status" aria-live="polite"><div class="dot" id="tsdbDot"></div><span id="tsdbStatus">공개 키 '3' 사용 중</span></div>
+          <button class="btn btn-secondary" onclick="validateTsdb()">연결 확인</button>
+        </div>
+
+        <div class="v4-note">세 키 모두 <b>저장되지 않습니다</b> — 입력칸에만 있고 새로고침하면 사라집니다. localStorage에 기록하지 않으며, 각 키는 해당 서비스로만 전송됩니다. 공용 PC에서는 사용 후 탭을 닫으세요.<br>모델은 API가 실제로 돌려준 값만 사용하고, 없는 값은 N/A로 둡니다.</div>
       </div>
 
       <div class="card layer-card">
         <div class="layer-title">자동 대체 데이터 소스</div>
         <div class="probar">
-          <span class="protag">PRIMARY: API-FOOTBALL</span><span class="protag">FALLBACK: TheSportsDB</span>
+          <span class="protag">1 · API-FOOTBALL</span><span class="protag">2 · FOOTBALL-DATA.ORG</span><span class="protag">3 · TheSportsDB</span>
         </div>
-        <div class="small">API 키가 없거나, 유효하지 않거나, 쿼터를 넘겨 API-Football 요청이 실패하면 <b>시즌 단위로</b> 무료 공개 데이터(TheSportsDB)에서 대신 가져옵니다. 429·5xx는 최대 3회까지 간격을 늘려 재시도한 뒤에야 대체 소스로 넘어갑니다.</div>
+        <div class="small">위 순서대로 <b>시즌 단위로</b> 시도하고, 하나가 성공하면 나머지는 호출하지 않습니다. 키가 없거나 그 소스가 해당 리그를 제공하지 않으면 요청을 보내지 않고 건너뜁니다(쿼터 낭비 방지). API-Football의 429·5xx는 최대 3회 재시도한 뒤에야 다음 소스로 넘어갑니다.</div>
         <div class="small" style="margin-top:6px">⚠️ 대체 소스는 리그 커버리지가 좁고 팀 ID 체계가 달라, 시즌마다 출처가 갈리면 같은 팀이 둘로 쪼개질 수 있습니다. 이 경우 이름을 기준으로 자동 통합하고 <b>아래 시즌 카드에 경고를 띄웁니다</b>. 대체 소스로 만든 데이터셋은 신뢰도에 0.9를 곱합니다.</div>
         <div class="api-status-bar" role="status" aria-live="polite"><div class="dot" id="fallbackDot"></div><span id="fallbackStatus">분석 전 · 대기중</span></div>
       </div>
@@ -333,7 +368,9 @@ body[aria-busy="true"] .btn-analyze{opacity:.6;cursor:progress}
         <b>표본 보정:</b> Kish 유효표본수 기준으로 표본이 적은 팀을 리그 평균 쪽으로 당깁니다(수축 계수 5).<br>
         <b>홈 이점:</b> 리그 전체 홈 평균에 더해 팀별 홈 강세를 40%만 반영하고, 0.80~1.25로 제한합니다.<br>
         <b>확률:</b> 두 팀의 예상 득점(λ)으로 12×12 스코어 격자를 만들고, 0-0·1-0·0-1·1-1에 Dixon-Coles 저스코어 보정(ρ=-0.13)을 적용해 정규화합니다.<br>
-        <b>대체 소스:</b> API-Football 실패 시 TheSportsDB로 시즌 단위 전환. 해당 데이터셋의 신뢰도에 <b>0.9</b>를 곱합니다.<br>
+        <b>데이터 소스:</b> API-Football → football-data.org → TheSportsDB 순으로 시즌 단위 시도.
+        신뢰 계수는 앞의 둘이 1.0(우리가 쓰는 항목인 득점·일시에서 품질 차이가 없음), TheSportsDB가 <b>0.9</b>입니다.
+        football-data.org는 9개 리그만 제공하므로 나머지 리그에서는 자동으로 건너뜁니다.<br>
         <b>리그 간 경기:</b> 두 팀의 국내 리그 데이터를 각각 쓰고 리그 수준 계수로 결합합니다(아래 항목 참조).<br>
         <b>데이터 부족 시:</b> 완료 경기 10건 미만이면 모델을 만들지 않고, 팀을 데이터에서 확정하지 못하면 그 경기를 실패로 표시합니다. 없는 값을 0으로 채워 억지로 계산하지 않습니다.<br>
         <b>정렬:</b> 결과 카드는 <b>입력 슬롯 번호(MATCH n) 순서</b> 그대로 나옵니다. 신뢰도는 각 카드의 CONF 배지로 확인하세요.
@@ -1257,13 +1294,118 @@ async function api(path,attempt=0){
  return d;
 }
 function validateApi(){
- if(!getApiKey()){$('apiDot').className='dot err';$('apiStatus').textContent='❌ API 키를 입력하세요';return}
+ if(!getApiKey()){$('apiDot').className='dot err';$('apiStatus').textContent='❌ 키를 입력하세요';return}
  $('apiStatus').textContent='확인 중...';
  api('/status').then(d=>{
   const q=d.response?.requests;
   $('apiDot').className='dot ok';
-  $('apiStatus').textContent=q?`✅ 연결됨 · 오늘 ${q.current}/${q.limit_day}`:'✅ API 연결 성공';
+  $('apiStatus').textContent=q?`✅ 연결됨 · 오늘 ${q.current}/${q.limit_day}`:'✅ 연결 성공';
  }).catch(e=>{$('apiDot').className='dot err';$('apiStatus').textContent='❌ '+e.message});
+}
+/* football-data.org 연결 확인.
+   대회 목록을 받아 이 프로그램이 쓰는 대회 중 몇 개가 열려 있는지 보여줍니다.
+   플랜마다 열린 대회가 다르므로, "연결됨"보다 이 숫자가 실제로 쓸모 있습니다. */
+function validateFd(){
+ if(!getFdKey()){$('fdDot').className='dot err';$('fdStatus').textContent='❌ 토큰을 입력하세요';return}
+ $('fdStatus').textContent='확인 중...';
+ fdApi('/competitions').then(d=>{
+  const codes=new Set((d.competitions||[]).map(c=>c.code));
+  const mine=Object.values(FD_COMP).filter(c=>codes.has(c));
+  $('fdDot').className=mine.length?'dot ok':'dot err';
+  $('fdStatus').textContent=mine.length
+   ?`✅ 연결됨 · 사용 가능 대회 ${mine.length}/${Object.keys(FD_COMP).length} (${mine.join(', ')})`
+   :'⚠️ 연결은 됐지만 이 프로그램이 쓰는 대회가 열려 있지 않습니다';
+ }).catch(e=>{$('fdDot').className='dot err';$('fdStatus').textContent='❌ '+e.message});
+}
+/* TheSportsDB 연결 확인. 키가 없으면 공개 키 '3'으로 확인합니다. */
+function validateTsdb(){
+ const k=getTsdbKey();
+ $('tsdbStatus').textContent='확인 중...';
+ _tsdbKey=null;   // 키를 바꿨을 수 있으니 고정된 키를 풉니다
+ tsdb('/all_leagues.php').then(d=>{
+  const cnt=(d.leagues||[]).filter(x=>!x.strSport||x.strSport==='Soccer').length;
+  $('tsdbDot').className=cnt?'dot ok':'dot err';
+  $('tsdbStatus').textContent=cnt
+   ?`✅ ${k?'입력한 키':"공개 키 '3'"}로 연결됨 · 축구 리그 ${cnt}개`
+   :'⚠️ 응답은 왔지만 리그 목록이 비어 있습니다';
+ }).catch(e=>{$('tsdbDot').className='dot err';$('tsdbStatus').textContent='❌ '+e.message});
+}
+
+/* ================= 데이터 소스: football-data.org =================
+   API-Football과 나란히 쓰는 두 번째 유료/무료 소스입니다.
+   · 인증: X-Auth-Token 헤더
+   · 경기: /v4/competitions/{code}/matches?season={시작연도}
+   · 무료 플랜은 아래 대회만 열려 있고 분당 10회로 제한됩니다.
+   주의: 이 API는 서버용으로 설계돼 브라우저에서 직접 호출할 때 CORS가
+   막힐 수 있습니다. 그 경우 fetch가 상태코드 없이 TypeError로 실패하므로,
+   아래에서 그 상황을 따로 구분해 사용자에게 분명히 알립니다. */
+const FD_BASE='https://api.football-data.org/v4';
+/* 우리 리그ID → football-data.org 대회 코드.
+   여기 없는 리그(K리그·J리그·MLS·스코틀랜드·터키 등)는 이 소스가 아예
+   제공하지 않으므로 시도조차 하지 않고 건너뜁니다. */
+const FD_COMP={'39':'PL','140':'PD','135':'SA','78':'BL1','61':'FL1',
+ '88':'DED','94':'PPL','40':'ELC','2':'CL'};
+const FD_MIN_GAP=2000;            // 무료 플랜 분당 10회 → 여유 있게 간격을 둡니다
+let _fdLast=0,_fdChain=Promise.resolve(),FD_CALLS=0;
+function fdGate(){
+ _fdChain=_fdChain.then(async()=>{
+  const wait=_fdLast+FD_MIN_GAP-Date.now();
+  if(wait>0)await sleep(wait);
+  _fdLast=Date.now();
+ });
+ return _fdChain;
+}
+function getFdKey(){return ($('fdKey')?.value||'').trim()}
+async function fdApi(path,attempt=0){
+ const key=getFdKey();
+ if(!key)throw new Error('football-data.org 키가 없습니다.');
+ await fdGate();
+ let r;
+ try{r=await fetch(FD_BASE+path,{headers:{'X-Auth-Token':key}})}
+ catch(e){
+  /* CORS 차단과 순수 네트워크 오류는 브라우저에서 똑같이 TypeError로 옵니다.
+     재시도해도 CORS는 절대 풀리지 않으므로 한 번만 더 보고 접습니다. */
+  if(attempt<1){await sleep(1200);return fdApi(path,attempt+1)}
+  throw new Error('브라우저에서 football-data.org 호출이 차단되었습니다(CORS 또는 네트워크). '
+   +'이 API는 서버용이라 브라우저 직접 호출을 막는 경우가 있습니다.');
+ }
+ FD_CALLS++;
+ let d={};try{d=await r.json()}catch{}
+ if(r.status===429){
+  const reset=Number(r.headers?.get?.('X-RequestCounter-Reset'));
+  if(attempt<2){
+   await sleep(Number.isFinite(reset)&&reset>0?(reset+1)*1000:6000);
+   return fdApi(path,attempt+1);
+  }
+  throw new Error('football-data.org 분당 요청 한도를 초과했습니다(무료 10회/분).');
+ }
+ if(r.status===403)
+  throw new Error(`football-data.org 접근 거부: ${d.message||'이 플랜에서 열려 있지 않은 대회·시즌입니다.'}`);
+ if(!r.ok)throw new Error(`football-data.org HTTP ${r.status}${d.message?' · '+d.message:''}`);
+ return d;
+}
+/* football-data.org 경기 한 건을 이 프로그램의 공통 행 형식으로 옮깁니다.
+   ID 접두사 'f'는 다른 소스('a'=API-Football, 't'=TheSportsDB)와 섞이지
+   않게 하려는 것이고, 소스가 섞이면 이름 기준 통합이 따로 처리합니다. */
+function fdToRow(m){
+ const fin=['FINISHED','AWARDED'].includes(m.status);
+ const hg=m.score?.fullTime?.home,ag=m.score?.fullTime?.away;
+ return {id:'fd-'+m.id,date:new Date(m.utcDate).toISOString(),
+  homeId:'f'+m.homeTeam?.id,homeName:m.homeTeam?.name||m.homeTeam?.shortName||'?',
+  awayId:'f'+m.awayTeam?.id,awayName:m.awayTeam?.name||m.awayTeam?.shortName||'?',
+  hg:Number.isFinite(hg)?hg:null,ag:Number.isFinite(ag)?ag:null,
+  finished:fin&&Number.isFinite(hg)&&Number.isFinite(ag)};
+}
+async function fetchSeasonFD(league,season){
+ const code=FD_COMP[String(league)];
+ if(!code)throw new Error('football-data.org가 제공하지 않는 리그입니다.');
+ const d=await fdApi(`/competitions/${code}/matches?season=${season}`);
+ const ms=d.matches||[];
+ if(!ms.length)throw new Error('football-data.org에 해당 시즌 경기가 없습니다.');
+ const c=ms[0].competition||d.competition||{};
+ return {rows:ms.map(fdToRow),source:'fd',
+  seen:c.name?{name:c.name,country:c.area?.name||LEAGUE_INFO[String(league)]?.country}:null,
+  code};
 }
 
 /* ---------- competitions ---------- */
@@ -1284,12 +1426,27 @@ const TSDB_LEAGUE_HINT={
  '419':'azerbaijan','235':'russian','119':'danish','113':'allsvenskan','103':'eliteserien'
 };
 
+/* 소스별 신뢰 계수. football-data.org는 우리가 쓰는 항목(득점·일시)에서
+   API-Football과 품질 차이가 없어 1.0, TheSportsDB는 커버리지와 정밀도가
+   떨어져 0.9입니다. */
+const SOURCE_TRUST={primary:1,fd:1,fallback:.9};
+const SOURCE_NAME={primary:'API-Football',fd:'football-data.org',fallback:'TheSportsDB'};
+const srcTrust=x=>SOURCE_TRUST[x]??.9;
+const srcName=x=>SOURCE_NAME[x]||x;
+
 /* ---------- TheSportsDB fallback ---------- */
 /* '3'이 TheSportsDB의 공개 무료 테스트 키입니다.
    예전에 함께 넣어둔 '123'은 후원자용 키라 쓰지 않습니다. */
-const TSDB_KEYS=['3'];let _tsdbKey=null,_tsdbLeagues=null;
+/* 사용자가 키를 넣으면 그 키를 먼저 쓰고, 실패하면 공개 무료 키 '3'으로
+   내려갑니다. 후원자 키는 커버리지와 요청 한도가 넓습니다. */
+function getTsdbKey(){return ($('tsdbKey')?.value||'').trim()}
+function tsdbKeys(){
+ const k=getTsdbKey();
+ return k?[k,'3']:['3'];
+}
+let _tsdbKey=null,_tsdbLeagues=null;
 async function tsdb(path){
- const keys=_tsdbKey?[_tsdbKey]:TSDB_KEYS;let last=null;
+ const keys=_tsdbKey?[_tsdbKey]:tsdbKeys();let last=null;
  for(const k of keys){
   try{const r=await fetch(`https://www.thesportsdb.com/api/v1/json/${k}${path}`);
    if(!r.ok){last=new Error('TSDB HTTP '+r.status);continue}
@@ -1533,6 +1690,9 @@ async function ensureLeague(league){
  return loadSeasonData(league,currentSeasonFor(league));
 }
 const DATASETS={};   // 리그ID -> 시즌 데이터
+/* 마지막 실패의 상세. 실패하면 SEASON이 만들어지지 않아 정보가 사라지므로
+   따로 보관해 두고 결과 카드의 오류 메시지에 붙입니다. */
+let lastLoadFailure=null;
 /* 사이드바 버튼은 인자 없이 loadSeasonData()를 불러서 항상 EPL(기본값 '39')만
    받아왔습니다. 입력된 경기의 리그를 실제로 불러옵니다. */
 async function loadPlannedSeasons(){
@@ -1557,7 +1717,7 @@ async function loadPlannedSeasons(){
 async function loadSeasonData(leagueArg,seasonArg){
  const league=String(leagueArg||'39'),season=Number(seasonArg||currentSeasonFor(league));
  const minM=T.minMatches(),cacheKey=`${league}-${season}-${minM}`;
- const callsAtStart=API_CALLS;
+ const callsAtStart=API_CALLS,fdCallsAtStart=FD_CALLS;
  $('seasonDot').className='dot';$('seasonStatus').textContent='불러오는 중...';
  $('seasonSummary').textContent='';
  const cached=readSeasonCache(cacheKey);
@@ -1571,15 +1731,34 @@ async function loadSeasonData(leagueArg,seasonArg){
       ③ 완료 경기가 기준에 못 미칠 때만 <b>직전 시즌 하나만</b> 덧붙입니다.
     어떤 경우에도 시즌 두 개를 넘겨 보지 않습니다. */
  let rows=[],source=null,used=[],errs=[],allowed=null,availableSeasons=null;
+ const skipped=new Set();  // 시도조차 하지 않은 소스와 그 이유
  let fetchLeague=league;   // 등록 ID가 틀렸을 때 실제로 조회할 ID
+ /* 소스를 차례로 시도합니다. 키가 없거나 그 소스가 이 리그를 제공하지 않으면
+    요청을 보내지 않고 건너뜁니다(쿼터 낭비 방지).
+    앞 소스가 성공하면 뒤 소스는 시도하지 않습니다. */
+ const chain=[
+  {id:'primary',name:'API-Football',
+   usable:()=>!!getApiKey(),
+   why:()=>'키 미입력',
+   run:sv=>fetchSeasonPrimary(fetchLeague,sv)},
+  {id:'fd',name:'football-data.org',
+   usable:()=>!!getFdKey()&&!!FD_COMP[String(league)],
+   why:()=>getFdKey()?'이 소스가 제공하지 않는 리그':'키 미입력',
+   run:sv=>fetchSeasonFD(league,sv)},
+  {id:'fallback',name:'TheSportsDB',
+   usable:()=>true,
+   why:()=>'',
+   run:sv=>fetchSeasonFallback(league,sv)}
+ ];
  const tryLoad=async sv=>{
   let res=null;
-  try{res=await fetchSeasonPrimary(fetchLeague,sv)}
-  catch(e){
-   errs.push(`${sv} API: ${e.message}`);
-   const a=parseAllowedSeasons(e.message); if(a)allowed=a;
-   try{res=await fetchSeasonFallback(league,sv)}
-   catch(e2){errs.push(`${sv} 대체: ${e2.message}`)}
+  for(const src of chain){
+   if(!src.usable()){skipped.add(`${src.name}: ${src.why()}`);continue}
+   try{res=await src.run(sv);break}
+   catch(e){
+    errs.push(`${sv} ${src.name}: ${e.message}`);
+    const a=parseAllowedSeasons(e.message); if(a&&src.id==='primary')allowed=a;
+   }
   }
   if(!res)return false;
   res.rows.forEach(r=>r.season=sv);
@@ -1638,15 +1817,26 @@ async function loadSeasonData(leagueArg,seasonArg){
  }
  if(finished()<minM&&rows.length){
   const prev=seasonUsed-1;
-  const ok2=(!allowed||prev>=allowed.from)&&(!availableSeasons||availableSeasons.includes(prev));
+  /* allowed·availableSeasons 는 <b>API-Football</b>에서 얻은 제약입니다.
+     football-data.org나 TheSportsDB로 데이터를 받았다면 그 제약을 적용할
+     이유가 없으므로, 실제로 쓰인 소스가 API-Football일 때만 봅니다. */
+  const primaryBound=source==='primary';
+  const ok2=(!primaryBound||((!allowed||prev>=allowed.from)
+    &&(!availableSeasons||availableSeasons.includes(prev))));
   if(!tried.has(prev)&&ok2){
    $('seasonStatus').textContent=`완료 경기 ${finished()}건 — 직전 시즌(${prev})만 추가로 불러옵니다...`;
    await tryLoad(prev); tried.add(prev);
   }
  }
  if(!rows.length){
+  /* 전부 실패했을 때가 "어느 소스를 왜 안 썼는지"가 가장 필요한 순간입니다.
+     예전에는 실패 목록만 보여주고 건너뛴 소스는 알려주지 않아, 키를 넣었는데
+     쓰이지 않은 이유를 알 수 없었습니다. */
   $('seasonDot').className='dot err';$('seasonStatus').textContent='❌ 실패';
-  $('seasonSummary').innerHTML=`<span style="color:var(--danger)">${errs.map(esc).join('<br>')}</span>`;
+  $('seasonSummary').innerHTML=
+   `<span style="color:var(--danger)">${errs.map(esc).join('<br>')}</span>`
+   +([...skipped].length?`<br><span class="small">건너뛴 소스: ${esc([...skipped].join(' / '))}</span>`:'');
+  lastLoadFailure={league,season,errs:[...errs],skipped:[...skipped]};
   return null;
  }
  const seen=new Set();
@@ -1687,6 +1877,7 @@ async function loadSeasonData(leagueArg,seasonArg){
  }
  SEASON={league,season,seasonUsed,allowed,availableSeasons,fetchLeague,
   minM,cacheKey,ts:Date.now(),rows,source,calls:API_CALLS-callsAtStart,
+  fdCalls:FD_CALLS-fdCallsAtStart,skipped:[...skipped],
   used,errs,teams,rosterAdded,sources,mixedSource,mergedIds};
  DATASETS[league]=SEASON;
  writeSeasonCache(cacheKey,SEASON);
@@ -1771,11 +1962,10 @@ function paintFallbackStatus(){
  const ds=Object.values(DATASETS);
  if(!ds.length){dot.className='dot';st.textContent='분석 전 · 대기중';return}
  const srcs=new Set();ds.forEach(d=>(d.sources||[d.source]).forEach(x=>x&&srcs.add(x)));
- if(srcs.has('fallback')&&srcs.has('primary')){
-  dot.className='dot err';st.textContent='혼합 · 일부 시즌은 대체 소스';
- }else if(srcs.has('fallback')){
-  dot.className='dot err';st.textContent='대체 소스(TheSportsDB) 사용 중';
- }else{dot.className='dot ok';st.textContent='API-Football 정상 · 대체 미사용'}
+ const names=[...srcs].map(srcName);
+ if(srcs.size>1){dot.className='dot err';st.textContent='혼합 · '+names.join(' + ')}
+ else if(srcs.has('fallback')){dot.className='dot err';st.textContent='TheSportsDB 사용 중'}
+ else{dot.className='dot ok';st.textContent=names[0]+' 사용 중'}
 }
 function paintSeasonStatus(){
  const dot=$('seasonDot'),st=$('seasonStatus'),sum=$('seasonSummary');
@@ -1784,12 +1974,19 @@ function paintSeasonStatus(){
  const nTeams=SEASON.teams.length;
  const thin=nTeams<12||fin<20;
  dot.className=thin?'dot err':'dot ok';
- st.textContent=SEASON.mixedSource?'혼합 소스':(SEASON.source==='primary'?'API-Football':'대체 소스');
- let h=`완료 <b>${fin}</b>경기 / 총 ${SEASON.rows.length} · 팀 <b>${nTeams}</b> · API 요청 ${SEASON.calls}회(실패·재시도 포함)<br>`;
+ st.textContent=SEASON.mixedSource?'혼합 소스':srcName(SEASON.source);
+ let h=`완료 <b>${fin}</b>경기 / 총 ${SEASON.rows.length} · 팀 <b>${nTeams}</b>`
+  +` · API-Football ${SEASON.calls}회`
+  +(SEASON.fdCalls?` · football-data.org ${SEASON.fdCalls}회`:'')
+  +`(실패·재시도 포함)<br>`;
+ /* 어떤 소스를 왜 건너뛰었는지 보이지 않으면, 키를 넣었는데 안 쓰이는 이유를
+    알 수 없습니다. */
+ if(SEASON.skipped&&SEASON.skipped.length)
+  h+=`<span class="small">· 건너뛴 소스: ${esc(SEASON.skipped.join(' / '))}</span><br>`;
  /* 플랜 제한은 사용자가 가장 먼저 알아야 할 정보인데, 예전에는 접힌
     "데이터 수집 경고" 안에 파묻혀 있었습니다. 위로 끌어올립니다. */
  if(SEASON.allowed)
-  h+=`<span style="color:var(--warning)">· API 플랜이 <b>${SEASON.allowed.from}~${SEASON.allowed.to}</b> 시즌만 허용합니다`
+  h+=`<span style="color:var(--warning)">· API-Football 플랜이 <b>${SEASON.allowed.from}~${SEASON.allowed.to}</b> 시즌만 허용합니다`
    +`${SEASON.seasonUsed!==SEASON.season?` → <b>${SEASON.seasonUsed}</b> 시즌으로 자동 전환했습니다`:''}.</span><br>`;
  /* 리그가 실제로 제공하는 시즌을 보여주면, 실패했을 때 무엇이 문제인지
     바로 알 수 있습니다. */
@@ -1799,7 +1996,7 @@ function paintSeasonStatus(){
  if(SEASON.fetchLeague&&String(SEASON.fetchLeague)!==String(SEASON.league))
   h+=`<span style="color:var(--warning)">· 등록 ID ${SEASON.league} 대신 <b>ID ${SEASON.fetchLeague}</b>로 조회했습니다.</span><br>`;
  h+=SEASON.used.length
-  ?SEASON.used.map(u=>`· ${u.season} 시즌: 완료 ${u.finished}/${u.total} (${u.source==='primary'?'API':'대체'})`).join('<br>')
+  ?SEASON.used.map(u=>`· ${u.season} 시즌: 완료 ${u.finished}/${u.total} (${srcName(u.source)})`).join('<br>')
   :'· 사용한 시즌 없음';
  if(SEASON.rosterAdded)h+=`<br>· 팀 명단 ${SEASON.rosterAdded}개를 별도로 보강했습니다`;
  if(SEASON.mixedSource)
@@ -2066,7 +2263,7 @@ function renderBacktest(){
  <div class="small" style="margin-bottom:10px;line-height:1.7">
   대상: <b>${esc(BT.league)}</b> 실제 경기 <b>${M.n}건</b> · ${fmtD(M.from)} ~ ${fmtD(M.to)}
   ${M.seasons.length?` · ${M.seasons.join(', ')} 시즌`:''}<br>
-  출처: ${BT.source==='primary'?'API-Football':'TheSportsDB'} · 각 경기는 <b>그 경기 이전 데이터만</b>으로 예측했습니다.<br>
+  출처: ${esc(srcName(BT.source))} · 각 경기는 <b>그 경기 이전 데이터만</b>으로 예측했습니다.<br>
   모델 재학습 ${M.fits}회(${M.refit}경기마다). 학습 데이터는 항상 예측 대상 경기 이전으로 잘라내므로 정보 누출은 없습니다.
  </div>
  <div class="pro-grid">
@@ -2233,10 +2430,10 @@ function findTeamIn(S,en,leagueLabel){
 }
 /* 확률·픽·신뢰도 산출은 국내전과 리그 간 경기가 완전히 같습니다.
    달라지는 것은 λ를 어떻게 얻었는지(pr)와 신뢰도 항목(layers)뿐입니다. */
-function finishResult(base,pr,layers,srcPrimary,extra){
+function finishResult(base,pr,layers,trust,extra){
  const probs=[pr.home,pr.draw,pr.away];
  const totW=layers.reduce((x,y)=>x+y.w,0),okW=layers.reduce((x,y)=>x+(y.ok?y.w:0),0);
- const conf=Math.round(100*(okW/totW)*(srcPrimary?1:.9));
+ const conf=Math.round(100*(okW/totW)*(Number.isFinite(trust)?trust:1));
  const labels=['HOME','DRAW','AWAY'];
  /* CONF는 "데이터를 얼마나 갖췄나"일 뿐이라, 데이터가 충분해도 세 결과가
     33/33/33이면 픽할 이유가 없습니다. 확률 자체의 우위도 함께 봅니다. */
@@ -2278,7 +2475,7 @@ function analyzeMatch(m,S,strength){
   {k:'이 리그 백테스트 통과',w:2,
    ok:!!(BT&&BT.metrics.significant&&BT.leagueId===String(league))}
  ];
- return finishResult(base,pr,layers,S.source==='primary',{
+ return finishResult(base,pr,layers,srcTrust(S.source),{
   att:[strength.att[ht.id],strength.att[at.id]],
   def:[strength.def[ht.id],strength.def[at.id]],
   hfac:strength.hf[ht.id],played:[nh,na],
@@ -2299,7 +2496,8 @@ function analyzeCrossMatch(m,SH,strengthH,SA,strengthA){
   homeKo:m.home.ko,awayKo:m.away.ko,kind:'cross',
   league:lh,homeLeague:lh,awayLeague:la,
   leagueName:`${IH.name} ↔ ${IA.name}`,flag:`${IH.flag}${IA.flag}`,
-  tilt,source:(SH.source==='primary'&&SA.source==='primary')?'primary':'fallback',
+  tilt,source:SH.source===SA.source?SH.source:'mixed',
+  sourceTrust:Math.min(srcTrust(SH.source),srcTrust(SA.source)),
   mixedSource:!!(SH.mixedSource||SA.mixedSource)};
  const fh=findTeamIn(SH,m.home.en,IH.name),fa=findTeamIn(SA,m.away.en,IA.name);
  const ht=fh.t,at=fa.t;
@@ -2324,7 +2522,7 @@ function analyzeCrossMatch(m,SH,strengthH,SA,strengthA){
   /* UEFA 계수가 없는 리그(K·J·MLS)가 끼면 눈금 맞추기가 더 거칠어집니다. */
   {k:'양쪽 모두 UEFA 계수 보유 리그',w:1,ok:!!tilt.comparable}
  ];
- return finishResult(base,pr,layers,base.source==='primary',{
+ return finishResult(base,pr,layers,base.sourceTrust,{
   att:[strengthH.att[ht.id],strengthA.att[at.id]],
   def:[strengthH.def[ht.id],strengthA.def[at.id]],
   hfac:strengthH.hf[ht.id],played:[nh,na],
@@ -2355,7 +2553,11 @@ async function runV4Analysis(){
    $('resultArea').innerHTML=`<div class="card loading">${info.flag} ${info.name} 데이터 불러오는 중... (${i+1}/${needed.length})</div>`;
    await sleep(0);
    const S=await ensureLeague(lg);
-   if(!S){loadErr[lg]=`${info.name} 데이터를 불러오지 못했습니다.`;step++;continue}
+   if(!S){
+    const why=lastLoadFailure&&String(lastLoadFailure.league)===String(lg)
+     ?` (${[...(lastLoadFailure.errs||[]).slice(-2),...(lastLoadFailure.skipped||[])].join(' / ')})`:'';
+    loadErr[lg]=`${info.name} 데이터를 불러오지 못했습니다.${why}`;step++;continue;
+   }
    const st=fitStrength(S.rows,null);
    if(!st){
     const fin=S.rows.filter(r=>r.finished).length;
@@ -2468,7 +2670,7 @@ function render(rows){
   const cls=r.conf>=75?'real':r.conf>=55?'partial':'none',p=r.probs;
   const cardWarn=[];
   if(r.mixedSource)cardWarn.push('시즌별 데이터 출처가 달라 팀 표본이 나뉘어 있을 수 있습니다.');
-  else if(r.source!=='primary')cardWarn.push('대체 소스(TheSportsDB) 데이터입니다. 슈팅 등 세부 지표가 없습니다.');
+  else if(r.source==='fallback')cardWarn.push('TheSportsDB 데이터입니다. 커버리지가 좁고 세부 지표가 없어 신뢰도에 0.9를 곱했습니다.');
   if(r.kind==='cross'){
    const IH=LEAGUE_INFO[r.homeLeague],IA=LEAGUE_INFO[r.awayLeague];
    /* cardWarn 은 팀명이 섞일 수 있어 esc()로 이스케이프됩니다.
@@ -2510,8 +2712,8 @@ function render(rows){
 /* ---------- AI BRIEFING ---------- */
 
 function srcLabel(r){
- if(r.mixedSource)return 'API-Football + TheSportsDB(혼합)';
- return r.source==='primary'?'API-Football':'TheSportsDB(대체)';
+ if(r.mixedSource)return '혼합 소스(시즌별로 다름)';
+ return srcName(r.source);
 }
 function briefingPrompt(rows){
  const ok=rows.filter(x=>x&&!x.error), bad=rows.filter(x=>x&&x.error);
@@ -2563,7 +2765,7 @@ function briefingPrompt(rows){
    L.push(`- 상대전적: ${r.h2h.map(x=>`${new Date(x.date).toISOString().slice(0,10)} ${x.homeName} ${x.hg}-${x.ag} ${x.awayName}`).join(' / ')}`);
   const warn=[];
   if(r.mixedSource)warn.push('시즌별로 데이터 출처가 달라 팀 표본이 나뉘어 있을 수 있음');
-  else if(r.source!=='primary')warn.push('대체 소스(TheSportsDB) 데이터');
+  else if(r.source==='fallback')warn.push('TheSportsDB 데이터 — 커버리지가 좁고 세부 지표 없음');
   if(r.played[0]<5||r.played[1]<5)warn.push('한 팀 이상 경기 표본 5경기 미만 — 강도 추정 불안정');
   if(r.kind==='cross'){
    warn.push(`리그 간 경기 — 두 팀 강도를 각자 리그에서 추정한 뒤 리그 수준 계수 ×${n(r.tilt.k)}로 보정. 이 계수는 UEFA 국가계수 기반 가정이지 측정값이 아님`);
