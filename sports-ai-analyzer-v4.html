@@ -1434,6 +1434,15 @@ function validateFd(){
    "연결하지 못했습니다" 한 줄로는 원인을 알 수 없습니다. 단계를 나눠
    ① 프록시가 떠 있는지(__ping) ② 프록시를 거친 API 호출이 되는지
    ③ 직접 호출은 정말 막혀 있는지 를 각각 확인하고, 다음에 할 일을 알려줍니다. */
+/* fetch 는 "CORS로 막힘"과 "그 주소에 아무것도 없음"을 똑같이 TypeError 로
+   알려줍니다. mode:'no-cors' 로 한 번 더 찔러보면 구분됩니다 —
+   요청 자체는 나가므로 응답이 돌아오면(내용은 못 읽는 opaque 응답) 서버는
+   살아 있고 CORS만 막힌 것이고, 그것마저 실패하면 그 주소에 아무것도 없거나
+   네트워크가 막힌 것입니다. 원인이 다르면 해야 할 일도 다릅니다. */
+async function probeReachable(url){
+ try{await fetch(url,{mode:'no-cors',cache:'no-store'});return true}
+ catch(e){return false}
+}
 async function diagnoseFd(){
  const box=$('fdDiag');box.hidden=false;
  const px=getFdProxy(),key=getFdKey();
@@ -1465,12 +1474,19 @@ async function diagnoseFd(){
     if(d&&d.ok)add('ok',`프록시 살아 있음 — ${base} (upstream ${d.upstream||'?'})`);
     else add('bad',`${base} 가 응답했지만 fd-proxy가 아닙니다. 다른 프로그램이 그 포트를 쓰고 있습니다.`);
    }catch(e){
-    add('bad',`프록시에 닿지 못했습니다 — ${base}`);
-    add('info','① 프록시 창이 켜져 있나요? (node fd-proxy.js 또는 python fd-proxy.py)');
-    add('info',`② 브라우저 주소창에 ${base}/__ping 을 열어보세요. 안 열리면 프록시가 안 떠 있는 것입니다.`);
-    add('info','③ localhost 대신 127.0.0.1 로 바꿔보세요.');
-    add('info','④ 이 칸에는 /__ping 이나 /v4 를 붙이지 마세요. 프록시 주소만 넣습니다.');
-    add('info','⑤ 포트가 이미 쓰이는 중이면 프록시 창에 그 안내가 떠 있습니다. PORT=9000 으로 바꾸고 이 칸도 같이 바꾸세요.');
+    /* 그 포트에 정말 아무것도 없는지, 아니면 뭔가 있는데 우리 프록시가
+       아닌지 구분합니다. 안내가 달라집니다. */
+    const alive=await probeReachable(base+'/__ping');
+    if(alive){
+     add('bad',`${base} 에 무언가 응답하지만 fd-proxy가 아닙니다.`);
+     add('info','그 포트를 다른 프로그램이 쓰고 있습니다. 프록시를 PORT=9000 으로 띄우고 이 칸도 바꾸세요.');
+    }else{
+     add('bad',`${base} 에 아무것도 떠 있지 않습니다 — 프록시가 실행되지 않은 상태입니다.`);
+     add('info','① 윈도우라면 함께 드린 fd-proxy-start.bat 를 더블클릭하세요. Node나 Python을 알아서 찾아 실행합니다.');
+     add('info','② 파일(fd-proxy.js)을 그냥 더블클릭하면 실행되지 않습니다. 반드시 .bat 로 열거나 터미널에서 node fd-proxy.js 로 실행하세요.');
+     add('info','③ 검은 창이 떴다가 바로 닫히면 Node/Python이 설치돼 있지 않은 것입니다. .bat 는 그 경우 안내를 띄우고 창을 유지합니다.');
+     add('info',`④ 프록시 창을 띄운 뒤 브라우저 주소창에 ${base}/__ping 을 열어 JSON이 보이는지 확인하세요.`);
+    }
    }
   }
  }
@@ -1487,13 +1503,21 @@ async function diagnoseFd(){
   }catch(e){ add('bad','API 호출 실패 — '+e.message); }
  }
 
- /* ③ 직접 호출이 정말 막혀 있는지 (프록시가 필요한지 확인) */
+ /* ③ 직접 호출이 왜 안 되는지 — CORS인지, 아예 못 닿는지 */
  try{
   await fetch(FD_BASE+'/competitions',{headers:{'X-Auth-Token':key||'x'}});
   add('ok','직접 호출도 됩니다 — 이 브라우저에서는 프록시가 없어도 됩니다.');
  }catch(e){
-  add('info','직접 호출은 CORS로 막힙니다 (예상된 결과). 그래서 프록시가 필요합니다.');
+  const reach=await probeReachable(FD_BASE+'/competitions');
+  if(reach)add('info','직접 호출은 CORS로 막힙니다 (예상된 결과). 그래서 프록시가 필요합니다.');
+  else{
+   add('bad','football-data.org 자체에 닿지 못합니다 — CORS가 아니라 네트워크·방화벽·DNS 문제입니다.');
+   add('info','회사·학교 네트워크나 백신의 웹 차단 기능을 확인해 보세요. 이 경우 프록시를 띄워도 해결되지 않습니다.');
+  }
  }
+ /* 마지막 안내: 프록시를 못 띄우는 상황이면 이 소스를 빼는 게 낫습니다. */
+ add('info','프록시를 띄울 수 없는 환경이라면 football-data.org 토큰 칸을 비워 두세요. '
+  +'나머지 세 소스로 분석은 그대로 동작하고, 이 소스만 건너뜁니다.');
 }
 /* OpenLigaDB 연결 확인. 키가 없으므로 브라우저에서 실제로 닿는지만 봅니다. */
 function validateOldb(){
