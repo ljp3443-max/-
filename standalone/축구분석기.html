@@ -1,0 +1,3351 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ULTIMATE SPORTS AI ANALYZER v4</title>
+<!-- CSS가 쓰는 세 폰트를 실제로 불러옵니다. 예전에는 링크가 없어 전부 기본
+     sans-serif로 렌더됐습니다. 오프라인이면 아래 대체 스택으로 떨어집니다. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+KR:wght@400;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+    --bg:#060d18;
+    --surface:#0d1726;
+    --surface2:#111f33;
+    --surface3:#172540;
+    --accent:#00e5ff;
+    --accent2:#a855f7;
+    --green:#00e676;
+    --warning:#ffab00;
+    --danger:#ff1744;
+    --text:#cdd9e5;
+    /* 예전 #546e7a 는 배경 대비 3.6:1 로 WCAG AA(4.5:1) 미달인데
+       0.66~0.75rem 작은 글씨에 광범위하게 쓰였습니다. */
+    --muted:#93a7b4;
+    --border:rgba(0,229,255,0.1);
+    --border2:rgba(255,255,255,0.06);
+    /* 예전에는 파일 뒤쪽에 :root 를 한 번 더 열어 정의했습니다. 여기로 합칩니다. */
+    --pro:#8b5cf6;
+    --pro2:#a78bfa;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+    padding:24px;
+    min-height:100vh;
+    background-image:
+        radial-gradient(ellipse 60% 40% at 20% 0%, rgba(0,229,255,0.05) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 30% at 80% 100%, rgba(168,85,247,0.05) 0%, transparent 70%);
+}
+.container{max-width:1920px;margin:auto;}
+
+/* HEADER */
+.header{
+    display:flex;align-items:center;justify-content:space-between;
+    margin-bottom:28px;padding-bottom:20px;
+    border-bottom:1px solid var(--border);
+}
+.header-left h1{
+    font-family:'Bebas Neue','Arial Narrow',sans-serif;
+    font-size:2.4rem;letter-spacing:3px;
+    background:linear-gradient(90deg,var(--accent),var(--accent2));
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.header-left p{font-size:0.8rem;color:var(--muted);margin-top:4px;font-family:'Space Mono','SFMono-Regular',Consolas,monospace;}
+.version-badge{
+    background:rgba(0,229,255,0.1);border:1px solid var(--border);
+    color:var(--accent);padding:6px 16px;border-radius:20px;
+    font-family:'Space Mono','SFMono-Regular',Consolas,monospace;font-size:0.75rem;
+}
+
+/* LAYOUT */
+.layout{display:grid;grid-template-columns:340px 1fr;gap:20px;}
+.sidebar{display:flex;flex-direction:column;gap:16px;}
+
+/* CARD */
+.card{
+    background:var(--surface);border:1px solid var(--border2);
+    border-radius:16px;padding:20px;
+}
+.card-title{
+    font-family:'Space Mono','SFMono-Regular',Consolas,monospace;font-size:0.75rem;
+    color:var(--accent);letter-spacing:2px;margin-bottom:16px;
+    text-transform:uppercase;
+}
+
+/* INPUTS */
+input,select{
+    width:100%;background:var(--bg);
+    border:1px solid var(--border2);color:var(--text);
+    padding:10px 14px;border-radius:8px;margin-top:8px;
+    font-size:0.85rem;transition:border-color 0.2s;
+    font-family:'Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+}
+input:focus,select:focus{outline:none;border-color:var(--accent);}
+select option{background:var(--surface);}
+
+/* BUTTONS */
+.btn{
+    width:100%;border:none;border-radius:10px;
+    padding:13px;font-weight:700;cursor:pointer;
+    margin-top:10px;font-size:0.9rem;transition:all 0.2s;
+    font-family:'Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+}
+.btn:hover{transform:translateY(-1px);filter:brightness(1.1);}
+.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#000;}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border2);}
+.btn-danger{background:rgba(255,23,68,0.15);color:var(--danger);border:1px solid rgba(255,23,68,0.3);}
+
+/* API STATUS */
+.api-status-bar{
+    display:flex;align-items:center;gap:8px;
+    margin-top:10px;padding:8px 12px;
+    background:var(--surface2);border-radius:8px;
+    font-size:0.8rem;font-family:'Space Mono','SFMono-Regular',Consolas,monospace;
+}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--muted);}
+.dot.ok{background:var(--green);box-shadow:0 0 8px var(--green);}
+.dot.err{background:var(--danger);}
+
+/* MATCH GRID */
+.match-grid{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:12px;
+}
+.match-card{
+    background:var(--surface2);border:1px solid var(--border2);
+    border-radius:14px;padding:14px;transition:border-color 0.3s;
+    position:relative;
+}
+.match-card.filled{border-color:rgba(0,230,118,0.3);}
+.match-num{
+    font-family:'Bebas Neue','Arial Narrow',sans-serif;font-size:1.1rem;
+    color:var(--accent);letter-spacing:2px;margin-bottom:10px;
+    display:flex;justify-content:space-between;align-items:center;
+}
+.match-num .clear-x{
+    background:none;border:none;color:var(--muted);
+    cursor:pointer;font-size:0.85rem;padding:0;margin:0;
+    width:auto;transition:color 0.2s;
+}
+.match-num .clear-x:hover{color:var(--danger);transform:none;filter:none;}
+.match-inputs{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.match-inputs input{margin-top:0;font-size:0.78rem;padding:7px 10px;}
+
+/* RESULT GRID */
+.result-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(340px,1fr));
+    gap:16px;margin-top:20px;
+}
+.result-card{
+    background:var(--surface);border:1px solid var(--border2);
+    border-radius:16px;padding:20px;position:relative;overflow:hidden;
+}
+.result-card::before{
+    content:'';position:absolute;top:0;left:0;right:0;height:3px;
+    background:linear-gradient(90deg,var(--accent),var(--accent2));
+}
+/* NO BET·분석 실패 카드. 예전에는 .pick-card.block 으로만 정의돼 있어
+   result-card 에 붙은 block 클래스가 아무 일도 하지 않았습니다. */
+.result-card.block{border-color:rgba(255,23,68,0.28);opacity:.9}
+.result-card.block::before{background:linear-gradient(90deg,var(--danger),var(--warning))}
+.result-card.block .pick-main{color:var(--muted)}
+.r-match{font-weight:700;font-size:1.05rem;margin-bottom:4px;}
+.r-comment{
+    margin-top:14px;padding:12px;background:var(--surface2);
+    border-radius:10px;font-size:0.8rem;line-height:1.6;color:var(--text);
+}
+
+/* BRIEFING */
+textarea{
+    width:100%;min-height:280px;background:#000;
+    border:1px solid var(--border);color:var(--green);
+    font-family:'Space Mono','SFMono-Regular',Consolas,monospace;font-size:0.75rem;
+    padding:14px;border-radius:10px;margin-top:10px;
+    resize:vertical;line-height:1.6;
+}
+
+/* ANALYZE BTN */
+.btn-analyze{
+    width:100%;background:linear-gradient(135deg,var(--accent),var(--accent2));
+    color:#000;border:none;padding:18px;border-radius:12px;
+    font-weight:900;font-size:1.2rem;cursor:pointer;margin-top:14px;
+    font-family:'Bebas Neue','Arial Narrow',sans-serif;letter-spacing:3px;
+    transition:all 0.3s;
+}
+.btn-analyze:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(0,229,255,0.3);}
+
+@media(max-width:1100px){
+    .layout{grid-template-columns:1fr;}
+    .match-grid{grid-template-columns:1fr;}
+}
+
+/* V4 ENGINE */
+.v4-note{font-size:.75rem;line-height:1.55;color:var(--muted);margin-top:8px}
+.data-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:12px}
+.data-row{background:var(--surface2);border-radius:8px;padding:8px 10px;display:flex;justify-content:space-between;font-size:.75rem}
+.pick-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}
+.pick-main{font-family:'Bebas Neue','Arial Narrow',sans-serif;font-size:1.7rem;letter-spacing:2px;color:var(--accent)}
+.confidence{font-family:'Space Mono','SFMono-Regular',Consolas,monospace;font-weight:700}
+.coverage-table{width:100%;border-collapse:collapse;font-size:.72rem}
+.coverage-table th,.coverage-table td{padding:7px;border-bottom:1px solid var(--border2);text-align:left}
+.coverage-table th{color:var(--muted)}
+.loading{padding:18px;text-align:center;color:var(--muted);font-family:'Space Mono','SFMono-Regular',Consolas,monospace}
+@media(max-width:700px){.data-grid{grid-template-columns:1fr}}
+
+.probar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.protag{font:700 .65rem 'Space Mono','SFMono-Regular',Consolas,monospace;padding:5px 8px;border:1px solid var(--border2);border-radius:5px;background:var(--surface2);color:var(--pro2)}
+.layer-card{border:1px solid rgba(139,92,246,.25);background:linear-gradient(145deg,var(--surface),rgba(139,92,246,.035))}
+.layer-title{font-family:'Bebas Neue','Arial Narrow',sans-serif;font-size:1.1rem;letter-spacing:1px;color:var(--pro2);margin-bottom:7px}
+.small{font-size:.68rem;color:var(--muted);line-height:1.5}
+.pro-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.pro-kpi{padding:9px;background:var(--surface2);border-radius:8px}
+.pro-kpi b{display:block;font:700 .62rem 'Space Mono','SFMono-Regular',Consolas,monospace;color:var(--muted);margin-bottom:4px}
+.pro-kpi span{font-weight:800}
+/* .badge 는 예전에 두 번 정의돼 뒤 선언이 앞을 통째로 덮고 있었습니다. */
+.badge{display:inline-block;border-radius:20px;padding:3px 7px;
+ font-size:.62rem;font-weight:800;font-family:'Space Mono',monospace}
+.real{background:rgba(0,230,118,.13);color:var(--green)}
+.partial{background:rgba(255,171,0,.13);color:var(--warning)}
+.none{background:rgba(255,23,68,.12);color:var(--danger)}
+ .lg-badge{font-size:.62rem;padding:2px 7px;border-radius:99px;margin-left:6px;
+  background:var(--surface2);color:var(--muted);border:1px solid var(--border2);white-space:nowrap}
+.lg-badge.on{color:var(--accent);border-color:var(--accent)}
+.slot-note{font-size:.66rem;color:var(--warning);margin-top:6px;line-height:1.5}
+.plan-bar{padding:10px 12px;background:var(--surface2);border:1px solid var(--border2);
+  border-radius:8px;margin-bottom:12px;line-height:2}
+.brief-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.brief-actions .btn{margin-top:10px}
+details summary{cursor:pointer;color:var(--pro2);font-size:.72rem;font-weight:700}
+@media(max-width:900px){.pro-grid{grid-template-columns:1fr 1fr}}
+
+/* 입력 라벨 — 예전에는 placeholder만 있어 스크린리더가 읽을 이름이 없었습니다 */
+.field-label{display:block;font-size:.7rem;color:var(--muted);
+ font-family:'Space Mono','SFMono-Regular',Consolas,monospace;letter-spacing:1px;text-transform:uppercase}
+
+/* 진단 결과 목록 */
+.diag{margin-top:8px;padding:9px 11px;border-radius:8px;
+ background:var(--surface2);border:1px solid var(--border2);font-size:.72rem;line-height:1.6}
+.diag-row{display:flex;gap:7px;align-items:flex-start;padding:2px 0}
+.diag-mark{flex:0 0 auto}
+.diag-row.ok{color:var(--green)}
+.diag-row.bad{color:var(--danger)}
+.diag-row.info{color:var(--muted)}
+
+/* 소스별 키 입력 행 */
+.src-row{padding:10px 0;border-top:1px solid var(--border2)}
+.src-row:first-of-type{border-top:none;padding-top:0}
+.src-head{display:flex;align-items:center;gap:8px}
+.src-rank{display:inline-flex;align-items:center;justify-content:center;
+ width:18px;height:18px;border-radius:50%;flex:0 0 18px;
+ background:var(--surface3);color:var(--accent);
+ font:700 .62rem 'Space Mono','SFMono-Regular',Consolas,monospace}
+.src-note{color:var(--muted);text-transform:none;letter-spacing:0;font-weight:400}
+.src-row .btn{margin-top:8px;padding:9px}
+
+/* 진행률 표시 — 리그 로드는 네트워크 대기가 길어 무엇을 하는 중인지 보여야 합니다 */
+.progress-wrap{margin-top:12px}
+.progress-track{height:6px;background:var(--surface3);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;width:0;border-radius:3px;
+ background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .25s ease}
+.progress-text{margin-top:6px;font-size:.72rem;color:var(--muted);
+ font-family:'Space Mono','SFMono-Regular',Consolas,monospace}
+
+/* 결과 카드 안의 경고 상자 */
+.warn-box{margin-top:10px;padding:10px 12px;border-radius:9px;
+ background:rgba(255,171,0,.09);border:1px solid rgba(255,171,0,.28);
+ color:var(--warning);font-size:.72rem;line-height:1.6}
+
+/* alert() 대체 안내 */
+.toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,140%);
+ max-width:min(560px,92vw);padding:13px 18px;border-radius:11px;
+ background:var(--surface3);border:1px solid var(--border);color:var(--text);
+ font-size:.82rem;line-height:1.5;box-shadow:0 10px 40px rgba(0,0,0,.5);
+ transition:transform .25s ease;z-index:50;pointer-events:none}
+.toast.show{transform:translate(-50%,0)}
+.toast.bad{border-color:rgba(255,23,68,.45);color:#ff8aa2}
+
+/* 키보드 사용자를 위한 초점 표시 */
+:where(button,input,select,textarea,summary,a):focus-visible{
+ outline:2px solid var(--accent);outline-offset:2px}
+button[disabled]{opacity:.5;cursor:not-allowed}
+body[aria-busy="true"] .btn-analyze{opacity:.6;cursor:progress}
+
+/* 모션을 줄이도록 설정한 사용자 존중 */
+@media(prefers-reduced-motion:reduce){
+ *{transition:none!important;animation:none!important}
+ .btn:hover,.btn-analyze:hover{transform:none}
+}
+</style></head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="header-left">
+      <h1>ULTIMATE SPORTS AI ANALYZER</h1>
+      <p>DIXON-COLES 강도 모델 · 30개 리그 · 데이터 소스 4중화 · 워크포워드 백테스트</p>
+    </div>
+    <div class="version-badge">v4.0 · 2026</div>
+  </div>
+
+  <div class="layout">
+    <div class="sidebar">
+      <div class="card">
+        <div class="card-title">🔑 API SETTINGS · 데이터 소스</div>
+        <div class="small" style="margin-bottom:10px">소스를 <b>위에서부터 차례로</b> 시도하고, 하나가 성공하면 나머지는 호출하지 않습니다. 키를 다 비워도 OpenLigaDB(독일)와 TheSportsDB 공개 키로 동작하지만 커버리지가 좁습니다.</div>
+
+        <div class="src-row">
+          <div class="src-head"><span class="src-rank">1</span>
+            <label class="field-label" for="apiKey">API-Football <span class="src-note">가장 넓은 커버리지 · 29개 리그 전부</span></label></div>
+          <input type="password" id="apiKey" placeholder="api-sports.io 키" autocomplete="off" spellcheck="false">
+          <div class="api-status-bar" role="status" aria-live="polite"><div class="dot" id="apiDot"></div><span id="apiStatus">대기중</span></div>
+          <button class="btn btn-secondary" onclick="validateApi()">연결 확인</button>
+        </div>
+
+        <div class="src-row">
+          <div class="src-head"><span class="src-rank">2</span>
+            <label class="field-label" for="fdKey">football-data.org <span class="src-note">9개 리그 · 무료 10회/분</span></label></div>
+          <input type="password" id="fdKey" placeholder="football-data.org 토큰" autocomplete="off" spellcheck="false">
+          <label class="field-label" for="fdProxy" style="margin-top:8px">프록시 주소 <span class="src-note">프록시가 떠 있으면 자동으로 채워집니다</span></label>
+          <input type="text" id="fdProxy" placeholder="http://127.0.0.1:8787" autocomplete="off" spellcheck="false">
+          <div class="api-status-bar" role="status" aria-live="polite"><div class="dot" id="fdDot"></div><span id="fdStatus">대기중</span></div>
+          <div class="brief-actions">
+            <button class="btn btn-secondary" onclick="validateFd()">연결 확인</button>
+            <button class="btn btn-secondary" onclick="diagnoseFd()">🔎 프록시 진단</button>
+          </div>
+          <div id="fdDiag" class="diag" hidden></div>
+          <div class="small" style="margin-top:6px">지원: 프리미어리그 · 라리가 · 세리에A · 분데스리가 · 리그1 · 에레디비시 · 프리메이라리가 · 챔피언십 · 챔피언스리그.<br>
+          <b>K리그·J리그·MLS 등은 제공하지 않아</b> 그 리그에서는 이 소스를 건너뜁니다.</div>
+          <div class="small" style="margin-top:6px">이 API는 서버용이라 브라우저에서 바로 부르면 <b>CORS로 막힙니다.</b> 함께 드린 <code>fd-proxy</code> 스크립트를 내 PC에서 실행하고 위 칸에 <code>http://127.0.0.1:8787</code>을 넣으세요. 토큰은 내 PC 밖으로 나가지 않습니다.<br>
+          이 칸에는 <b>주소만</b> 넣습니다 — <code>http://127.0.0.1:8787</code> (O) / <code>…:8787/__ping</code> (X).
+          확인용 <code>/__ping</code> 주소는 <b>브라우저 주소창</b>에 넣어 여는 것입니다.<br>
+          연결이 안 되면 <b>프록시 진단</b>을 눌러 어느 단계에서 막히는지 확인하세요.</div>
+        </div>
+
+        <div class="src-row">
+          <div class="src-head"><span class="src-rank">3</span>
+            <span class="field-label">OpenLigaDB <span class="src-note">키 불필요 · 독일 리그 전용</span></span></div>
+          <div class="api-status-bar" role="status" aria-live="polite"><div class="dot" id="oldbDot"></div><span id="oldbStatus">키 없이 사용 · 분데스리가 / 2. 분데스리가</span></div>
+          <button class="btn btn-secondary" onclick="validateOldb()">연결 확인</button>
+          <div class="small" style="margin-top:6px">독일 축구 커뮤니티가 운영하는 공개 API로 <b>키가 필요 없습니다</b>. 분데스리가·2. 분데스리가만 제공하므로 그 외 리그에서는 건너뜁니다.</div>
+        </div>
+
+        <div class="src-row">
+          <div class="src-head"><span class="src-rank">4</span>
+            <label class="field-label" for="tsdbKey">TheSportsDB <span class="src-note">최후 대체 · 키 없어도 동작</span></label></div>
+          <input type="password" id="tsdbKey" placeholder="후원자 키 (선택)" autocomplete="off" spellcheck="false">
+          <div class="api-status-bar" role="status" aria-live="polite"><div class="dot" id="tsdbDot"></div><span id="tsdbStatus">공개 키 '3' 사용 중</span></div>
+          <button class="btn btn-secondary" onclick="validateTsdb()">연결 확인</button>
+        </div>
+
+        <div class="v4-note"><b>직접 입력한 키</b>는 저장되지 않습니다 — 입력칸에만 있고 새로고침하면 사라집니다. localStorage에 기록하지 않으며, 각 키는 해당 서비스로만 전송됩니다.<br>
+        <b>내장 키</b>(스크립트 맨 위 <code>DEFAULT_KEYS</code>)를 쓰면 그 값은 <b>이 HTML 파일 안에 그대로 남습니다.</b> 파일을 남에게 주거나 공개 저장소에 올리면 키도 함께 넘어가니, 공유용 사본에서는 비워 주세요.<br>
+        모델은 API가 실제로 돌려준 값만 사용하고, 없는 값은 N/A로 둡니다.</div>
+      </div>
+
+      <div class="card layer-card">
+        <div class="layer-title">자동 대체 데이터 소스</div>
+        <div class="probar">
+          <span class="protag">1 · API-FOOTBALL</span><span class="protag">2 · FOOTBALL-DATA.ORG</span><span class="protag">3 · OPENLIGADB</span><span class="protag">4 · TheSportsDB</span>
+        </div>
+        <div class="small">위 순서대로 <b>시즌 단위로</b> 시도하고, 하나가 성공하면 나머지는 호출하지 않습니다. 키가 없거나 그 소스가 해당 리그를 제공하지 않으면 요청을 보내지 않고 건너뜁니다(쿼터 낭비 방지). API-Football의 429·5xx는 최대 3회 재시도한 뒤에야 다음 소스로 넘어갑니다.</div>
+        <div class="small" style="margin-top:6px">한 소스가 CORS로 막혀도 <b>분석은 멈추지 않습니다</b> — 그 소스만 건너뛰고 다음으로 넘어가며, 무엇이 왜 실패했는지는 시즌 카드에 남습니다.</div>
+        <div class="small" style="margin-top:6px">⚠️ 대체 소스는 리그 커버리지가 좁고 팀 ID 체계가 달라, 시즌마다 출처가 갈리면 같은 팀이 둘로 쪼개질 수 있습니다. 이 경우 이름을 기준으로 자동 통합하고 <b>아래 시즌 카드에 경고를 띄웁니다</b>. 대체 소스로 만든 데이터셋은 신뢰도에 0.9를 곱합니다.</div>
+        <div class="api-status-bar" role="status" aria-live="polite"><div class="dot" id="fallbackDot"></div><span id="fallbackStatus">분석 전 · 대기중</span></div>
+      </div>
+
+      <div class="card layer-card">
+        <div class="layer-title">🧭 자동 리그 판정</div>
+        <div class="small">리그를 고를 필요가 없습니다. 팀 이름을 입력하면 <b>소속 국내 리그</b>를 찾아내고, 필요한 시즌 데이터만 골라서 불러옵니다. 두 팀의 소속이 다르면 리그 간 경기로 판정해 <b>양쪽 리그 데이터를 함께</b> 씁니다.</div>
+        <div class="probar" style="margin-top:8px">
+          <span class="protag">한글 · 영문 · 약칭</span><span class="protag">정식 명칭</span><span class="protag">발음기호 무시</span><span class="protag">한영 혼용 입력</span><span class="protag">승강 자동 대응</span>
+        </div>
+        <div class="small" style="margin-top:8px">입력 형태는 가리지 않습니다. <b>맨유 / Man United / Manchester United</b>, <b>인터밀란 / Inter / Inter Milan / FC Internazionale Milano</b>, <b>Atlético Madrid</b>(악센트), <b>비킹fk</b>(한영 혼용) 모두 같은 팀으로 인식합니다.</div>
+        <div class="small" style="margin-top:8px">등록된 팀 <b id="regCount">0</b>개 · <span id="regLeagues"></span></div>
+        <button class="btn btn-secondary" onclick="showTeamList()">🔍 등록된 팀 전체 보기</button>
+      </div>
+
+      <div class="card layer-card">
+        <div class="layer-title">📦 시즌 데이터</div>
+        <div class="small">모든 계산의 토대입니다. <b>입력한 경기의 리그</b>를 골라 시즌 전체 경기를 한 번 받아오고, 이후 계산은 전부 브라우저에서 합니다. 14경기를 돌려도 추가 호출이 없습니다. 완료 경기가 적을 때만 <b>직전 시즌 하나</b>를 덧붙입니다(최대 2시즌). 플랜이 최근 시즌을 막아두면 API가 알려준 <b>허용 최신 시즌으로 곧바로 전환</b>합니다.</div>
+        <button class="btn btn-primary" onclick="loadPlannedSeasons()">📥 입력한 리그 데이터 불러오기</button>
+        <button class="btn btn-secondary" onclick="showTeamList()">🔍 등록된 팀 목록</button>
+        <button class="btn btn-secondary" onclick="clearSeasonCache()">🗑 캐시 비우기</button>
+        <div class="api-status-bar" role="status" aria-live="polite"><div class="dot" id="seasonDot"></div><span id="seasonStatus">미로드</span></div>
+        <div id="seasonSummary" class="small" style="margin-top:8px"></div>
+        <div class="v4-note">굳이 먼저 누르지 않아도 됩니다. 분석을 실행하면 필요한 리그를 알아서 불러옵니다.</div>
+      </div>
+
+      <div class="card layer-card">
+        <div class="layer-title">🔬 실제 경기 검증</div>
+        <div class="small">이미 끝난 <b>실제 경기</b>에 모델을 적용해 성적을 측정합니다(워크포워드). 각 경기는 그 경기 이전 데이터만으로 예측하므로 정보 누출이 없고, 결과는 경기별로 확인·CSV 다운로드할 수 있습니다.</div>
+        <div class="small" style="margin-top:6px">검증은 <b>입력한 같은 리그 경기가 가장 많은 리그 하나</b>에 대해서만 돌아갑니다. 그 결과는 <b>같은 리그 경기의 신뢰도에만</b> 반영됩니다. 리그 간 경기는 한 리그의 워크포워드 검증으로 확인할 수 없어 대상에서 제외됩니다.</div>
+        <button class="btn btn-primary" onclick="runBacktest()">🔬 검증 실행</button>
+        <div class="api-status-bar" role="status" aria-live="polite"><div class="dot" id="btDot"></div><span id="btStatus">미실행</span></div>
+      </div>
+
+      <div class="card layer-card">
+        <div class="layer-title">모델이 하는 일 · 하지 않는 일</div>
+        <details open><summary>계산 방식</summary>
+        <div class="small" style="margin-top:8px">
+        <b>수집:</b> 리그당 시즌 전체 경기를 한 번 받아옵니다(요청 간 최소 1.2초). 경기 수만큼 호출이 늘지 않습니다.
+        완료 경기가 기준에 못 미칠 때만 직전 시즌 하나를 덧붙이며, 그 이상 과거는 보지 않습니다.
+        플랜이 최근 시즌을 막으면 API 응답에 적힌 허용 최신 시즌으로 한 번에 이동합니다.<br>
+        <b>강도 추정:</b> Dixon-Coles 방식입니다. 반복 스케일링으로 팀별 공격력·수비력을 리그 평균 1.00 기준으로 맞추고, 경기 시점에 반감기 <b>120일</b>의 지수 감쇠를 겁니다. 강한 상대를 이긴 것이 더 크게 반영됩니다.<br>
+        <b>표본 보정:</b> Kish 유효표본수 기준으로 표본이 적은 팀을 리그 평균 쪽으로 당깁니다(수축 계수 5).<br>
+        <b>홈 이점:</b> 리그 전체 홈 평균에 더해 팀별 홈 강세를 40%만 반영하고, 0.80~1.25로 제한합니다.<br>
+        <b>확률:</b> 두 팀의 예상 득점(λ)으로 12×12 스코어 격자를 만들고, 0-0·1-0·0-1·1-1에 Dixon-Coles 저스코어 보정(ρ=-0.13)을 적용해 정규화합니다.<br>
+        <b>데이터 소스:</b> API-Football → football-data.org → OpenLigaDB → TheSportsDB 순으로 시즌 단위 시도.
+        신뢰 계수는 앞의 둘이 1.0(우리가 쓰는 항목인 득점·일시에서 품질 차이가 없음),
+        OpenLigaDB가 <b>0.95</b>(커뮤니티 운영), TheSportsDB가 <b>0.9</b>입니다.
+        football-data.org는 9개 리그, OpenLigaDB는 독일 2개 리그만 제공하므로 나머지 리그에서는 자동으로 건너뜁니다.<br>
+        <b>리그 간 경기:</b> 두 팀의 국내 리그 데이터를 각각 쓰고 리그 수준 계수로 결합합니다(아래 항목 참조).<br>
+        <b>데이터 부족 시:</b> 완료 경기 10건 미만이면 모델을 만들지 않고, 팀을 데이터에서 확정하지 못하면 그 경기를 실패로 표시합니다. 없는 값을 0으로 채워 억지로 계산하지 않습니다.<br>
+        <b>정렬:</b> 결과 카드는 <b>입력 슬롯 번호(MATCH n) 순서</b> 그대로 나옵니다. 신뢰도는 각 카드의 CONF 배지로 확인하세요.
+        </div></details>
+        <details><summary>이 모델이 반영하지 않는 것</summary>
+        <div class="small" style="margin-top:8px">
+        부상·출전정지·로테이션·감독 교체·이적·날씨·동기부여·일정 과부하·<b>배당</b>을 전혀 보지 않습니다.
+        오직 <b>득점 결과</b>만 씁니다. 슈팅·xG·점유율도 쓰지 않습니다.<br>
+        따라서 이 화면의 확률은 "지금까지의 득점 기록만 봤을 때"의 값이고,
+        그 밖의 정보는 AI 브리핑을 붙여넣어 사람이나 LLM이 보정하도록 설계돼 있습니다.
+        </div></details>
+        <details><summary>리그 간 경기는 어떻게 계산하나</summary>
+        <div class="small" style="margin-top:8px">
+        공격/수비 강도는 <b>그 리그 평균 1.00</b> 기준입니다. 셀틱의 공격 1.60(스코틀랜드 기준)과
+        도르트문트의 1.30(독일 기준)은 애초에 같은 자로 잰 값이 아니라 그대로 비교할 수 없습니다.<br>
+        <b>예전 방식의 문제:</b> 소속이 다르면 무조건 챔피언스리그 데이터로 분석했습니다.
+        그래서 ① 벤피카 vs 포르투 같은 <b>포르투갈 리그 경기</b>가 챔스 데이터로 계산됐고,
+        ② 진짜 리그 간 경기도 조별리그 30~40경기라는 빈약한 표본에, 여러 리그가 한 풀에
+        섞여 "리그 평균 1.00"이 무엇의 평균인지 알 수 없는 데이터로 계산됐습니다.<br>
+        <b>지금 방식:</b> 두 팀의 강도를 <b>각자의 국내 리그</b>에서 시즌 전체 표본으로 따로
+        추정한 뒤, 리그 수준 계수 k로 눈금을 맞춥니다(홈 λ에 ×k, 원정 λ에 ÷k).
+        기준 득점률은 두 리그 평균의 중간값을 씁니다.<br>
+        <b>k는 가정입니다.</b> UEFA 국가계수(최근 5년) 순위를 100점 기준으로 정규화한 값이며,
+        측정값이 아닙니다. 가정이 결과를 지배하지 않도록 지수 0.35로 눌러 반영하고
+        0.70~1.43으로 잘라냅니다. 그래도 <b>이 계수는 어떤 백테스트로도 검증되지 않습니다</b> —
+        워크포워드 검증은 한 리그 안에서만 성립하기 때문입니다.<br>
+        그래서 리그 간 경기는 신뢰도 항목에서 "백테스트 검증 불가"가 항상 미달로 잡혀
+        점수가 낮게 나오고, 카드에도 계수와 경고를 함께 표시합니다.
+        K리그·J리그·MLS는 UEFA 계수가 없어 대략적인 위치만 잡아둔 값이라, 유럽 팀과의
+        비교는 특히 거칠다는 경고가 하나 더 붙습니다.
+        </div></details>
+        <details><summary>팀 이름은 어떻게 맞추나</summary>
+        <div class="small" style="margin-top:8px">
+        같은 팀을 데이터 소스마다 다르게 부릅니다. API-Football은 <b>Inter</b>,
+        TheSportsDB는 <b>Inter Milan</b>, 공식 명칭은 <b>FC Internazionale Milano</b> 입니다.
+        그래서 팀마다 알려진 라틴문자 표기를 모아 두고, <b>사용자 입력 해석</b>과
+        <b>시즌 데이터 매칭</b> 양쪽에서 그 목록 전체와 대조합니다.<br>
+        이게 없을 때 실제로 <b>"Inter Milan"이 "Inter Miami"로 조용히 잘못 매칭</b>됐습니다.
+        둘 다 Inter로 시작해 철자 유사도가 더 높았기 때문입니다. 지금은 별칭에 정확히
+        걸려 세리에A의 인테르로 갑니다.<br>
+        <b>발음기호:</b> Atlético·Beşiktaş·Malmö·Bodø 처럼 악센트가 붙은 표기는 기본 문자로
+        접어서 비교합니다(atletico·besiktas·malmo·bodo). 예전에는 해당 글자를 <b>지워버려</b>
+        beikta 같은 형태가 되어 매칭이 흔들렸습니다.<br>
+        <b>한영 혼용:</b> "aek아테네", "비킹fk" 처럼 섞어 써도 한글·영문 양쪽으로 해석합니다.<br>
+        <b>애매하면 찍지 않습니다.</b> 1·2위 후보 점수가 붙어 있으면 임의로 고르지 않고
+        후보를 보여주거나 실패로 처리합니다.
+        </div></details>
+        <details><summary>승강(1부↔2부)은 어떻게 처리하나</summary>
+        <div class="small" style="margin-top:8px">
+        등록부는 각 클럽의 디비전을 고정값으로 들고 있는데, 승강으로 매 시즌 바뀝니다.
+        등록된 리그 데이터에서 팀을 찾지 못하면 <b>형제 디비전</b>(K리그1↔K리그2,
+        프리미어리그↔챔피언십)을 자동으로 확인합니다.<br>
+        두 팀이 서로 다른 디비전이면 리그 간 경기로 다시 판정하고, 둘 다 아래 디비전에
+        있으면 그 리그의 국내전으로 처리합니다. 추가 조회는 <b>실패했을 때만</b> 일어나므로
+        평소에는 호출이 늘지 않습니다.
+        </div></details>
+        <details><summary>리그를 못 찾으면 어떻게 되나</summary>
+        <div class="small" style="margin-top:8px">
+        연도를 하나씩 넘겨짚지 않습니다. 현재 시즌 요청이 실패하면 순서대로:<br>
+        <b>①</b> 응답이 허용 범위를 알려주면(<i>try from 2022 to 2024</i>) 그 최신 연도로 바로 이동합니다.<br>
+        <b>②</b> 범위를 안 알려주고 빈 응답만 오면 <b>리그에 직접 물어봅니다</b>(<code>/leagues?id=</code>).
+        그 리그가 실제로 가진 시즌 목록을 받아 그중에서만 고릅니다.<br>
+        <b>③</b> 등록된 ID가 API에 아예 없으면 등록된 <b>이름과 국가</b>로 올바른 ID를 찾아
+        그 자리에서 사용하고, 무엇으로 대체했는지 경고로 남깁니다.<br>
+        <b>④</b> 불러온 데이터가 스스로 밝힌 리그 이름·국가가 등록값과 다르면 경고합니다.
+        표기 차이(Türkiye/Turkey 등)로 오탐이 날 수 있어 분석을 막지는 않습니다.<br>
+        <b>대체 소스</b>도 마찬가지로 국가로 좁혀 검색한 뒤 이름 점수로 고릅니다.
+        예전에는 전체 목록을 부분문자열로 훑기만 해서, TheSportsDB가
+        "South Korean K League 1" 처럼 부르는 리그를 놓쳤습니다.
+        </div></details>
+        <details><summary>CONF(신뢰도)의 의미</summary>
+        <div class="small" style="margin-top:8px">
+        CONF는 <b>적중 확률이 아니라 데이터 확보율</b>입니다. 같은 리그 경기는 네 항목(홈 표본 5경기·원정 표본 5경기·리그 완료 60경기·이 리그 백테스트 통과)을, 리그 간 경기는 여기에 두 항목(백테스트 검증 불가·양쪽 UEFA 계수 보유)을 더해 가중 합산한 뒤, 대체 소스면 0.9를 곱합니다.<br>
+        백테스트를 돌리지 않았거나 <b>다른 리그</b>에서 돌렸다면 그 항목은 인정되지 않아 최대 71점입니다.<br>
+        CONF가 높아도 확률이 33/33/33이면 픽할 이유가 없으므로, <b>최고 확률 40% 이상</b>과 <b>1·2위 확률 차 8%p 이상</b>을 함께 요구합니다. 하나라도 미달이면 NO BET입니다.
+        </div></details>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🤖 AI 브리핑 · GEMINI / CLAUDE</div>
+        <textarea id="briefing" placeholder="분석을 실행하면 여기에 브리핑이 생성됩니다. 복사해서 Gemini나 Claude에 붙여넣으세요."></textarea>
+        <div class="brief-actions">
+          <button class="btn btn-primary" onclick="copyBriefing(this)">📋 전체 복사</button>
+          <button class="btn btn-secondary" onclick="downloadBriefing()">⬇️ .md 저장</button>
+        </div>
+        <button class="btn btn-danger" id="briefSwap" hidden onclick="applyPendingBriefing()">🔄 새 브리핑으로 교체 (수정 내용 버림)</button>
+        <div id="copyStatus" class="small" style="margin-top:8px" role="status" aria-live="polite"></div>
+        <div class="v4-note">복사가 안 되면 텍스트 영역을 클릭한 뒤 <b>Ctrl+A → Ctrl+C</b>로 직접 복사하세요. 내용은 자유롭게 수정할 수 있습니다.</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <div class="card-title">⚽ 경기 입력 — 팀 이름만 넣으면 됩니다</div>
+        <div class="small" style="margin-bottom:8px">한글·영문·약칭 모두 됩니다. (예: 리버풀 / Liverpool / 맨유 / Man United)</div>
+        <div class="plan-bar" id="planBar"></div>
+        <div class="match-grid" id="matchGrid"></div>
+        <button class="btn-analyze" onclick="runV4Analysis()">⚡ V4 FULL ANALYSIS · 14 MATCH RANKING</button>
+        <div id="progressWrap" class="progress-wrap" hidden
+             role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <div class="progress-track"><div id="progressFill" class="progress-fill"></div></div>
+          <div id="progressText" class="progress-text"></div>
+        </div>
+      </div>
+      <div id="teamListArea"></div>
+      <div id="backtestArea"></div>
+      <div id="resultArea"></div>
+      <datalist id="teamList"></datalist>
+    </div>
+  </div>
+</div>
+<div id="toast" class="toast" role="status" aria-live="assertive"></div>
+
+
+<script>
+/* ================= 팀 등록부 =================
+   팀 이름 → 리그를 역추적합니다. 사용자가 리그를 고를 필요가 없고,
+   '선택한 리그'와 '불러온 데이터'가 어긋나는 버그가 원천적으로 사라집니다.
+   형식: '영문 정식명':'한글별칭|별칭2|...|리그ID' */
+const TEAM_DB={
+ 'Manchester United':'맨체스터유나이티드|맨유|맨우|#39',
+ 'Manchester City':'맨체스터시티|맨시티|맨시|#39',
+ 'Liverpool':'리버풀|#39',
+ 'Arsenal':'아스날|아스널|#39',
+ 'Chelsea':'첼시|#39',
+ 'Tottenham':'토트넘|토트넘홋스퍼|토트넘핫스퍼|#39',
+ 'Newcastle':'뉴캐슬|뉴캐슬유나이티드|#39',
+ 'Aston Villa':'아스톤빌라|아스턴빌라|#39',
+ 'Brighton':'브라이튼|#39',
+ 'West Ham':'웨스트햄|#39',
+ 'Everton':'에버튼|에버턴|#39',
+ 'Crystal Palace':'크리스탈팰리스|팰리스|#39',
+ 'Brentford':'브렌트포드|#39',
+ 'Fulham':'풀럼|풀햄|#39',
+ 'Wolves':'울버햄튼|울버햄프턴|울브스|#39',
+ 'Nottingham Forest':'노팅엄포레스트|노팅엄|#39',
+ 'Bournemouth':'본머스|#39',
+ 'Leeds':'리즈|리즈유나이티드|#39',
+ 'Burnley':'번리|#39',
+ 'Sunderland':'선덜랜드|#39',
+ 'Leicester':'레스터|레스터시티|#39',
+ 'Ipswich':'입스위치|#39',
+ 'Southampton':'사우샘프턴|사우스햄튼|#39',
+ 'Sheffield Utd':'셰필드유나이티드|#39',
+ 'Real Madrid':'레알마드리드|레알|#140',
+ 'Barcelona':'바르셀로나|바르사|FC바르셀로나|#140',
+ 'Atletico Madrid':'아틀레티코마드리드|아틀레티코|AT마드리드|#140',
+ 'Athletic Club':'아틀레틱빌바오|빌바오|아틀레틱클루브|#140',
+ 'Villarreal':'비야레알|#140',
+ 'Real Betis':'레알베티스|베티스|#140',
+ 'Sevilla':'세비야|#140',
+ 'Real Sociedad':'레알소시에다드|소시에다드|#140',
+ 'Valencia':'발렌시아|#140',
+ 'Girona':'지로나|#140',
+ 'Celta Vigo':'셀타비고|셀타|#140',
+ 'Osasuna':'오사수나|#140',
+ 'Rayo Vallecano':'라요바예카노|라요|#140',
+ 'Mallorca':'마요르카|#140',
+ 'Getafe':'헤타페|#140',
+ 'Espanyol':'에스파뇰|#140',
+ 'Alaves':'알라베스|#140',
+ 'Levante':'레반테|#140',
+ 'Elche':'엘체|#140',
+ 'Real Oviedo':'레알오비에도|오비에도|#140',
+ 'Inter':'인터밀란|인테르|인터|#135',
+ 'AC Milan':'AC밀란|밀란|#135',
+ 'Juventus':'유벤투스|유베|#135',
+ 'Napoli':'나폴리|#135',
+ 'Roma':'AS로마|로마|#135',
+ 'Lazio':'라치오|#135',
+ 'Atalanta':'아탈란타|#135',
+ 'Fiorentina':'피오렌티나|#135',
+ 'Bologna':'볼로냐|#135',
+ 'Torino':'토리노|#135',
+ 'Udinese':'우디네세|#135',
+ 'Genoa':'제노아|#135',
+ 'Cagliari':'칼리아리|#135',
+ 'Como':'코모|#135',
+ 'Hellas Verona':'베로나|엘라스베로나|#135',
+ 'Lecce':'레체|#135',
+ 'Parma':'파르마|#135',
+ 'Sassuolo':'사수올로|#135',
+ 'Pisa':'피사|#135',
+ 'Cremonese':'크레모네세|#135',
+ 'Bayern Munich':'바이에른뮌헨|뮌헨|바이에른|#78',
+ 'Bayer Leverkusen':'레버쿠젠|바이어레버쿠젠|#78',
+ 'Borussia Dortmund':'도르트문트|보루시아도르트문트|돌문|#78',
+ 'RB Leipzig':'라이프치히|RB라이프치히|#78',
+ 'Eintracht Frankfurt':'프랑크푸르트|아인트라흐트프랑크푸르트|#78',
+ 'VfB Stuttgart':'슈투트가르트|#78',
+ 'Werder Bremen':'베르더브레멘|브레멘|#78',
+ 'SC Freiburg':'프라이부르크|#78',
+ 'Borussia Monchengladbach':'묀헨글라드바흐|글라드바흐|#78',
+ 'VfL Wolfsburg':'볼프스부르크|#78',
+ 'FC Augsburg':'아우크스부르크|#78',
+ '1899 Hoffenheim':'호펜하임|#78',
+ 'Mainz 05':'마인츠|#78',
+ 'Union Berlin':'우니온베를린|union베를린|#78',
+ 'FC Koln':'쾰른|#78',
+ 'FC St. Pauli':'장크트파울리|상파울리|#78',
+ 'FC Heidenheim':'하이덴하임|#78',
+ 'Hamburger SV':'함부르크|함부르크SV|#78',
+ 'VfL Bochum':'보훔|#78',
+ 'Holstein Kiel':'홀슈타인킬|킬|#79',
+ 'Darmstadt 98':'다름슈타트|#79',
+ 'Fortuna Dusseldorf':'뒤셀도르프|포르투나뒤셀도르프|#79',
+ 'Hannover 96':'하노버|하노버96|#79',
+ 'Karlsruher SC':'칼스루에|#79',
+ 'SC Paderborn 07':'파더보른|#79',
+ 'Greuther Furth':'퓌르트|그로이터퓌르트|#79',
+ 'Eintracht Braunschweig':'브라운슈바이크|#79',
+ 'SV Elversberg':'엘버스베르크|#79',
+ 'FC Schalke 04':'샬케|샬케04|#79',
+ 'Hertha Berlin':'헤르타베를린|헤르타|#79',
+ 'FC Nurnberg':'뉘른베르크|#79',
+ 'SV Sandhausen':'잔트하우젠|#79',
+ 'Magdeburg':'마그데부르크|#79',
+ 'Paris Saint Germain':'파리생제르맹|PSG|파리|#61',
+ 'Marseille':'마르세유|올림피크마르세유|#61',
+ 'Monaco':'모나코|AS모나코|#61',
+ 'Lyon':'리옹|올림피크리옹|#61',
+ 'Lille':'릴|릴OSC|#61',
+ 'Nice':'니스|#61',
+ 'Lens':'랑스|#61',
+ 'Rennes':'렌|#61',
+ 'Strasbourg':'스트라스부르|#61',
+ 'Toulouse':'툴루즈|#61',
+ 'Nantes':'낭트|#61',
+ 'Brest':'브레스트|#61',
+ 'Montpellier':'몽펠리에|#61',
+ 'Auxerre':'오세르|#61',
+ 'Angers':'앙제|#61',
+ 'Le Havre':'르아브르|#61',
+ 'Metz':'메스|#61',
+ 'Lorient':'로리앙|#61',
+ 'Paris FC':'파리FC|#61',
+ 'Ajax':'아약스|#88',
+ 'PSV Eindhoven':'PSV|에인트호번|PSV에인트호번|#88',
+ 'Feyenoord':'페예노르트|#88',
+ 'AZ Alkmaar':'AZ알크마르|알크마르|#88',
+ 'Benfica':'벤피카|#94',
+ 'FC Porto':'포르투|#94',
+ 'Sporting CP':'스포르팅|스포르팅CP|#94',
+ 'Braga':'브라가|#94',
+ 'Celtic':'셀틱|#179',
+ 'Rangers':'레인저스|#179',
+ 'Galatasaray':'갈라타사라이|#203',
+ 'Fenerbahce':'페네르바체|#203',
+ 'Besiktas':'베식타시|#203',
+ 'Shakhtar Donetsk':'샤흐타르|샤흐타르도네츠크|#333',
+ 'Dynamo Kyiv':'디나모키예프|디나모키이우|#333',
+ 'Red Bull Salzburg':'잘츠부르크|레드불잘츠부르크|#218',
+ 'Club Brugge KV':'클럽브뤼헤|브뤼헤|#144',
+ 'Anderlecht':'안더레흐트|#144',
+ 'Olympiakos Piraeus':'올림피아코스|#197',
+ 'Panathinaikos':'파나시나이코스|#197',
+ 'Slavia Praha':'슬라비아프라하|#345',
+ 'Sparta Praha':'스파르타프라하|#345',
+ 'FC Copenhagen':'코펜하겐|#119',
+ 'Malmo FF':'말뫼|#113',
+ 'Young Boys':'영보이스|BSC영보이스|#207',
+ 'Basel':'바젤|#207',
+ 'Dinamo Zagreb':'디나모자그레브|#210',
+ 'Red Star Belgrade':'츠르베나즈베즈다|레드스타베오그라드|#286',
+ 'Bodo/Glimt':'보되글림트|보도글림트|#103',
+ 'Ferencvarosi TC':'페렌츠바로시|#271',
+ 'Qarabag FK':'카라바흐|#419',
+ 'Union St. Gilloise':'생질루아즈|위니옹생질루아즈|#144',
+ 'Zenit St. Petersburg':'제니트|#235',
+ 'Sturm Graz':'슈투름그라츠|#218',
+ /* 유럽 대항전 단골인데 등록부에 없어 매칭이 실패하던 클럽들.
+    없으면 "찾지 못했습니다"가 아니라 엉뚱한 후보(LASK→Lazio 등)를 내놓기 때문에
+    커버리지 자체가 정확도 문제입니다. */
+ 'LASK':'라스크|LASK린츠|#218',
+ 'Rapid Wien':'라피드빈|라피드비엔나|#218',
+ 'Austria Wien':'아우스트리아빈|#218',
+ 'AEK Athens':'AEK아테네|아테네|#197',
+ 'PAOK':'PAOK|파오크|파오크살로니카|#197',
+ 'Aris Thessaloniki':'아리스|아리스살로니카|#197',
+ 'Viking':'비킹|비킹FK|#103',
+ 'Rosenborg':'로센보리|로젠보리|#103',
+ 'Molde':'몰데|#103',
+ 'Brann':'브란|SK브란|#103',
+ 'Vitoria Guimaraes':'비토리아기마랑이스|기마랑이스|#94',
+ 'Boavista':'보아비스타|#94',
+ 'FC Twente':'트벤테|#88',
+ 'FC Utrecht':'위트레흐트|#88',
+ 'Trabzonspor':'트라브존스포르|트라브존|#203',
+ 'Istanbul Basaksehir':'바샥셰히르|이스탄불바샥셰히르|#203',
+ 'Genk':'헹크|KRC헹크|#144',
+ 'Gent':'헨트|KAA헨트|#144',
+ 'Royal Antwerp':'안트베르펀|안트워프|#144',
+ 'Standard Liege':'스탕다르리에주|스탕다르|#144',
+ 'Hearts':'하츠|하트오브미들로시언|#179',
+ 'Hibernian':'히버니언|하이버니언|#179',
+ 'Aberdeen':'애버딘|#179',
+ 'Viktoria Plzen':'빅토리아플젠|플젠|#345',
+ 'Hajduk Split':'하이두크스플리트|하이두크|#210',
+ 'Rijeka':'리예카|#210',
+ 'Partizan':'파르티잔|파르티잔베오그라드|#286',
+ 'Servette':'세르베트|#207',
+ 'Lugano':'루가노|#207',
+ 'FC Midtjylland':'미트윌란|미티란|#119',
+ 'Brondby':'브뢴뷔|브론뷔|#119',
+ 'AIK':'AIK|AIK스톡홀름|#113',
+ 'Djurgarden':'유르고덴|디우르고르덴|#113',
+ 'Hammarby':'함마르뷔|#113',
+ 'Legia Warsaw':'레기아바르샤바|레기아|#106',
+ 'Lech Poznan':'레흐포즈난|포즈난|#106',
+ 'Rakow':'라쿠프|라쿠프쳉스토호바|#106',
+ 'Jeonbuk Motors':'전북현대모터스|전북현대|전북|#292',
+ 'Ulsan Hyundai FC':'울산HD|울산현대|울산|#292',
+ 'Pohang Steelers':'포항스틸러스|포항|#292',
+ 'FC Seoul':'FC서울|서울|#292',
+ 'Suwon City':'수원FC|#292',
+ 'Suwon Bluewings':'수원삼성블루윙즈|수원삼성|#293',
+ 'Daegu FC':'대구FC|대구|#292',
+ 'Incheon United':'인천유나이티드|인천|#293',
+ 'Gangwon FC':'강원FC|강원|#292',
+ 'Gwangju FC':'광주FC|광주|#292',
+ 'Jeju United FC':'제주유나이티드|제주SK|제주|#292',
+ 'Gimcheon Sangmu FC':'김천상무|김천|#292',
+ 'Daejeon Citizen':'대전하나시티즌|대전|#292',
+ 'FC Anyang':'FC안양|안양|#292',
+ 'Busan I Park':'부산아이파크|부산|#293',
+ 'Gyeongnam FC':'경남FC|경남|#293',
+ 'Jeonnam Dragons':'전남드래곤즈|전남|#293',
+ 'Chungnam Asan':'충남아산|아산|#293',
+ 'Seoul E-Land FC':'서울이랜드|이랜드|#293',
+ 'Bucheon FC 1995':'부천FC|부천|#293',
+ 'Ansan Greeners':'안산그리너스|안산|#293',
+ 'Seongnam FC':'성남FC|성남|#293',
+ 'Gimpo Citizen FC':'김포FC|김포|#293',
+ 'Cheonan City':'천안시티|천안|#293',
+ 'Chungbuk Cheongju':'충북청주|청주|#293',
+ 'Hwaseong FC':'화성FC|화성|#293',
+ 'Kawasaki Frontale':'가와사키프론탈레|가와사키|#98',
+ 'Yokohama F. Marinos':'요코하마마리노스|요코하마F마리노스|#98',
+ 'Vissel Kobe':'비셀고베|고베|#98',
+ 'Urawa':'우라와레즈|우라와|#98',
+ 'Gamba Osaka':'감바오사카|#98',
+ 'Cerezo Osaka':'세레소오사카|#98',
+ 'Kashima':'가시마앤틀러스|가시마|#98',
+ 'FC Tokyo':'FC도쿄|#98',
+ 'Nagoya Grampus':'나고야그램퍼스|나고야|#98',
+ 'Sanfrecce Hiroshima':'산프레체히로시마|히로시마|#98',
+ 'Avispa Fukuoka':'아비스파후쿠오카|후쿠오카|#98',
+ 'Shonan Bellmare':'쇼난벨마레|쇼난|#98',
+ 'Albirex Niigata':'알비렉스니가타|니가타|#98',
+ 'Kyoto Sanga':'교토상가|교토|#98',
+ 'Kashiwa Reysol':'가시와레이솔|가시와|#98',
+ 'Sagan Tosu':'사간도스|#98',
+ 'Machida Zelvia':'마치다젤비아|마치다|#98',
+ 'Tokyo Verdy':'도쿄베르디|#98',
+ 'Yokohama FC':'요코하마FC|#98',
+ 'Inter Miami':'인터마이애미|마이애미|#253',
+ 'Los Angeles Galaxy':'LA갤럭시|엘에이갤럭시|#253',
+ 'Los Angeles FC':'LAFC|로스앤젤레스FC|#253',
+ 'Seattle Sounders':'시애틀사운더스|시애틀|#253',
+ 'Atlanta United FC':'애틀랜타유나이티드|애틀랜타|#253',
+ 'New York City FC':'뉴욕시티|#253',
+ 'New York Red Bulls':'뉴욕레드불스|레드불스|#253',
+ 'Portland Timbers':'포틀랜드팀버스|포틀랜드|#253',
+ 'Toronto FC':'토론토FC|토론토|#253',
+ 'Chicago Fire':'시카고파이어|시카고|#253',
+ 'Columbus Crew':'콜럼버스크루|콜럼버스|#253',
+ 'FC Cincinnati':'신시내티|#253',
+ 'Philadelphia Union':'필라델피아유니언|필라델피아|#253',
+ 'Orlando City SC':'올랜도시티|올랜도|#253',
+ 'Nashville SC':'내슈빌|#253',
+ 'Austin':'오스틴|#253',
+ 'Charlotte':'샬럿|#253',
+ 'St. Louis City':'세인트루이스시티|세인트루이스|#253',
+ 'Minnesota United FC':'미네소타유나이티드|미네소타|#253',
+ 'Sporting Kansas City':'스포팅캔자스시티|캔자스시티|#253',
+ 'Real Salt Lake':'리얼솔트레이크|솔트레이크|#253',
+ 'Colorado Rapids':'콜로라도래피즈|콜로라도|#253',
+ 'Houston Dynamo':'휴스턴다이너모|휴스턴|#253',
+ 'FC Dallas':'FC댈러스|댈러스|#253',
+ 'San Jose Earthquakes':'산호세어스퀘이크스|산호세|#253',
+ 'Vancouver Whitecaps':'밴쿠버화이트캡스|밴쿠버|#253',
+ 'CF Montreal':'몬트리올|#253',
+ 'DC United':'DC유나이티드|디씨유나이티드|#253',
+ 'New England Revolution':'뉴잉글랜드레볼루션|뉴잉글랜드|#253',
+ 'San Diego':'샌디에이고|#253',
+};
+/* 등록부를 조회 가능한 형태로 펼칩니다. */
+/* 리그 정보. apiName은 API-Football이 실제로 돌려주는 리그 이름으로, 아래
+   ID가 틀렸을 때(오타·API 개편) 조용히 엉뚱한 리그를 분석하지 않도록
+   불러온 데이터와 대조하는 데 씁니다.
+   season: 'y' = 추춘제(시즌 시작 연도), 'cal' = 춘추제(달력연도). */
+const LEAGUE_INFO={
+ '39' :{name:'프리미어리그',   flag:'🏴',season:'y',  apiName:'Premier League',country:'England',alt:'40'},
+ '40' :{name:'챔피언십',       flag:'🏴',season:'y',  apiName:'Championship',country:'England',alt:'39'},
+ '140':{name:'라리가',        flag:'🇪🇸',season:'y',  apiName:'La Liga',country:'Spain'},
+ '135':{name:'세리에A',       flag:'🇮🇹',season:'y',  apiName:'Serie A',country:'Italy'},
+ '78' :{name:'분데스리가',     flag:'🇩🇪',season:'y',  apiName:'Bundesliga',country:'Germany',alt:'79'},
+ '79' :{name:'2. 분데스리가',  flag:'🇩🇪',season:'y',  apiName:'2. Bundesliga',country:'Germany',alt:'78'},
+ '61' :{name:'리그1',         flag:'🇫🇷',season:'y',  apiName:'Ligue 1',country:'France'},
+ '88' :{name:'에레디비시',     flag:'🇳🇱',season:'y',  apiName:'Eredivisie',country:'Netherlands'},
+ '94' :{name:'프리메이라리가', flag:'🇵🇹',season:'y',  apiName:'Primeira Liga',country:'Portugal'},
+ '144':{name:'벨기에 1부',     flag:'🇧🇪',season:'y',  apiName:'Jupiler Pro League',country:'Belgium'},
+ '179':{name:'스코틀랜드 1부', flag:'🏴',season:'y',  apiName:'Premiership',country:'Scotland'},
+ '203':{name:'쉬페르리그',     flag:'🇹🇷',season:'y',  apiName:'Süper Lig',country:'Turkey'},
+ '197':{name:'그리스 수페르리가',flag:'🇬🇷',season:'y', apiName:'Super League',country:'Greece'},
+ '207':{name:'스위스 슈퍼리그', flag:'🇨🇭',season:'y',  apiName:'Super League',country:'Switzerland'},
+ '218':{name:'오스트리아 분데스리가',flag:'🇦🇹',season:'y',apiName:'Bundesliga',country:'Austria'},
+ '345':{name:'체코 1부',       flag:'🇨🇿',season:'y',  apiName:'Czech Liga',country:'Czech-Republic'},
+ '210':{name:'크로아티아 1부', flag:'🇭🇷',season:'y',  apiName:'HNL',country:'Croatia'},
+ '286':{name:'세르비아 1부',   flag:'🇷🇸',season:'y',  apiName:'Super Liga',country:'Serbia'},
+ '333':{name:'우크라이나 1부', flag:'🇺🇦',season:'y',  apiName:'Premier League',country:'Ukraine'},
+ '271':{name:'헝가리 NB I',    flag:'🇭🇺',season:'y',  apiName:'NB I',country:'Hungary'},
+ '419':{name:'아제르바이잔 1부',flag:'🇦🇿',season:'y',  apiName:'Premyer Liqa',country:'Azerbaijan'},
+ '235':{name:'러시아 프리미어리그',flag:'🇷🇺',season:'y',apiName:'Premier League',country:'Russia'},
+ '119':{name:'덴마크 수페르리가',flag:'🇩🇰',season:'y', apiName:'Superliga',country:'Denmark'},
+ '113':{name:'알스벤스칸',     flag:'🇸🇪',season:'cal',apiName:'Allsvenskan',country:'Sweden'},
+ '106':{name:'에크스트라클라사',flag:'🇵🇱',season:'y',  apiName:'Ekstraklasa',country:'Poland'},
+ '103':{name:'엘리테세리엔',   flag:'🇳🇴',season:'cal',apiName:'Eliteserien',country:'Norway'},
+ /* K리그는 2~11월 달력연도 시즌입니다. 'y'로 두면 3월에 지난 시즌을 요청합니다. */
+ '292':{name:'K리그1',        flag:'🇰🇷',season:'cal',apiName:'K League 1',country:'South-Korea',alt:'293'},
+ '293':{name:'K리그2',        flag:'🇰🇷',season:'cal',apiName:'K League 2',country:'South-Korea',alt:'292'},
+ '98' :{name:'J리그',         flag:'🇯🇵',season:'y',  apiName:'J1 League',country:'Japan'},
+ '253':{name:'MLS',           flag:'🇺🇸',season:'cal',apiName:'Major League Soccer',country:'USA'}
+};
+/* ---------- 리그 수준 계수 ----------
+   공격/수비 강도는 "그 리그 평균 1.00" 기준이라 리그가 다르면 그대로 비교할 수
+   없습니다. 셀틱의 공격 1.60(스코틀랜드 기준)과 도르트문트의 1.30(독일 기준)은
+   같은 자를 쓴 값이 아닙니다.
+   그래서 리그 간 경기에서는 아래 계수로 두 자의 눈금을 맞춥니다.
+   값은 UEFA 국가계수(최근 5년) 순위를 100점 기준으로 정규화한 것으로,
+   측정값이 아니라 <b>공개된 순위에 기반한 가정</b>입니다. 리그 간 예측에는
+   이 가정이 그대로 실려 있으므로, 해당 경기는 신뢰도를 깎고 카드에 명시합니다.
+   비유럽 리그(K·J·MLS)는 UEFA 계수가 없어 대략적인 위치만 잡아둔 값이라
+   유럽 팀과의 비교는 특히 거칠다는 점을 함께 표시합니다. */
+const LEAGUE_Q={
+ '39':100,'40':55,'135':90,'140':84,'78':82,'79':52,'61':71,
+ '88':64,'94':61,'144':58,'203':48,'345':45,'197':45,'218':43,
+ '103':40,'119':39,'207':37,'179':36,'333':34,'286':33,'210':32,
+ '113':30,'271':30,'419':29,'235':33,'106':36,
+ '98':46,'292':42,'293':30,'253':44
+};
+const UEFA_Q=new Set(['39','135','140','78','61','88','94','144','203','345',
+ '197','218','103','119','207','179','333','286','210','113','271','419','235','106']);
+/* ---------- 이름 정규화 ----------
+   등록부를 조립하는 아래 루프가 이 함수들을 곧바로 호출하므로,
+   반드시 그 앞에 있어야 합니다. const 는 호이스팅돼도 초기화 전에는
+   쓸 수 없어서(TDZ), 뒤에 두면 ReferenceError 로 페이지가 죽습니다. */
+const hasHangul=s=>/[가-힣]/.test(String(s||''));
+const hasLatin=s=>/[a-z]/i.test(String(s||''));
+/* NFD가 분해해 주지 않는 글자들. ø·ł·đ 등은 결합기호가 아니라 별도 문자라
+   그냥 지우면 Bodø→Bod, Beşiktaş→Beikta 처럼 자음이 통째로 사라집니다. */
+const LETTER_FOLD={'ø':'o','œ':'oe','æ':'ae','ß':'ss','ł':'l','đ':'d','ð':'d',
+ 'þ':'th','ħ':'h','ı':'i','ŋ':'n','ĸ':'k','ʼ':'','\u2019':''};
+/* 이름 정규화. 예전에는 [^a-z0-9가-힣]를 그냥 지워서 é·ş·ö 같은 글자가
+   통째로 사라졌습니다. Atlético→atltico, Beşiktaş→beikta 가 되어 편집거리로
+   겨우 붙는 수준이었고, 데이터 소스가 악센트 표기를 쓰면 매칭이 흔들립니다.
+   NFD로 분해해 결합기호만 떼면 Atlético→atletico, Malmö→malmo 가 됩니다. */
+function normName(s){
+ return String(s||'').toLowerCase()
+  .replace(/[øœæßłđðþħıŋĸʼ\u2019]/g,c=>LETTER_FOLD[c]??c)
+  /* NFD는 한글 음절도 자모로 분해합니다('맨유'→ㅁㅐㄴㅇㅠ). 그대로 두면
+     아래 필터가 자모(U+1100 대역)를 전부 지워 한글 이름이 빈 문자열이 되고,
+     모든 한글 입력이 같은 팀으로 붙어버립니다. NFC로 반드시 되돌립니다. */
+  .normalize('NFD').replace(/[\u0300-\u036f]/g,'').normalize('NFC')
+  .replace(/[^a-z0-9가-힣]/g,'');
+}
+
+/* 데이터 소스마다 같은 팀을 다르게 부릅니다. API-Football은 'Inter',
+   TheSportsDB는 'Inter Milan', 공식 명칭은 'FC Internazionale Milano' 입니다.
+   여기에 없으면 두 가지가 동시에 깨집니다.
+   ① 사용자가 정식 명칭을 입력했을 때 인식 실패 — 실제로 'Inter Milan'은
+      'Inter Miami'로 <b>조용히 잘못</b> 매칭됐습니다(둘 다 Inter로 시작).
+   ② 시즌 데이터의 팀명이 등록부 표기와 달라 findTeamIn이 팀을 못 찾음.
+   그래서 라틴문자 별칭을 따로 모아 두고, 입력 해석과 데이터 매칭 양쪽에서 씁니다. */
+const LATIN_ALIAS={
+ 'Inter':['Inter Milan','Internazionale','FC Internazionale Milano','Inter Milano'],
+ 'AC Milan':['Milan','Associazione Calcio Milan'],
+ 'Tottenham':['Tottenham Hotspur','Spurs'],
+ 'Manchester United':['Man United','Man Utd','Manchester Utd'],
+ 'Manchester City':['Man City'],
+ 'Newcastle':['Newcastle United','Newcastle Utd'],
+ 'West Ham':['West Ham United'],
+ 'Leeds':['Leeds United'],
+ 'Wolves':['Wolverhampton','Wolverhampton Wanderers'],
+ 'Brighton':['Brighton & Hove Albion','Brighton and Hove Albion','Brighton Hove Albion'],
+ 'Bournemouth':['AFC Bournemouth'],
+ 'Sheffield Utd':['Sheffield United'],
+ 'Nottingham Forest':["Nott'm Forest",'Notts Forest'],
+ 'Atletico Madrid':['Club Atletico de Madrid','Atletico de Madrid','Atlético de Madrid','Atleti'],
+ 'Real Madrid':['Real Madrid CF'],
+ 'Barcelona':['FC Barcelona'],
+ 'Athletic Club':['Athletic Bilbao','Athletic Club Bilbao'],
+ 'Real Betis':['Betis','Real Betis Balompie'],
+ 'Celta Vigo':['Celta de Vigo','RC Celta'],
+ 'Bayern Munich':['FC Bayern Munchen','Bayern Munchen','FC Bayern München'],
+ 'Borussia Dortmund':['BV Borussia 09 Dortmund','Dortmund'],
+ 'Borussia Monchengladbach':['Borussia Monchengladbach','Monchengladbach','Gladbach'],
+ 'Bayer Leverkusen':['Bayer 04 Leverkusen','Leverkusen'],
+ 'Eintracht Frankfurt':['Frankfurt','Eintracht Frankfurt'],
+ 'VfB Stuttgart':['Stuttgart','VfB Stuttgart'],
+ /* OpenLigaDB는 독일어 정식 명칭을 씁니다. 이게 없으면 팀을 못 찾습니다. */
+ 'Werder Bremen':['SV Werder Bremen','Werder'],
+ '1899 Hoffenheim':['TSG 1899 Hoffenheim','TSG Hoffenheim','Hoffenheim'],
+ 'Mainz 05':['1. FSV Mainz 05','FSV Mainz 05','Mainz'],
+ 'Union Berlin':['1. FC Union Berlin','Union Berlin'],
+ 'FC Koln':['1. FC Köln','1. FC Koeln','FC Koeln','Köln','Koln','Cologne'],
+ 'FC Heidenheim':['1. FC Heidenheim 1846','1. FC Heidenheim','Heidenheim'],
+ 'FC St. Pauli':['FC St. Pauli','St. Pauli','St Pauli'],
+ 'Hamburger SV':['Hamburger SV','Hamburg','HSV'],
+ 'FC Augsburg':['FC Augsburg','Augsburg'],
+ 'SC Freiburg':['SC Freiburg','Freiburg'],
+ 'VfL Wolfsburg':['VfL Wolfsburg','Wolfsburg'],
+ 'RB Leipzig':['RasenBallsport Leipzig','RB Leipzig','Leipzig'],
+ 'Paris Saint Germain':['Paris Saint-Germain','PSG','Paris SG'],
+ 'Marseille':['Olympique Marseille','Olympique de Marseille'],
+ 'Lyon':['Olympique Lyonnais','Olympique Lyon'],
+ 'Monaco':['AS Monaco'],
+ 'Lille':['LOSC Lille','Lille OSC'],
+ 'PSV Eindhoven':['PSV'],
+ 'Sporting CP':['Sporting Lisbon','Sporting Clube de Portugal','Sporting'],
+ 'FC Porto':['Porto'],
+ 'Benfica':['SL Benfica'],
+ 'Club Brugge KV':['Club Brugge','Club Bruges'],
+ 'Red Bull Salzburg':['RB Salzburg','FC Salzburg','Salzburg'],
+ 'Olympiakos Piraeus':['Olympiacos','Olympiakos','Olympiacos Piraeus'],
+ 'Red Star Belgrade':['Crvena Zvezda','FK Crvena Zvezda'],
+ 'Dynamo Kyiv':['Dynamo Kiev','FC Dynamo Kyiv'],
+ 'Shakhtar Donetsk':['FC Shakhtar Donetsk','Shakhtar'],
+ 'Zenit St. Petersburg':['Zenit','FC Zenit'],
+ 'Qarabag FK':['Qarabag','Qarabag Agdam'],
+ 'Bodo/Glimt':['Bodo Glimt','Bodø/Glimt','FK Bodo/Glimt'],
+ 'Viking':['Viking FK','Viking Stavanger'],
+ 'LASK':['LASK Linz','Linzer ASK'],
+ 'AEK Athens':['AEK','AEK Athens FC'],
+ 'PAOK':['PAOK Thessaloniki','PAOK Salonika'],
+ 'Malmo FF':['Malmo','Malmö FF'],
+ 'Ferencvarosi TC':['Ferencvaros','Ferencvarosi TC Budapest'],
+ 'Union St. Gilloise':['Union Saint-Gilloise','Royale Union Saint-Gilloise','Union SG'],
+ 'Dinamo Zagreb':['GNK Dinamo Zagreb'],
+ 'Slavia Praha':['Slavia Prague','SK Slavia Praha'],
+ 'Sparta Praha':['Sparta Prague','AC Sparta Praha'],
+ 'Viktoria Plzen':['Viktoria Plzen','FC Viktoria Plzen'],
+ 'FC Copenhagen':['Copenhagen','FC Kobenhavn','FC København'],
+ 'Young Boys':['BSC Young Boys'],
+ 'Basel':['FC Basel','FC Basel 1893'],
+ 'Istanbul Basaksehir':['Basaksehir','Istanbul Basaksehir FK'],
+ 'Besiktas':['Besiktas JK','Beşiktaş'],
+ 'Fenerbahce':['Fenerbahce SK','Fenerbahçe'],
+ 'Galatasaray':['Galatasaray SK'],
+ 'Hearts':['Heart of Midlothian'],
+ 'Legia Warsaw':['Legia Warszawa'],
+ 'Rakow':['Rakow Czestochowa','Raków Częstochowa'],
+ 'VfL Bochum':['VfL Bochum 1848','Bochum'],
+ 'Holstein Kiel':['Holstein Kiel','KSV Holstein Kiel'],
+ 'Darmstadt 98':['SV Darmstadt 98','Darmstadt'],
+ 'Fortuna Dusseldorf':['Fortuna Düsseldorf','Düsseldorf','Dusseldorf'],
+ 'Hannover 96':['Hannover 96','Hannover'],
+ 'Karlsruher SC':['Karlsruher SC','Karlsruhe'],
+ 'SC Paderborn 07':['SC Paderborn 07','Paderborn'],
+ 'Greuther Furth':['SpVgg Greuther Fürth','Greuther Fürth','Fürth'],
+ 'Eintracht Braunschweig':['Eintracht Braunschweig','Braunschweig'],
+ 'SV Elversberg':['SV 07 Elversberg','Elversberg'],
+ 'FC Schalke 04':['FC Schalke 04','Schalke 04','Schalke'],
+ 'Hertha Berlin':['Hertha BSC','Hertha BSC Berlin','Hertha'],
+ 'FC Nurnberg':['1. FC Nürnberg','1. FC Nurnberg','Nürnberg','Nurnberg'],
+ 'SV Sandhausen':['SV Sandhausen','Sandhausen'],
+ 'Magdeburg':['1. FC Magdeburg','FC Magdeburg'],
+ /* K리그: 공식 영문 표기가 데이터 소스마다 다릅니다. */
+ 'Jeonbuk Motors':['Jeonbuk Hyundai Motors','Jeonbuk Hyundai'],
+ 'Ulsan Hyundai FC':['Ulsan HD','Ulsan HD FC','Ulsan Hyundai'],
+ 'Daejeon Citizen':['Daejeon Hana Citizen','Daejeon Hana'],
+ 'Jeju United FC':['Jeju United','Jeju SK','Jeju SK FC'],
+ 'Gimcheon Sangmu FC':['Gimcheon Sangmu'],
+ 'Suwon Bluewings':['Suwon Samsung Bluewings','Suwon Samsung'],
+ 'Suwon City':['Suwon FC'],
+ 'Seoul E-Land FC':['Seoul E-Land','Seoul ELand'],
+ 'Bucheon FC 1995':['Bucheon FC','Bucheon'],
+ 'Incheon United':['Incheon United FC'],
+ 'Pohang Steelers':['Pohang Steelers FC'],
+ /* J리그·MLS */
+ 'Yokohama F. Marinos':['Yokohama F Marinos','Yokohama F-Marinos'],
+ 'Urawa':['Urawa Red Diamonds','Urawa Reds'],
+ 'Kashima':['Kashima Antlers'],
+ 'Los Angeles Galaxy':['LA Galaxy'],
+ 'Los Angeles FC':['LAFC','Los Angeles Football Club'],
+ 'Inter Miami':['Inter Miami CF'],
+ 'Austin':['Austin FC'],
+ 'Charlotte':['Charlotte FC'],
+ 'San Diego':['San Diego FC'],
+ 'St. Louis City':['St Louis City SC','St. Louis City SC']
+};
+const ALIAS={};   // 정규화된 이름 → 영문 정식명
+const TEAM_LEAGUE={};  // 영문 정식명 → 리그ID
+const TEAM_KO={};      // 영문 정식명 → 대표 한글명
+const ALL_TEAMS=[];
+const TEAM_LATIN={};   // 영문 정식명 → 데이터 매칭에 쓸 라틴문자 이름들
+Object.entries(TEAM_DB).forEach(([en,spec])=>{
+ const parts=spec.split('|');
+ const lid=parts.pop().replace('#','');
+ TEAM_LEAGUE[en]=lid;
+ TEAM_KO[en]=parts.find(hasHangul)||parts[0]||en;
+ ALL_TEAMS.push(en);
+ ALIAS[normName(en)]=en;
+ parts.forEach(k=>{ALIAS[normName(k)]=en});
+ /* 라틴문자 이름만 모읍니다. 시즌 데이터의 팀명은 항상 라틴문자이므로
+    한글 별칭을 여기 섞으면 findTeamIn의 채점만 흐려집니다. */
+ const latin=[en,...parts.filter(k=>!hasHangul(k)),...(LATIN_ALIAS[en]||[])];
+ TEAM_LATIN[en]=[...new Set(latin.filter(x=>normName(x).length>=2))];
+ TEAM_LATIN[en].forEach(k=>{const q=normName(k);if(!ALIAS[q])ALIAS[q]=en});
+});
+
+function lev(a,b){
+ const m=a.length,n=b.length;
+ if(!m)return n; if(!n)return m;
+ let prev=Array.from({length:n+1},(_,j)=>j),cur=new Array(n+1);
+ for(let i=1;i<=m;i++){cur[0]=i;
+  for(let j=1;j<=n;j++)cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));
+  [prev,cur]=[cur,prev];}
+ return prev[n];
+}
+const simRatio=(a,b)=>{const L=Math.max(a.length,b.length);return L?1-lev(a,b)/L:0};
+/* 이름을 단어 단위로 쪼갭니다. tokenScore가 쓰는 헬퍼인데 정의가 빠져 있어서
+   영문 입력이 사전 정확일치가 아닐 때마다 ReferenceError로 죽었습니다. */
+function toks(s){
+ return String(s||'').toLowerCase().split(/[^a-z0-9가-힣]+/).filter(Boolean);
+}
+function tokenScore(a,b){
+ const A=toks(a),B=toks(b);
+ if(!A.length||!B.length)return 0;
+ let sum=0;
+ A.forEach(t=>{let best=0;
+  B.forEach(u=>{
+   if(t===u)best=Math.max(best,1);
+   else if(t.length>=3&&u.length>=3&&(u.startsWith(t)||t.startsWith(u)))best=Math.max(best,.6);});
+  sum+=best;});
+ return sum/A.length;
+}
+
+/* 입력 한 줄 → {en, ko, league} 또는 후보/실패 사유.
+   한글·영문·약칭 모두 같은 경로로 처리됩니다.
+   이 함수는 입력 이벤트와 분석 진입점 양쪽에서 불리므로 절대 예외를 던지지
+   않습니다. 던지면 배지·경고문 갱신이 멈추고 분석 버튼이 조용히 죽습니다. */
+/* 등록부는 고정이므로 같은 문자열은 항상 같은 결과입니다. 키 입력 한 번에
+   14슬롯 × 2팀 = 30회 가까이 불리고 매번 팀 230개와 편집거리를 재므로
+   메모이즈가 체감 차이를 만듭니다. */
+const _resolveCache=new Map();
+function resolveTeam(input){
+ const key=String(input??'');
+ if(_resolveCache.has(key))return _resolveCache.get(key);
+ let out;
+ try{out=resolveTeamRaw(key)}
+ catch(e){console.error('팀 이름 해석 실패:',key,e);out={ok:false,unknown:true,failed:e.message}}
+ if(_resolveCache.size>2000)_resolveCache.clear();
+ _resolveCache.set(key,out);
+ return out;
+}
+function resolveTeamRaw(input){
+ const raw=String(input||'').trim();
+ if(!raw)return {ok:false,empty:true};
+ const q=normName(raw);
+
+ const direct=ALIAS[q];
+ if(direct)return hit(direct,'사전');
+
+ /* 한글이 섞여 있으면 한글 경로로 갑니다. 다만 "aek아테네", "비킹fk" 처럼
+    한글과 영문이 섞인 입력은 예전에 한글 경로에서 실패한 채 끝나버렸습니다.
+    이제 한글 부분으로 못 찾으면 영문 경로로 한 번 더 시도합니다. */
+ if(hasHangul(raw)){
+  const keys=Object.keys(ALIAS).filter(k=>hasHangul(k)&&(k.includes(q)||q.includes(k)));
+  const ens=[...new Set(keys.map(k=>ALIAS[k]))];
+  if(ens.length===1)return hit(ens[0],'부분일치');
+  if(ens.length>1)return {ok:false,ambiguous:true,
+   candidates:ens.slice(0,6).map(e=>({en:e,ko:TEAM_KO[e],league:TEAM_LEAGUE[e]}))};
+  if(!hasLatin(raw))return {ok:false,unknown:true,hangul:true};
+  /* 혼용 입력: 한글을 떼고 남은 영문으로 다시 봅니다. */
+  const latin=raw.replace(/[가-힣]+/g,' ').trim();
+  if(latin&&normName(latin).length>=2){
+   const r=resolveLatin(latin);
+   if(r.ok)return r;
+  }
+  /* 영문을 떼고 남은 한글로도 봅니다. */
+  const kor=raw.replace(/[^가-힣]+/g,'');
+  if(kor){
+   const kq=normName(kor);
+   const ks=Object.keys(ALIAS).filter(k=>hasHangul(k)&&(k.includes(kq)||kq.includes(k)));
+   const kens=[...new Set(ks.map(k=>ALIAS[k]))];
+   if(kens.length===1)return hit(kens[0],'혼용입력');
+   if(kens.length>1)return {ok:false,ambiguous:true,
+    candidates:kens.slice(0,6).map(e=>({en:e,ko:TEAM_KO[e],league:TEAM_LEAGUE[e]}))};
+  }
+  return {ok:false,unknown:true,hangul:true};
+ }
+ return resolveLatin(raw);
+}
+function resolveLatin(raw){
+ const q=normName(raw);
+ const direct=ALIAS[q];
+ if(direct)return hit(direct,'사전');
+ /* 채점 대상은 정식명 하나가 아니라 그 팀의 모든 라틴문자 이름입니다.
+    예전에는 정식명만 봤기 때문에 'Inter Milan'이 'Inter'(0.5)와
+    'Inter Miami'(0.8)를 견주다 <b>Inter Miami로 조용히 잘못</b> 갔습니다.
+    이제 'Inter'의 별칭에 'Inter Milan'이 있어 1.0으로 정확히 잡힙니다. */
+ const best=en=>Math.max(...TEAM_LATIN[en].map(nm=>
+  Math.max(tokenScore(raw,nm),simRatio(q,normName(nm)))));
+ const byTok=ALL_TEAMS.map(en=>({en,s:Math.max(...TEAM_LATIN[en].map(nm=>tokenScore(raw,nm)))}))
+  .sort((a,b)=>b.s-a.s);
+ if(byTok[0]&&byTok[0].s>=0.75&&(byTok.length<2||byTok[0].s-byTok[1].s>=0.2))
+  return hit(byTok[0].en,'단어일치');
+ const scored=ALL_TEAMS.map(en=>({en,s:best(en)})).sort((a,b)=>b.s-a.s);
+ if(scored[0]&&scored[0].s>=0.55&&(scored.length<2||scored[0].s-scored[1].s>=0.15))
+  return hit(scored[0].en,'유사도');
+ const cands=scored.filter(x=>x.s>=0.4).slice(0,5);
+ if(cands.length)return {ok:false,candidates:cands.map(x=>({en:x.en,ko:TEAM_KO[x.en],league:TEAM_LEAGUE[x.en]}))};
+ return {ok:false,unknown:true};
+}
+function hit(en,how){
+ return {ok:true,en,ko:TEAM_KO[en],league:TEAM_LEAGUE[en],
+  leagueName:LEAGUE_INFO[TEAM_LEAGUE[en]]?.name||'?',
+  flag:LEAGUE_INFO[TEAM_LEAGUE[en]]?.flag||'',how};
+}
+/* 두 팀이 어떤 데이터로 분석돼야 하는지 판정합니다.
+   예전에는 소속이 다르면 무조건 리그ID '2'(챔피언스리그)로 몰아넣었습니다.
+   그 결과 ① 벤피카 vs 포르투 같은 <b>국내 리그 경기</b>가 챔스 데이터로
+   분석되고 ② 진짜 리그 간 경기도 조별리그 30~40경기라는 빈약한 표본에,
+   여러 리그가 한 풀에 섞여 "리그 평균 1.00" 기준이 무의미해진 데이터로
+   계산됐습니다.
+   이제는 각 팀의 <b>국내 리그</b> 데이터를 각각 쓰고, 리그가 다를 때만
+   리그 수준 계수로 눈금을 맞춥니다. */
+function competitionFor(homeRes,awayRes){
+ if(!homeRes.ok||!awayRes.ok)return null;
+ if(homeRes.league===awayRes.league)
+  return {kind:'domestic',league:homeRes.league,leagues:[homeRes.league]};
+ return {kind:'cross',homeLeague:homeRes.league,awayLeague:awayRes.league,
+  leagues:[homeRes.league,awayRes.league]};
+}
+/* 리그 간 경기의 눈금 보정 계수.
+   k>1 이면 홈팀 리그가 더 강하다는 뜻이고, 홈 예상득점에 k를,
+   원정 예상득점에 1/k를 곱합니다. 지수를 0.35로 둔 것은 계수 자체가
+   가정이라 그 가정이 결과를 지배하지 않게 하기 위해서이고, 마지막에
+   1/1.43 ~ 1.43 으로 한 번 더 잘라 극단값을 막습니다.
+   상하한을 서로 <b>역수</b>로 두는 것이 중요합니다. 0.70과 1.43처럼 어긋나면
+   같은 대진인데 홈·원정을 바꿨을 때 계수가 서로 역수가 되지 않아,
+   존재하지 않는 홈 이점이 계수에서 새어 나옵니다. */
+const TILT_MAX=1.43;
+function leagueTilt(homeLeague,awayLeague){
+ const qh=LEAGUE_Q[String(homeLeague)],qa=LEAGUE_Q[String(awayLeague)];
+ if(!qh||!qa)return {k:1,known:false,qh:qh||null,qa:qa||null};
+ const k=clamp(Math.pow(qh/qa,T.leagueTiltExp()),1/TILT_MAX,TILT_MAX);
+ return {k,known:true,qh,qa,
+  /* 두 리그 모두 UEFA 계수가 있는 경우에만 "같은 자로 잰 값"입니다. */
+  comparable:UEFA_Q.has(String(homeLeague))&&UEFA_Q.has(String(awayLeague))};
+}
+
+/* ================= 대시보드 =================
+   14개 슬롯. 사용자는 팀 이름만 입력하고, 리그는 프로그램이 판정합니다. */
+function buildSlots(){
+ /* innerHTML+=를 14번 돌리면 그때마다 이미 만든 DOM을 통째로 다시 파싱합니다.
+    문자열로 모아 한 번에 넣습니다. */
+ const html=[];
+ for(let i=1;i<=14;i++)html.push(`<div class="match-card" id="match-${i}">
+<div class="match-num"><span>MATCH ${i}</span><span class="lg-badge" id="lg-${i}"></span><button class="clear-x" onclick="clearMatch(${i})" aria-label="MATCH ${i} 입력 지우기" title="입력 지우기">✕</button></div>
+<div class="match-inputs">
+ <input id="home-${i}" list="teamList" placeholder="홈팀 (한글/영문)" autocomplete="off" aria-label="MATCH ${i} 홈팀">
+ <input id="away-${i}" list="teamList" placeholder="원정팀 (한글/영문)" autocomplete="off" aria-label="MATCH ${i} 원정팀">
+</div>
+<div class="slot-note" id="note-${i}" role="status" aria-live="polite"></div></div>`);
+ $('matchGrid').innerHTML=html.join('');
+ for(let i=1;i<=14;i++)['home-'+i,'away-'+i].forEach(id=>
+  $(id).addEventListener('input',()=>refreshSlot(i)));
+ // 자동완성: 영문 + 한글 둘 다 넣습니다
+ const opts=[];
+ ALL_TEAMS.forEach(en=>{
+  opts.push(`<option value="${esc(en)}" label="${esc(LEAGUE_INFO[TEAM_LEAGUE[en]]?.name||'')}">`);
+  const ko=TEAM_KO[en];
+  if(ko&&ko!==en)opts.push(`<option value="${esc(ko)}" label="${esc(en)}">`);
+ });
+ $('teamList').innerHTML=opts.join('');
+ refreshAllSlots();
+}
+function clearMatch(i){
+ $('home-'+i).value='';$('away-'+i).value='';
+ refreshSlot(i);
+}
+/* 입력할 때마다 팀을 해석하고 리그 배지를 갱신합니다. */
+function refreshSlot(i){
+ const hv=$('home-'+i).value.trim(),av=$('away-'+i).value.trim();
+ const badge=$('lg-'+i),note=$('note-'+i),card=$('match-'+i);
+ card.classList.toggle('filled',!!(hv&&av));
+ /* paintRegistryInfo()는 고정된 등록부만 그리므로 키 입력마다 부를 이유가 없습니다. */
+ if(!hv&&!av){badge.textContent='';badge.className='lg-badge';note.textContent='';refreshPlanSoon();return}
+ const rh=resolveTeam(hv),ra=resolveTeam(av);
+ const msgs=[];
+ [[rh,hv,'홈팀'],[ra,av,'원정팀']].forEach(([r,v,lbl])=>{
+  if(!v)return;
+  if(r.ok&&normName(v)!==normName(r.en))msgs.push(`${lbl} → ${r.en}`);
+  /* 영문 경로도 후보 목록을 돌려주는데 예전에는 ambiguous 플래그(한글 경로 전용)만
+     확인해서, 후보가 있어도 "찾지 못했습니다"라고만 표시했습니다. */
+  else if(r.candidates&&r.candidates.length)
+   msgs.push(`⚠️ ${lbl} "${v}"는 ${r.candidates.map(c=>`${c.ko}(${c.en})`).join(' / ')} 중 어느 팀인가요?`);
+  else if(!r.ok)msgs.push(`❌ ${lbl} "${v}" 를 찾지 못했습니다`);
+ });
+ const comp=competitionFor(rh,ra);
+ if(comp&&comp.kind==='domestic'){
+  const info=LEAGUE_INFO[comp.league];
+  badge.textContent=`${info.flag} ${info.name}`;
+  badge.className='lg-badge on';
+ }else if(comp){
+  const ih=LEAGUE_INFO[comp.homeLeague],ia=LEAGUE_INFO[comp.awayLeague];
+  badge.textContent=`${ih.flag}↔${ia.flag} 리그 간`;
+  badge.className='lg-badge on';
+  const tl=leagueTilt(comp.homeLeague,comp.awayLeague);
+  msgs.push(`소속이 다릅니다 → ${ih.name} · ${ia.name} 데이터를 각각 쓰고 리그 수준 계수(×${tl.k.toFixed(2)})로 맞춥니다`);
+ }else{badge.textContent='';badge.className='lg-badge'}
+ note.innerHTML=msgs.map(esc).join('<br>');
+ refreshPlanSoon();
+}
+/* 계획 바는 14슬롯 전체를 다시 해석합니다. 타자마다 돌리지 않고 잠깐 모읍니다. */
+let _planTimer=null;
+function refreshPlanSoon(){clearTimeout(_planTimer);_planTimer=setTimeout(refreshPlan,120)}
+function refreshAllSlots(){for(let i=1;i<=14;i++)refreshSlot(i)}
+
+/* 입력된 경기들을 훑어 무엇을 불러와야 하는지 미리 정리합니다.
+   리그 간 경기는 데이터셋 두 개가 필요하므로, "경기→리그" 가 아니라
+   "필요한 리그 집합"을 따로 냅니다. */
+function currentPlan(){
+ const matches=[],problems=[],needed=new Set(),byLeague={};
+ for(let i=1;i<=14;i++){
+  const hv=$('home-'+i).value.trim(),av=$('away-'+i).value.trim();
+  if(!hv||!av)continue;
+  const rh=resolveTeam(hv),ra=resolveTeam(av);
+  if(!rh.ok||!ra.ok){problems.push(i);continue}
+  const comp=competitionFor(rh,ra);
+  const m={slot:i,home:rh,away:ra,comp};
+  matches.push(m);
+  comp.leagues.forEach(l=>{
+   needed.add(l);
+   (byLeague[l]=byLeague[l]||[]).push(m);
+  });
+ }
+ return {matches,problems,needed:[...needed],byLeague,
+  crossCount:matches.filter(m=>m.comp.kind==='cross').length};
+}
+function refreshPlan(){
+ const el=$('planBar');if(!el)return;
+ const {matches,problems,needed,byLeague,crossCount}=currentPlan();
+ if(!matches.length){el.innerHTML='<span class="small">팀 이름을 입력하면 리그가 자동으로 판정됩니다.</span>';return}
+ el.innerHTML=`<span class="small">분석 대상 <b>${matches.length}</b>경기 · 불러올 리그 <b>${needed.length}</b>개: </span>`
+  +needed.map(l=>`<span class="lg-badge on">${LEAGUE_INFO[l].flag} ${LEAGUE_INFO[l].name} ${byLeague[l].length}</span>`).join(' ')
+  +(crossCount?`<span class="small" style="color:var(--warning)"> · 리그 간 경기 ${crossCount}건(두 리그 데이터를 함께 사용)</span>`:'')
+  +(problems.length?`<span class="small" style="color:var(--danger)"> · 인식 실패 ${problems.length}경기</span>`:'');
+}
+
+
+
+/* ================= 내장 기본 키 =================
+   여기에 값을 적어 두면 페이지를 열 때 해당 입력칸이 자동으로 채워지고,
+   그대로 각 API의 인증 헤더에 실려 나갑니다.
+     · API-Football      → x-apisports-key 헤더
+     · football-data.org → X-Auth-Token 헤더
+     · TheSportsDB       → URL 경로의 키 자리 (비우면 공개 키 '3')
+   입력칸에서 지우거나 다른 키로 바꾸면 그 값이 우선합니다.
+
+   ⚠️ 여기 적은 키는 <b>이 HTML 파일 안에 그대로 남습니다.</b>
+      파일을 남에게 주거나 공개 저장소에 올리면 키도 함께 넘어갑니다.
+      공유할 파일에는 비워 두세요. */
+const DEFAULT_KEYS={
+ apiKey :'',   // api-sports.io 키
+ fdKey  :'',   // football-data.org 토큰
+ fdProxy:'',   // football-data.org CORS 프록시 (예: http://127.0.0.1:8787)
+ tsdbKey:''    // TheSportsDB 후원자 키 (선택)
+};
+/* 내장 키를 입력칸에 채웁니다. 사용자가 이미 뭔가 입력했다면 건드리지 않습니다. */
+function applyDefaultKeys(){
+ let filled=0;
+ Object.entries(DEFAULT_KEYS).forEach(([id,v])=>{
+  const el=$(id);
+  if(el&&v&&!el.value){el.value=v;filled++}
+ });
+ if(DEFAULT_KEYS.fdKey&&$('fdStatus'))
+  $('fdStatus').textContent='내장 토큰이 채워져 있습니다'
+   +(DEFAULT_KEYS.fdProxy?` · 프록시 ${DEFAULT_KEYS.fdProxy} 경유`:' · 프록시 없음(직접 호출)')
+   +' · 연결 확인을 눌러보세요';
+ if(DEFAULT_KEYS.apiKey&&$('apiStatus'))
+  $('apiStatus').textContent='내장 키가 채워져 있습니다 · 연결 확인을 눌러보세요';
+ if(DEFAULT_KEYS.tsdbKey&&$('tsdbStatus'))
+  $('tsdbStatus').textContent='내장 키가 채워져 있습니다 · 연결 확인을 눌러보세요';
+ return filled;
+}
+
+const API_BASE='https://v3.football.api-sports.io';
+/* v2: TSDB 시각 파싱(UTC)과 혼합 소스 팀 ID 통합이 바뀌어 v1 캐시는 못 씁니다. */
+const SEASON_KEY='usai_season_cache_v2';
+let SEASON=null,BT=null;
+
+const $=id=>document.getElementById(id);
+/* 네트워크 작업이 겹치면 상태 표시와 SEASON이 서로를 덮어씁니다.
+   예전에는 분석 버튼만 잠갔고 시즌 로드·검증은 연타가 가능했습니다. */
+let BUSY=null;
+function busyGuard(what){
+ if(BUSY){toast(`${BUSY} 작업이 진행 중입니다. 끝난 뒤 다시 눌러주세요.`,true);return false}
+ BUSY=what;document.body.setAttribute('aria-busy','true');return true;
+}
+function busyDone(){BUSY=null;document.body.removeAttribute('aria-busy')}
+/* 14경기 × 여러 리그를 도는 동안 화면이 멈춘 것처럼 보이지 않도록 진행 상태를 표시합니다. */
+function setProgress(done,total,label){
+ const w=$('progressWrap'),f=$('progressFill'),t=$('progressText');
+ if(!w||!f||!t)return;
+ if(done==null){w.hidden=true;return}
+ const pct=total?Math.round(done/total*100):0;
+ w.hidden=false;f.style.width=pct+'%';
+ w.setAttribute('aria-valuenow',String(pct));
+ t.textContent=`${pct}% · ${label||''}`;
+}
+/* alert()는 페이지를 멈춥니다. 화면 안내로 대체합니다. */
+function toast(msg,bad){
+ const el=$('toast');if(!el){console.log(msg);return}
+ el.textContent=msg;el.className='toast show'+(bad?' bad':'');
+ clearTimeout(toast._t);toast._t=setTimeout(()=>{el.className='toast'},4000);
+}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function mean(a){a=a.filter(Number.isFinite);return a.length?a.reduce((x,y)=>x+y,0)/a.length:null;}
+function clamp(x,a,b){return Math.max(a,Math.min(b,x));}
+function pct(x){return Number.isFinite(x)?(x*100).toFixed(1)+'%':'N/A';}
+function n(x,d=2){return Number.isFinite(x)?x.toFixed(d):'N/A';}
+function poisson(l,k){return Math.exp(-l)*Math.pow(l,k)/factorial(k)}
+function factorial(k){let r=1;for(let i=2;i<=k;i++)r*=i;return r}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+/* 백테스트는 같은 행의 날짜를 수백 번 다시 읽습니다. 행에 필드를 붙이면
+   그 값이 localStorage 캐시에까지 직렬화되므로 WeakMap에 따로 담습니다. */
+const _tsCache=new WeakMap();
+function rowTime(r){
+ let t=_tsCache.get(r);
+ if(t===undefined){t=new Date(r.date).getTime();_tsCache.set(r,t)}
+ return t;
+}
+/* 재현 가능한 난수 — 부트스트랩 결과가 새로고침마다 달라지면 신뢰하기 어렵습니다. */
+function lcg(seed){let x=seed>>>0;return ()=>{x=(x*1664525+1013904223)>>>0;return x/4294967296}}
+
+/* ---------- tuning (all values are genuinely used) ---------- */
+/* 모델 상수 — 사용자가 돌려가며 맞출 수 있게 하면 눈앞의 데이터에 과적합되기
+   쉬워서 손잡이를 없애고 고정했습니다.
+   다만 이 값들이 검증 대상 리그와 무관하게 정해진 것은 아니므로, 백테스트
+   결과는 완전한 out-of-sample이 아닙니다. 화면과 브리핑에 그렇게 적어 둡니다. */
+const T={
+ halfLife:()=>120,      // 가중치 반감기(일)
+ rho:()=>-0.13,         // Dixon-Coles 저스코어 보정
+ homeSplit:()=>0.40,    // 팀별 홈 강세 반영 비율
+ shrink:()=>5,          // 표본 적은 팀을 평균으로 당기는 강도
+ iters:()=>6,           // 강도 추정 반복(6회면 수렴)
+ pickThreshold:()=>55,  // 이 신뢰도 미만이면 NO BET
+ minTopProb:()=>0.40,   // 최고 확률이 이보다 낮으면 NO BET
+ minMargin:()=>0.08,    // 1위와 2위 확률 차가 이보다 작으면 NO BET
+ warmup:()=>0.35,       // 백테스트 워밍업 비율
+ minMatches:()=>200,    // 이 수만큼 완료 경기가 모일 때까지 이전 시즌 자동 보강
+ maxFits:()=>150,       // 백테스트 재학습 횟수 상한 (O(n²) 방지)
+ leagueTiltExp:()=>0.35 // 리그 수준 계수를 얼마나 세게 반영할지 (0=무시, 1=그대로)
+};
+/* ---------- API ---------- */
+function getApiKey(){return ($('apiKey')?.value||'').trim()}
+/* 무료 플랜은 분당 요청 수가 빡빡합니다. 요청 사이에 최소 간격을 두고,
+   429/5xx는 지수 백오프로 다시 시도합니다. 예전에는 250ms 간격으로 몰아쳐
+   429를 맞고 곧장 대체 소스로 떨어졌습니다. */
+const API_MIN_GAP=1200;
+let _apiLast=0,_apiChain=Promise.resolve();
+/* 무료 플랜은 하루 100회입니다. 실패한 요청과 재시도도 쿼터를 소모하므로,
+   "데이터를 받은 횟수"가 아니라 실제로 보낸 횟수를 세야 맞습니다. */
+let API_CALLS=0;
+function apiGate(){
+ _apiChain=_apiChain.then(async()=>{
+  const wait=_apiLast+API_MIN_GAP-Date.now();
+  if(wait>0)await sleep(wait);
+  _apiLast=Date.now();
+ });
+ return _apiChain;
+}
+async function api(path,attempt=0){
+ const key=getApiKey();
+ if(!key)throw new Error('API 키가 없습니다.');
+ await apiGate();
+ let r;
+ try{r=await fetch(API_BASE+path,{headers:{'x-apisports-key':key}})}
+ catch(e){
+  if(attempt<3){await sleep(1500*Math.pow(2,attempt));return api(path,attempt+1)}
+  throw new Error('네트워크 오류: '+e.message);
+ }
+ API_CALLS++;
+ let d={};try{d=await r.json()}catch{}
+ if(r.status===429||r.status>=500){
+  if(attempt<3){
+   const retryAfter=Number(r.headers?.get?.('retry-after'))*1000;
+   await sleep(Number.isFinite(retryAfter)&&retryAfter>0?retryAfter:1500*Math.pow(2,attempt));
+   return api(path,attempt+1);
+  }
+  throw new Error(r.status===429?'요청 한도 초과(429) — 재시도 3회 후에도 실패했습니다.':'서버 오류 HTTP '+r.status);
+ }
+ if(!r.ok)throw new Error('HTTP '+r.status);
+ if(d.errors&&Object.keys(d.errors).length){
+  const e=d.errors;throw new Error(String(Array.isArray(e)?e[0]:Object.values(e)[0]));
+ }
+ return d;
+}
+function validateApi(){
+ if(!getApiKey()){$('apiDot').className='dot err';$('apiStatus').textContent='❌ 키를 입력하세요';return}
+ $('apiStatus').textContent='확인 중...';
+ api('/status').then(d=>{
+  const q=d.response?.requests;
+  $('apiDot').className='dot ok';
+  $('apiStatus').textContent=q?`✅ 연결됨 · 오늘 ${q.current}/${q.limit_day}`:'✅ 연결 성공';
+ }).catch(e=>{$('apiDot').className='dot err';$('apiStatus').textContent='❌ '+e.message});
+}
+/* football-data.org 연결 확인.
+   대회 목록을 받아 이 프로그램이 쓰는 대회 중 몇 개가 열려 있는지 보여줍니다.
+   플랜마다 열린 대회가 다르므로, "연결됨"보다 이 숫자가 실제로 쓸모 있습니다. */
+function validateFd(){
+ if(!getFdKey()){$('fdDot').className='dot err';$('fdStatus').textContent='❌ 토큰을 입력하세요';return}
+ const px=getFdProxy();
+ $('fdStatus').textContent=px?`확인 중... (프록시 경유)`:'확인 중... (직접 호출)';
+ fdApi('/competitions').then(d=>{
+  const codes=new Set((d.competitions||[]).map(c=>c.code));
+  const mine=Object.values(FD_COMP).filter(c=>codes.has(c));
+  /* 프록시가 내 PC 밖이면 토큰이 그 서버를 지나갑니다. 조용히 넘어가면 안 됩니다. */
+  const risk=px&&!isLocalProxy(px)?' ⚠️ 외부 프록시라 토큰이 그 서버를 지나갑니다':'';
+  $('fdDot').className=mine.length?'dot ok':'dot err';
+  $('fdStatus').textContent=(mine.length
+   ?`✅ 연결됨${px?'(프록시 경유)':''} · 사용 가능 대회 ${mine.length}/${Object.keys(FD_COMP).length} (${mine.join(', ')})`
+   :'⚠️ 연결은 됐지만 이 프로그램이 쓰는 대회가 열려 있지 않습니다')+risk;
+ }).catch(e=>{$('fdDot').className='dot err';$('fdStatus').textContent='❌ '+e.message});
+}
+/* 프록시가 떠 있으면 알아서 찾습니다.
+   주소를 사람이 옮겨 적을 이유가 없습니다 — 흔히 쓰는 포트를 살짝 두드려 보고,
+   fd-proxy가 응답하면 그 주소를 입력칸에 채웁니다.
+   이미 직접 입력한 값이 있으면 건드리지 않습니다. */
+const PROXY_PORTS=[8787,8788,9000];
+async function autoDetectProxy(){
+ if(getFdProxyRaw())return null;
+ for(const port of PROXY_PORTS){
+  const base=`http://127.0.0.1:${port}`;
+  try{
+   const c=new AbortController(),t=setTimeout(()=>c.abort(),1500);
+   const r=await fetch(base+'/__ping',{cache:'no-store',signal:c.signal});
+   clearTimeout(t);
+   const d=await r.json().catch(()=>({}));
+   if(d&&d.ok){
+    if($('fdProxy'))$('fdProxy').value=base;
+    if($('fdDot'))$('fdDot').className='dot ok';
+    if($('fdStatus'))$('fdStatus').textContent=`프록시를 자동으로 찾았습니다 — ${base}`;
+    return base;
+   }
+  }catch(e){/* 그 포트에 없을 뿐입니다 */}
+ }
+ if($('fdStatus')&&getFdKey()&&!getFdProxyRaw())
+  $('fdStatus').textContent='프록시를 찾지 못했습니다 · 실행 후 [프록시 진단]을 눌러보세요';
+ return null;
+}
+/* 프록시 진단.
+   "연결하지 못했습니다" 한 줄로는 원인을 알 수 없습니다. 단계를 나눠
+   ① 프록시가 떠 있는지(__ping) ② 프록시를 거친 API 호출이 되는지
+   ③ 직접 호출은 정말 막혀 있는지 를 각각 확인하고, 다음에 할 일을 알려줍니다. */
+/* fetch 는 "CORS로 막힘"과 "그 주소에 아무것도 없음"을 똑같이 TypeError 로
+   알려줍니다. mode:'no-cors' 로 한 번 더 찔러보면 구분됩니다 —
+   요청 자체는 나가므로 응답이 돌아오면(내용은 못 읽는 opaque 응답) 서버는
+   살아 있고 CORS만 막힌 것이고, 그것마저 실패하면 그 주소에 아무것도 없거나
+   네트워크가 막힌 것입니다. 원인이 다르면 해야 할 일도 다릅니다. */
+async function probeReachable(url){
+ try{await fetch(url,{mode:'no-cors',cache:'no-store'});return true}
+ catch(e){return false}
+}
+async function diagnoseFd(){
+ const box=$('fdDiag');box.hidden=false;
+ const px=getFdProxy(),key=getFdKey();
+ const rows=[];
+ const paint=()=>{box.innerHTML=rows.map(r=>
+   `<div class="diag-row ${r.k}"><span class="diag-mark">${r.k==='ok'?'✅':r.k==='bad'?'❌':'•'}</span>`
+   +`<span>${esc(r.t)}</span></div>`).join('');};
+ const add=(k,t)=>{rows.push({k,t});paint()};
+
+ add('info','진단을 시작합니다...');
+ rows.length=0;
+ const rawPx=getFdProxyRaw();
+ if(rawPx&&rawPx!==px){
+  add('info',`입력하신 주소를 정리했습니다: "${rawPx}" → "${px}"`);
+  add('info','프록시 칸에는 확인용 주소(/__ping)가 아니라 프록시 자체 주소만 넣으면 됩니다.');
+ }
+
+ /* ① 프록시 자체 */
+ if(!px){
+  add('info','프록시 주소가 비어 있습니다 — 직접 호출로 진단합니다.');
+ }else{
+  const base=px.includes('{url}')?null:px.replace(/\/+$/,'');
+  if(!base){
+   add('info',`자리표시자 형식({url})이라 핑을 건너뜁니다: ${px}`);
+  }else{
+   try{
+    const r=await fetch(base+'/__ping',{cache:'no-store'});
+    const d=await r.json().catch(()=>({}));
+    if(d&&d.ok)add('ok',`프록시 살아 있음 — ${base} (upstream ${d.upstream||'?'})`);
+    else add('bad',`${base} 가 응답했지만 fd-proxy가 아닙니다. 다른 프로그램이 그 포트를 쓰고 있습니다.`);
+   }catch(e){
+    /* 그 포트에 정말 아무것도 없는지, 아니면 뭔가 있는데 우리 프록시가
+       아닌지 구분합니다. 안내가 달라집니다. */
+    const alive=await probeReachable(base+'/__ping');
+    if(alive){
+     add('bad',`${base} 에 무언가 응답하지만 fd-proxy가 아닙니다.`);
+     add('info','그 포트를 다른 프로그램이 쓰고 있습니다. 프록시를 PORT=9000 으로 띄우고 이 칸도 바꾸세요.');
+    }else{
+     add('bad',`${base} 에 아무것도 떠 있지 않습니다 — 프록시가 실행되지 않은 상태입니다.`);
+     add('info','① 윈도우라면 함께 드린 fd-proxy-start.bat 를 더블클릭하세요. Node나 Python을 알아서 찾아 실행합니다.');
+     add('info','② 파일(fd-proxy.js)을 그냥 더블클릭하면 실행되지 않습니다. 반드시 .bat 로 열거나 터미널에서 node fd-proxy.js 로 실행하세요.');
+     add('info','③ 검은 창이 떴다가 바로 닫히면 Node/Python이 설치돼 있지 않은 것입니다. .bat 는 그 경우 안내를 띄우고 창을 유지합니다.');
+     add('info',`④ 프록시 창을 띄운 뒤 브라우저 주소창에 ${base}/__ping 을 열어 JSON이 보이는지 확인하세요.`);
+    }
+   }
+  }
+ }
+
+ /* ② 프록시(또는 직접)를 거친 실제 API 호출 */
+ if(!key){ add('info','토큰이 비어 있어 API 호출 확인은 건너뜁니다.'); }
+ else{
+  try{
+   const d=await fdApi('/competitions');
+   const codes=new Set((d.competitions||[]).map(c=>c.code));
+   const mine=Object.values(FD_COMP).filter(c=>codes.has(c));
+   add('ok',`API 호출 성공 — 사용 가능 대회 ${mine.length}/${Object.keys(FD_COMP).length}${mine.length?' ('+mine.join(', ')+')':''}`);
+   if(!mine.length)add('info','플랜에서 이 프로그램이 쓰는 대회가 열려 있지 않습니다.');
+  }catch(e){ add('bad','API 호출 실패 — '+e.message); }
+ }
+
+ /* ③ 직접 호출이 왜 안 되는지 — CORS인지, 아예 못 닿는지 */
+ try{
+  await fetch(FD_BASE+'/competitions',{headers:{'X-Auth-Token':key||'x'}});
+  add('ok','직접 호출도 됩니다 — 이 브라우저에서는 프록시가 없어도 됩니다.');
+ }catch(e){
+  const reach=await probeReachable(FD_BASE+'/competitions');
+  if(reach)add('info','직접 호출은 CORS로 막힙니다 (예상된 결과). 그래서 프록시가 필요합니다.');
+  else{
+   add('bad','football-data.org 자체에 닿지 못합니다 — CORS가 아니라 네트워크·방화벽·DNS 문제입니다.');
+   add('info','회사·학교 네트워크나 백신의 웹 차단 기능을 확인해 보세요. 이 경우 프록시를 띄워도 해결되지 않습니다.');
+  }
+ }
+ /* 마지막 안내: 프록시를 못 띄우는 상황이면 이 소스를 빼는 게 낫습니다. */
+ add('info','프록시를 띄울 수 없는 환경이라면 football-data.org 토큰 칸을 비워 두세요. '
+  +'나머지 세 소스로 분석은 그대로 동작하고, 이 소스만 건너뜁니다.');
+}
+/* OpenLigaDB 연결 확인. 키가 없으므로 브라우저에서 실제로 닿는지만 봅니다. */
+function validateOldb(){
+ $('oldbStatus').textContent='확인 중...';
+ oldbApi('/getavailableleagues').then(d=>{
+  const list=Array.isArray(d)?d:[];
+  const de=list.filter(x=>['bl1','bl2'].includes(String(x.leagueShortcut||'').toLowerCase()));
+  $('oldbDot').className='dot ok';
+  $('oldbStatus').textContent=`✅ 연결됨 · 리그 ${list.length}개 확인`
+   +(de.length?` (분데스리가 계열 ${de.length}개 포함)`:'');
+ }).catch(e=>{$('oldbDot').className='dot err';$('oldbStatus').textContent='❌ '+e.message});
+}
+/* TheSportsDB 연결 확인. 키가 없으면 공개 키 '3'으로 확인합니다. */
+function validateTsdb(){
+ const k=getTsdbKey();
+ $('tsdbStatus').textContent='확인 중...';
+ _tsdbKey=null;   // 키를 바꿨을 수 있으니 고정된 키를 풉니다
+ tsdb('/all_leagues.php').then(d=>{
+  const cnt=(d.leagues||[]).filter(x=>!x.strSport||x.strSport==='Soccer').length;
+  $('tsdbDot').className=cnt?'dot ok':'dot err';
+  $('tsdbStatus').textContent=cnt
+   ?`✅ ${k?'입력한 키':"공개 키 '3'"}로 연결됨 · 축구 리그 ${cnt}개`
+   :'⚠️ 응답은 왔지만 리그 목록이 비어 있습니다';
+ }).catch(e=>{$('tsdbDot').className='dot err';$('tsdbStatus').textContent='❌ '+e.message});
+}
+
+/* ================= 데이터 소스: football-data.org =================
+   API-Football과 나란히 쓰는 두 번째 유료/무료 소스입니다.
+   · 인증: X-Auth-Token 헤더
+   · 경기: /v4/competitions/{code}/matches?season={시작연도}
+   · 무료 플랜은 아래 대회만 열려 있고 분당 10회로 제한됩니다.
+   주의: 이 API는 서버용으로 설계돼 브라우저에서 직접 호출할 때 CORS가
+   막힐 수 있습니다. 그 경우 fetch가 상태코드 없이 TypeError로 실패하므로,
+   아래에서 그 상황을 따로 구분해 사용자에게 분명히 알립니다. */
+const FD_BASE='https://api.football-data.org/v4';
+/* 우리 리그ID → football-data.org 대회 코드.
+   여기 없는 리그(K리그·J리그·MLS·스코틀랜드·터키 등)는 이 소스가 아예
+   제공하지 않으므로 시도조차 하지 않고 건너뜁니다. */
+const FD_COMP={'39':'PL','140':'PD','135':'SA','78':'BL1','61':'FL1',
+ '88':'DED','94':'PPL','40':'ELC','2':'CL'};
+const FD_MIN_GAP=2000;            // 무료 플랜 분당 10회 → 여유 있게 간격을 둡니다
+let _fdLast=0,_fdChain=Promise.resolve(),FD_CALLS=0;
+function fdGate(){
+ _fdChain=_fdChain.then(async()=>{
+  const wait=_fdLast+FD_MIN_GAP-Date.now();
+  if(wait>0)await sleep(wait);
+  _fdLast=Date.now();
+ });
+ return _fdChain;
+}
+function getFdKey(){return ($('fdKey')?.value||'').trim()}
+/* 프록시 주소를 관대하게 받아들입니다.
+   실제로 확인 페이지 주소(.../__ping)를 이 칸에 그대로 넣는 일이 있었고,
+   그러면 요청이 .../__ping/v4/... 로 나가 무조건 실패합니다.
+   scheme 누락, 끝 슬래시, /__ping, /v4 꼬리표를 모두 정리해 줍니다.
+   {url} 자리표시자 형식은 손대지 않습니다. */
+function normalizeProxy(raw){
+ let v=String(raw||'').trim();
+ if(!v)return '';
+ if(v.includes('{url}'))return v;
+ if(!/^https?:\/\//i.test(v))v='http://'+v;
+ v=v.replace(/\/+$/,'');
+ v=v.replace(/\/__ping$/i,'');
+ v=v.replace(/\/v\d+$/i,'');
+ return v.replace(/\/+$/,'');
+}
+function getFdProxyRaw(){return ($('fdProxy')?.value||'').trim()}
+function getFdProxy(){return normalizeProxy(getFdProxyRaw())}
+/* football-data.org는 브라우저 직접 호출을 CORS로 막습니다(서버용 API).
+   프록시 주소를 넣으면 그쪽을 거쳐 호출합니다. 두 가지 형식을 지원합니다.
+     · 경로 이어붙이기 : http://localhost:8787       → http://localhost:8787/v4/...
+     · 자리표시자      : https://어떤프록시/?{url}   → {url} 자리에 전체 주소를 넣어 전달
+   프록시는 <b>토큰이 지나가는 길</b>입니다. 내 PC에서 돌리는 프록시가 아니면
+   그 서버 운영자가 토큰을 볼 수 있으므로, 로컬이 아닐 때는 경고를 띄웁니다. */
+/* FD_BASE 에는 '/v4' 경로가 들어 있습니다. 프록시 뒤에 path 만 이어붙이면
+   그 접두사가 사라져 업스트림에서 404가 납니다(실제 브라우저 실행에서 잡힘).
+   FD_BASE 에서 접두사를 뽑아 항상 함께 넘깁니다. */
+const FD_PREFIX=(()=>{try{return new URL(FD_BASE).pathname.replace(/\/+$/,'')}catch{return '/v4'}})();
+function fdUrl(path){
+ const px=getFdProxy();
+ if(!px)return FD_BASE+path;
+ if(px.includes('{url}'))return px.replace('{url}',encodeURIComponent(FD_BASE+path));
+ return px.replace(/\/+$/,'')+FD_PREFIX+path;
+}
+const isLocalProxy=u=>/^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:|\/|$)/i.test(String(u||''));
+async function fdApi(path,attempt=0){
+ const key=getFdKey();
+ if(!key)throw new Error('football-data.org 키가 없습니다.');
+ await fdGate();
+ let r;
+ try{r=await fetch(fdUrl(path),{headers:{'X-Auth-Token':key}})}
+ catch(e){
+  /* CORS 차단과 순수 네트워크 오류는 브라우저에서 똑같이 TypeError로 옵니다.
+     재시도해도 CORS는 절대 풀리지 않으므로 한 번만 더 보고 접습니다. */
+  if(attempt<1){await sleep(1200);return fdApi(path,attempt+1)}
+  throw new Error(getFdProxy()
+   ? `프록시(${getFdProxy()})에 연결하지 못했습니다. 로컬 프록시라면 실행 중인지, 포트가 맞는지 확인하세요.`
+   : '브라우저에서 football-data.org 직접 호출이 CORS로 차단되었습니다. '
+    +'이 API는 서버용이라 브라우저에서 바로 부를 수 없습니다. '
+    +'아래 "프록시 주소" 칸에 로컬 프록시(예: http://localhost:8787)를 넣으면 해결됩니다.');
+ }
+ FD_CALLS++;
+ let d={};try{d=await r.json()}catch{}
+ if(r.status===429){
+  const reset=Number(r.headers?.get?.('X-RequestCounter-Reset'));
+  if(attempt<2){
+   await sleep(Number.isFinite(reset)&&reset>0?(reset+1)*1000:6000);
+   return fdApi(path,attempt+1);
+  }
+  throw new Error('football-data.org 분당 요청 한도를 초과했습니다(무료 10회/분).');
+ }
+ if(r.status===403)
+  throw new Error(`football-data.org 접근 거부: ${d.message||'이 플랜에서 열려 있지 않은 대회·시즌입니다.'}`);
+ if(!r.ok)throw new Error(`football-data.org HTTP ${r.status}${d.message?' · '+d.message:''}`);
+ return d;
+}
+/* football-data.org 경기 한 건을 이 프로그램의 공통 행 형식으로 옮깁니다.
+   ID 접두사 'f'는 다른 소스('a'=API-Football, 't'=TheSportsDB)와 섞이지
+   않게 하려는 것이고, 소스가 섞이면 이름 기준 통합이 따로 처리합니다. */
+function fdToRow(m){
+ const fin=['FINISHED','AWARDED'].includes(m.status);
+ const hg=m.score?.fullTime?.home,ag=m.score?.fullTime?.away;
+ return {id:'fd-'+m.id,date:new Date(m.utcDate).toISOString(),
+  homeId:'f'+m.homeTeam?.id,homeName:m.homeTeam?.name||m.homeTeam?.shortName||'?',
+  awayId:'f'+m.awayTeam?.id,awayName:m.awayTeam?.name||m.awayTeam?.shortName||'?',
+  hg:Number.isFinite(hg)?hg:null,ag:Number.isFinite(ag)?ag:null,
+  finished:fin&&Number.isFinite(hg)&&Number.isFinite(ag)};
+}
+async function fetchSeasonFD(league,season){
+ const code=FD_COMP[String(league)];
+ if(!code)throw new Error('football-data.org가 제공하지 않는 리그입니다.');
+ const d=await fdApi(`/competitions/${code}/matches?season=${season}`);
+ const ms=d.matches||[];
+ if(!ms.length)throw new Error('football-data.org에 해당 시즌 경기가 없습니다.');
+ const c=ms[0].competition||d.competition||{};
+ return {rows:ms.map(fdToRow),source:'fd',
+  seen:c.name?{name:c.name,country:c.area?.name||LEAGUE_INFO[String(league)]?.country}:null,
+  code};
+}
+
+/* ================= 데이터 소스: OpenLigaDB =================
+   독일 축구 커뮤니티가 운영하는 공개 API입니다.
+   · 키가 필요 없습니다.
+   · 경기: /getmatchdata/{리그약칭}/{시즌시작연도}
+   · 독일 리그만 제공하므로 그 외 리그에서는 건너뜁니다. */
+const OLDB_BASE='https://api.openligadb.de';
+const OLDB_LEAGUE={'78':'bl1','79':'bl2'};
+const OLDB_MIN_GAP=800;
+let _oldbLast=0,_oldbChain=Promise.resolve(),OLDB_CALLS=0;
+function oldbGate(){
+ _oldbChain=_oldbChain.then(async()=>{
+  const wait=_oldbLast+OLDB_MIN_GAP-Date.now();
+  if(wait>0)await sleep(wait);
+  _oldbLast=Date.now();
+ });
+ return _oldbChain;
+}
+async function oldbApi(path,attempt=0){
+ await oldbGate();
+ let r;
+ try{r=await fetch(OLDB_BASE+path,{headers:{'Accept':'application/json'}})}
+ catch(e){
+  if(attempt<1){await sleep(1200);return oldbApi(path,attempt+1)}
+  throw new Error('브라우저에서 OpenLigaDB 호출이 차단되었습니다(CORS 또는 네트워크).');
+ }
+ OLDB_CALLS++;
+ if(r.status>=500&&attempt<2){await sleep(1500*Math.pow(2,attempt));return oldbApi(path,attempt+1)}
+ if(!r.ok)throw new Error(`OpenLigaDB HTTP ${r.status}`);
+ let d=null;try{d=await r.json()}catch{throw new Error('OpenLigaDB 응답을 해석하지 못했습니다.')}
+ return d;
+}
+/* 최종 스코어 고르기.
+   matchResults 에는 전반(resultTypeID 1)과 최종(2)이 함께 들어 있고 순서도
+   일정하지 않습니다. 첫 항목을 그냥 쓰면 전반 스코어를 최종으로 오인합니다.
+   최종(2)을 먼저 찾고, 없으면 resultOrderID 가 가장 큰 것을 씁니다. */
+function oldbFinalScore(m){
+ const rs=m.matchResults||[];
+ if(!rs.length)return {h:null,a:null};
+ let pick=rs.find(x=>Number(x.resultTypeID)===2);
+ if(!pick)pick=rs.slice().sort((x,y)=>Number(y.resultOrderID||0)-Number(x.resultOrderID||0))[0];
+ const h=Number(pick?.pointsTeam1),a=Number(pick?.pointsTeam2);
+ return {h:Number.isFinite(h)?h:null,a:Number.isFinite(a)?a:null};
+}
+function oldbToRow(m){
+ const {h,a}=oldbFinalScore(m);
+ /* matchDateTimeUTC 는 Z가 붙은 UTC입니다. 이게 없을 때만 로컬 표기인
+    matchDateTime 으로 물러섭니다(TSDB에서 겪은 시각 어긋남을 피하려는 것). */
+ const iso=m.matchDateTimeUTC||m.matchDateTime;
+ let ts=new Date(iso);
+ if(isNaN(ts))ts=new Date();
+ return {id:'oldb-'+m.matchID,date:ts.toISOString(),
+  homeId:'o'+m.team1?.teamId,homeName:m.team1?.teamName||m.team1?.shortName||'?',
+  awayId:'o'+m.team2?.teamId,awayName:m.team2?.teamName||m.team2?.shortName||'?',
+  hg:h,ag:a,
+  finished:!!m.matchIsFinished&&Number.isFinite(h)&&Number.isFinite(a)};
+}
+async function fetchSeasonOldb(league,season){
+ const sc=OLDB_LEAGUE[String(league)];
+ if(!sc)throw new Error('OpenLigaDB가 제공하지 않는 리그입니다.');
+ const d=await oldbApi(`/getmatchdata/${sc}/${season}`);
+ const ms=Array.isArray(d)?d:[];
+ if(!ms.length)throw new Error('OpenLigaDB에 해당 시즌 경기가 없습니다.');
+ const first=ms[0];
+ return {rows:ms.map(oldbToRow),source:'oldb',
+  seen:first.leagueName?{name:first.leagueName,
+   country:LEAGUE_INFO[String(league)]?.country}:null,
+  shortcut:first.leagueShortcut||sc};
+}
+
+/* ---------- competitions ---------- */
+/* 달력연도로 도는 리그만 TSDB에서 'YYYY' 형태를 먼저 시도합니다. */
+const isCalendarSeason=l=>LEAGUE_INFO[String(l)]?.season==='cal';
+/* 알려진 TSDB 리그 ID. 맞으면 검색 호출 한 번을 아낍니다.
+   다만 ID가 틀리면 조용히 <b>다른 리그</b>를 가져오므로, 받아온 경기 데이터가
+   스스로 밝힌 리그명으로 반드시 검증하고 어긋나면 버립니다(아래 참조). */
+const TSDB_LEAGUE_ID={'39':4328,'78':4331,'135':4332,'61':4334,'140':4335,
+ '253':4346,'2':4480,'292':4689};
+/* 숫자 ID를 추측하는 대신 리그 이름으로 찾게 둡니다. 못 찾으면 그 리그는
+   대체 소스를 쓰지 못할 뿐, 잘못된 리그를 가져오지는 않습니다. */
+const TSDB_LEAGUE_HINT={
+ '292':'k league 1','293':'k league 2','98':'j1 league',
+ '88':'eredivisie','94':'primeira liga','144':'belgian','179':'scottish premiership',
+ '203':'turkish','197':'greek','207':'swiss','218':'austrian bundesliga',
+ '345':'czech','210':'croatian','286':'serbian','333':'ukrainian','271':'hungarian','106':'ekstraklasa',
+ '79':'2 bundesliga',
+ '419':'azerbaijan','235':'russian','119':'danish','113':'allsvenskan','103':'eliteserien'
+};
+
+/* 소스별 신뢰 계수. football-data.org는 우리가 쓰는 항목(득점·일시)에서
+   API-Football과 품질 차이가 없어 1.0, TheSportsDB는 커버리지와 정밀도가
+   떨어져 0.9입니다. */
+/* OpenLigaDB는 커뮤니티가 관리합니다. 완료 경기의 최종 스코어는 신뢰할 만하지만
+   공식 피드는 아니어서 0.95를 둡니다. */
+const SOURCE_TRUST={primary:1,fd:1,oldb:.95,fallback:.9};
+const SOURCE_NAME={primary:'API-Football',fd:'football-data.org',
+ oldb:'OpenLigaDB',fallback:'TheSportsDB'};
+const srcTrust=x=>SOURCE_TRUST[x]??.9;
+const srcName=x=>SOURCE_NAME[x]||x;
+
+/* ---------- TheSportsDB fallback ---------- */
+/* '3'이 TheSportsDB의 공개 무료 테스트 키입니다.
+   예전에 함께 넣어둔 '123'은 후원자용 키라 쓰지 않습니다. */
+/* 사용자가 키를 넣으면 그 키를 먼저 쓰고, 실패하면 공개 무료 키 '3'으로
+   내려갑니다. 후원자 키는 커버리지와 요청 한도가 넓습니다. */
+function getTsdbKey(){return ($('tsdbKey')?.value||'').trim()}
+function tsdbKeys(){
+ const k=getTsdbKey();
+ return k?[k,'3']:['3'];
+}
+let _tsdbKey=null,_tsdbLeagues=null;
+async function tsdb(path){
+ const keys=_tsdbKey?[_tsdbKey]:tsdbKeys();let last=null;
+ for(const k of keys){
+  try{const r=await fetch(`https://www.thesportsdb.com/api/v1/json/${k}${path}`);
+   if(!r.ok){last=new Error('TSDB HTTP '+r.status);continue}
+   const j=await r.json();_tsdbKey=k;return j;
+  }catch(e){last=e}
+ }
+ throw last||new Error('TSDB 접속 실패');
+}
+/* TheSportsDB가 쓰는 국가 표기. API-Football은 'South-Korea', TSDB는 'South Korea'. */
+const TSDB_COUNTRY={'South-Korea':'South Korea','Czech-Republic':'Czech Republic',
+ 'USA':'United States','Turkey':'Turkey'};
+const _tsdbIdCache={},_tsdbFoundName={};
+/* 예전에는 전체 리그 목록(all_leagues.php) 하나만 받아 부분문자열로 찾았습니다.
+   그 요청이 실패하거나 표기가 조금만 달라도 곧바로 "리그를 찾지 못했습니다"로
+   끝났고, K리그처럼 TSDB가 "South Korean K League 1" 식으로 부르는 리그가
+   그렇게 걸렸습니다.
+   이제 ① 국가로 좁혀 검색하고 ② 실패하면 전체 목록을 훑고 ③ 두 경우 모두
+   부분문자열이 아니라 점수로 최선을 고릅니다. 결과는 성공·실패 모두 캐시해
+   같은 리그를 반복해서 조회하지 않습니다. */
+const _tsdbDistrust=new Set();   // 검증에 실패해 신뢰하지 않기로 한 리그
+async function tsdbResolveLeagueId(l,skipKnown){
+ const key=String(l);
+ const distrust=skipKnown||_tsdbDistrust.has(key);
+ if(!distrust&&TSDB_LEAGUE_ID[key])return TSDB_LEAGUE_ID[key];
+ if(!distrust&&key in _tsdbIdCache)return _tsdbIdCache[key];
+ const info=LEAGUE_INFO[key]||{};
+ const hints=[TSDB_LEAGUE_HINT[key],info.apiName].filter(Boolean).map(normName);
+ const score=x=>{
+  const names=[x.strLeague,x.strLeagueAlternate].map(normName).filter(Boolean);
+  let best=0;
+  hints.forEach(h=>names.forEach(nx=>{
+   if(nx===h)best=Math.max(best,1);
+   else if(nx.includes(h)||h.includes(nx))best=Math.max(best,.85);
+   else best=Math.max(best,simRatio(h,nx));
+  }));
+  return best;
+ };
+ const pick=list=>{
+  let best=null;
+  (list||[]).filter(x=>!x.strSport||x.strSport==='Soccer')
+   .forEach(x=>{const sc=score(x);if(!best||sc>best.sc)best={x,sc}});
+  return best&&best.sc>=.6?{id:Number(best.x.idLeague),name:best.x.strLeague}:null;
+ };
+ let found=null;
+ const country=TSDB_COUNTRY[info.country]||info.country;
+ if(country){
+  try{
+   const d=await tsdb(`/search_all_leagues.php?c=${encodeURIComponent(country)}&s=Soccer`);
+   found=pick(d.countries||d.leagues);
+  }catch(e){console.warn('TSDB 국가 검색 실패',country,e.message)}
+ }
+ if(!found){
+  try{
+   if(!_tsdbLeagues){const d=await tsdb('/all_leagues.php');_tsdbLeagues=d.leagues||[]}
+   found=pick(_tsdbLeagues);
+  }catch(e){console.warn('TSDB 전체 목록 실패',e.message)}
+ }
+ _tsdbIdCache[key]=found?found.id:null;
+ if(found)_tsdbFoundName[key]=found.name;
+ return _tsdbIdCache[key];
+}
+
+/* 받아온 이벤트가 밝힌 리그명이 우리가 기대한 리그와 맞는지 확인합니다.
+   판단할 근거가 없으면(이름이 비어 있으면) 통과시킵니다. */
+function tsdbLeagueMatches(league,evLeagueName){
+ const info=LEAGUE_INFO[String(league)]||{};
+ const hints=[TSDB_LEAGUE_HINT[String(league)],info.apiName].filter(Boolean).map(normName);
+ const nx=normName(evLeagueName);
+ if(!nx||!hints.length)return true;
+ return hints.some(h=>nx===h||nx.includes(h)||h.includes(nx)||simRatio(h,nx)>=.7);
+}
+/* 경기 데이터가 부실해도 리그 소속 팀 명단은 따로 받아올 수 있습니다.
+   경기 기록이 적어 팀이 몇 개만 잡히는 상황을 이걸로 보완합니다. */
+async function tsdbRoster(leagueVal){
+ const lid=await tsdbResolveLeagueId(leagueVal);
+ if(!lid)return [];
+ try{
+  const d=await tsdb(`/lookup_all_teams.php?id=${lid}`);
+  return (d.teams||[]).filter(t=>(t.strSport||'Soccer')==='Soccer')
+   .map(t=>({id:'roster-'+t.idTeam,name:t.strTeam,rosterOnly:true}));
+ }catch(e){console.warn('roster lookup failed',e.message);return []}
+}
+function tsdbToRow(ev){
+ const hs=ev.intHomeScore,as=ev.intAwayScore;
+ const scored=hs!==null&&hs!==undefined&&hs!==''&&as!==null&&as!==undefined&&as!=='';
+ /* TSDB의 dateEvent/strTime은 UTC입니다. 'Z'가 없으면 브라우저 로컬 시각으로
+    해석되어 API-Football 데이터와 최대 반나절까지 어긋납니다. */
+ let ts=ev.strTimestamp?new Date(Number(ev.strTimestamp)*1000):new Date(`${ev.dateEvent||''}T${ev.strTime||'00:00:00'}Z`);
+ if(isNaN(ts))ts=new Date();
+ return {id:'tsdb-'+ev.idEvent,date:ts.toISOString(),
+  homeId:'t'+ev.idHomeTeam,homeName:ev.strHomeTeam,awayId:'t'+ev.idAwayTeam,awayName:ev.strAwayTeam,
+  hg:scored?Number(hs):null,ag:scored?Number(as):null,finished:scored};
+}
+
+/* ================= MODULE 1: SEASON DATASET (single fetch) ================= */
+function apiToRow(f){
+ const fin=['FT','AET','PEN'].includes(f.fixture?.status?.short);
+ return {id:f.fixture.id,date:f.fixture.date,referee:f.fixture.referee||null,
+  homeId:'a'+f.teams.home.id,homeName:f.teams.home.name,
+  awayId:'a'+f.teams.away.id,awayName:f.teams.away.name,
+  hg:Number.isFinite(f.goals?.home)?f.goals.home:null,
+  ag:Number.isFinite(f.goals?.away)?f.goals.away:null,
+  finished:fin&&Number.isFinite(f.goals?.home)&&Number.isFinite(f.goals?.away)};
+}
+async function fetchSeasonPrimary(league,season){
+ /* /fixtures 는 리그+시즌 조회에서 보통 한 번에 전부 돌려줍니다.
+    그런데 첫 요청부터 page=1 을 붙이면 플랜에 따라
+    "The Page field do not exist" 오류가 나서, 접근 가능한 시즌까지
+    통째로 실패했습니다. 첫 요청은 page 없이 보내고, 응답이 스스로
+    여러 페이지라고 말할 때만 뒷 페이지를 시도합니다.
+    그마저 거부되면 받은 만큼으로 진행하고 경고만 남깁니다. */
+ let rows=[],seen=null,warn=null;
+ const first=await api(`/fixtures?league=${league}&season=${season}`);
+ /* 응답에 리그 이름·국가가 함께 들어옵니다. 추가 호출 없이 받아 두었다가
+    LEAGUE_INFO의 ID가 맞는지 대조하는 데 씁니다. */
+ if(first.response?.[0]?.league)
+  seen={name:first.response[0].league.name,country:first.response[0].league.country};
+ rows.push(...(first.response||[]).map(apiToRow));
+ const total=first.paging?.total||1;
+ for(let page=2;page<=total&&page<=8;page++){
+  try{
+   const d=await api(`/fixtures?league=${league}&season=${season}&page=${page}`);
+   rows.push(...(d.response||[]).map(apiToRow));
+  }catch(e){
+   warn=`${season} 시즌 ${page}페이지 이후를 받지 못했습니다(${e.message}). 받은 ${rows.length}경기로 진행합니다.`;
+   break;
+  }
+ }
+ if(!rows.length)throw new Error('시즌 경기 데이터가 비어 있습니다.');
+ return {rows,source:'primary',seen,warn};
+}
+/* 이 리그가 실제로 어떤 시즌을 갖고 있는지 API에 직접 묻습니다.
+   연도를 하나씩 넘겨짚는 대신 "있는 시즌" 중에서 고르기 위한 것이고,
+   정상 경로가 실패했을 때만 호출하므로 평소 호출 수는 그대로입니다. */
+async function apiLeagueProbe(league){
+ try{
+  const d=await api(`/leagues?id=${league}`);
+  const r=d.response?.[0];
+  if(!r)return {exists:false};
+  return {exists:true,name:r.league?.name,country:r.country?.name,
+   seasons:(r.seasons||[]).map(x=>Number(x.year)).filter(Number.isFinite).sort((a,b)=>b-a)};
+ }catch(e){return {error:e.message}}
+}
+/* 등록된 ID가 이 API에 아예 없으면(ID 변경·오타), 등록된 이름과 국가로
+   올바른 ID를 찾아 그 자리에서 씁니다. 사용자가 등록부를 고칠 때까지
+   기다릴 이유가 없고, 무엇으로 대체했는지는 경고로 남깁니다. */
+async function apiFindLeagueId(info){
+ if(!info||!info.apiName)return null;
+ try{
+  const d=await api(`/leagues?search=${encodeURIComponent(info.apiName)}`);
+  const list=d.response||[];
+  const want=normName(info.country||'');
+  const nameEq=x=>normName(x.league?.name)===normName(info.apiName);
+  const ctryEq=x=>normName(x.country?.name)===want;
+  const hit=list.find(x=>ctryEq(x)&&nameEq(x))||list.find(x=>ctryEq(x))||null;
+  if(!hit)return null;
+  return {id:String(hit.league.id),name:hit.league.name,country:hit.country?.name,
+   seasons:(hit.seasons||[]).map(x=>Number(x.year)).filter(Number.isFinite).sort((a,b)=>b-a)};
+ }catch(e){return null}
+}
+/* 무료 플랜은 최근 시즌을 막으면서 "try from 2022 to 2024" 처럼 접근 가능한
+   범위를 함께 알려줍니다. 넘겨짚지 말고 그 값을 그대로 씁니다. */
+function parseAllowedSeasons(msg){
+ const m=/from\s+(\d{4})\s+to\s+(\d{4})/i.exec(String(msg||''));
+ return m?{from:Number(m[1]),to:Number(m[2])}:null;
+}
+/* 이 프로그램이 들고 있는 리그 ID가 실제로 그 리그인지 확인합니다.
+   ID가 틀리면(오타·API 개편) 조용히 엉뚱한 리그를 분석하게 되므로,
+   불러온 데이터가 스스로 밝힌 이름·국가와 대조해 어긋나면 경고합니다.
+   표기 차이(Türkiye/Turkey 등)로 오탐이 날 수 있어 차단이 아니라 경고입니다. */
+/* 같은 나라·리그를 API가 다르게 표기하는 알려진 경우들.
+   이걸 처리하지 않으면 정상 데이터에 계속 경고가 떠서 진짜 경고가 묻힙니다. */
+const NAME_ALIAS={
+ turkey:['turkiye'], czechrepublic:['czechia'],
+ southkorea:['korearepublic','republicofkorea'],
+ usa:['unitedstates','unitedstatesofamerica'],
+ russia:['russianfederation']
+};
+function verifyLeagueIdentity(league,seen){
+ const info=LEAGUE_INFO[String(league)];
+ if(!info||!seen||!seen.name)return null;
+ /* NFD로 분해해 결합기호를 떼면 Süper→Super, Türkiye→Turkiye 가 됩니다. */
+ const norm=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+  .toLowerCase().replace(/[^a-z0-9]/g,'');
+ const near=(a,b)=>{
+  const A=norm(a),B=norm(b);
+  if(!A||!B||A===B||A.includes(B)||B.includes(A)||simRatio(A,B)>=.7)return true;
+  return (NAME_ALIAS[A]||[]).includes(B)||(NAME_ALIAS[B]||[]).includes(A);
+ };
+ if(near(seen.name,info.apiName)&&near(seen.country,info.country))return null;
+ return `리그 ID ${league}는 이 프로그램에서 "${info.country} · ${info.apiName}"로 등록돼 있는데, `
+      +`API가 돌려준 데이터는 "${seen.country||'?'} · ${seen.name}"입니다. `
+      +`ID가 바뀌었을 수 있으니 결과를 그대로 믿지 마세요.`;
+}
+async function fetchSeasonFallback(league,season,retried){
+ const lid=await tsdbResolveLeagueId(league,retried);
+ if(!lid){
+  const info=LEAGUE_INFO[String(league)]||{};
+  throw new Error(`대체 소스에서 "${info.country||'?'} · ${info.apiName||league}" 리그를 찾지 못했습니다.`);
+ }
+ const y=Number(season);
+ const tries=isCalendarSeason(league)?[`${y}`,`${y}-${y+1}`]:[`${y}-${y+1}`,`${y}`];
+ for(const sv of tries){
+  try{
+   const d=await tsdb(`/eventsseason.php?id=${lid}&s=${sv}`);
+   const ev=d.events||[];
+   if(ev.length){
+    /* 알려진 ID를 그냥 믿지 않습니다. 받아온 데이터가 다른 리그면 버리고
+       검색으로 한 번 다시 찾습니다. */
+    if(!tsdbLeagueMatches(league,ev[0].strLeague)){
+     if(!retried){
+      console.warn(`TSDB ID ${lid}가 "${ev[0].strLeague}" 였습니다. 검색으로 다시 찾습니다.`);
+      _tsdbDistrust.add(String(league));delete _tsdbIdCache[String(league)];
+      return fetchSeasonFallback(league,season,true);
+     }
+     throw new Error(`대체 소스가 다른 리그("${ev[0].strLeague}") 데이터를 돌려주어 사용하지 않았습니다.`);
+    }
+    return {rows:ev.map(tsdbToRow),source:'fallback',seasonStr:sv};
+   }
+  }catch(e){
+   if(/다른 리그/.test(e.message))throw e;
+   console.warn('TSDB season',sv,e.message);
+  }
+ }
+ throw new Error('대체 소스에 해당 시즌 데이터가 없습니다.');
+}
+/* 시즌 개막 직후에는 완료 경기가 거의 없습니다(예: 8월에 2026-27 시즌 선택).
+   그래서 완료 경기가 최소치에 못 미치면 이전 시즌을 자동으로 끌어와 합칩니다.
+   시간 감쇠(반감기)가 오래된 경기의 가중치를 알아서 낮추므로, 옛 시즌이
+   섞여도 최근 폼이 지배적으로 반영됩니다. */
+/* 리그의 기본 시즌: 추춘제는 시즌 시작 연도, 춘추제(K리그·MLS)는 달력연도. */
+function currentSeasonFor(league){
+ const now=new Date(),y=now.getFullYear();
+ if(LEAGUE_INFO[league]?.season==='cal')return y;
+ return now.getMonth()>=6?y:y-1;
+}
+/* 캐시 히트 때 SEASON을 갱신하지 않으면, 화면의 시즌 상태 패널과 SEASON을
+   참조하는 코드가 "마지막으로 새로 불러온 리그"를 계속 가리키게 됩니다. */
+async function ensureLeague(league){
+ if(DATASETS[league]){SEASON=DATASETS[league];paintSeasonStatus();return SEASON}
+ return loadSeasonData(league,currentSeasonFor(league));
+}
+const DATASETS={};   // 리그ID -> 시즌 데이터
+/* 마지막 실패의 상세. 실패하면 SEASON이 만들어지지 않아 정보가 사라지므로
+   따로 보관해 두고 결과 카드의 오류 메시지에 붙입니다. */
+let lastLoadFailure=null;
+/* 사이드바 버튼은 인자 없이 loadSeasonData()를 불러서 항상 EPL(기본값 '39')만
+   받아왔습니다. 입력된 경기의 리그를 실제로 불러옵니다. */
+async function loadPlannedSeasons(){
+ if(!busyGuard('시즌 데이터 로드'))return;
+ try{
+  /* 리그 간 경기는 두 리그가 모두 필요하므로 needed(합집합)를 씁니다. */
+  const {needed,byLeague}=currentPlan();
+  const lgs=needed.slice().sort((a,b)=>byLeague[b].length-byLeague[a].length);
+  if(!lgs.length){
+   $('seasonDot').className='dot err';
+   $('seasonStatus').textContent='먼저 경기를 입력하세요';
+   $('seasonSummary').innerHTML='<span class="small">팀 이름을 넣으면 어떤 리그를 받아야 하는지 자동으로 정해집니다.</span>';
+   return;
+  }
+  for(let i=0;i<lgs.length;i++){
+   const info=LEAGUE_INFO[lgs[i]];
+   $('seasonStatus').textContent=`${info.flag} ${info.name} (${i+1}/${lgs.length}) 불러오는 중...`;
+   await loadSeasonData(lgs[i],currentSeasonFor(lgs[i]));
+  }
+ }finally{busyDone()}
+}
+async function loadSeasonData(leagueArg,seasonArg){
+ const league=String(leagueArg||'39'),season=Number(seasonArg||currentSeasonFor(league));
+ const minM=T.minMatches(),cacheKey=`${league}-${season}-${minM}`;
+ const callsAtStart=API_CALLS,fdCallsAtStart=FD_CALLS,oldbCallsAtStart=OLDB_CALLS;
+ $('seasonDot').className='dot';$('seasonStatus').textContent='불러오는 중...';
+ $('seasonSummary').textContent='';
+ const cached=readSeasonCache(cacheKey);
+ if(cached){SEASON=cached;DATASETS[league]=cached;paintSeasonStatus();paintFallbackStatus();return SEASON}
+ /* 예전에는 현재·직전·전전 세 시즌을 무조건 차례로 요청했습니다.
+    무료 플랜은 최근 시즌을 막아두므로, 접근도 못 하는 시즌 두 개를 먼저
+    때려보고 실패 로그만 쌓인 뒤에야 쓸 수 있는 시즌에 닿았습니다.
+    이제는
+      ① 현재 시즌을 한 번 요청하고,
+      ② 플랜 제한 응답이 접근 가능한 연도를 알려주면 그 최신 연도로 곧바로 이동하고,
+      ③ 완료 경기가 기준에 못 미칠 때만 <b>직전 시즌 하나만</b> 덧붙입니다.
+    어떤 경우에도 시즌 두 개를 넘겨 보지 않습니다. */
+ let rows=[],source=null,used=[],errs=[],allowed=null,availableSeasons=null;
+ const skipped=new Set();  // 시도조차 하지 않은 소스와 그 이유
+ let fetchLeague=league;   // 등록 ID가 틀렸을 때 실제로 조회할 ID
+ /* 소스를 차례로 시도합니다. 키가 없거나 그 소스가 이 리그를 제공하지 않으면
+    요청을 보내지 않고 건너뜁니다(쿼터 낭비 방지).
+    앞 소스가 성공하면 뒤 소스는 시도하지 않습니다. */
+ const chain=[
+  {id:'primary',name:'API-Football',
+   usable:()=>!!getApiKey(),
+   why:()=>'키 미입력',
+   run:sv=>fetchSeasonPrimary(fetchLeague,sv)},
+  {id:'fd',name:'football-data.org',
+   usable:()=>!!getFdKey()&&!!FD_COMP[String(league)],
+   why:()=>getFdKey()?'이 소스가 제공하지 않는 리그':'키 미입력',
+   run:sv=>fetchSeasonFD(league,sv)},
+  {id:'oldb',name:'OpenLigaDB',
+   /* 키가 필요 없으므로 독일 리그면 언제나 쓸 수 있습니다. */
+   usable:()=>!!OLDB_LEAGUE[String(league)],
+   why:()=>'독일 리그 전용',
+   run:sv=>fetchSeasonOldb(league,sv)},
+  {id:'fallback',name:'TheSportsDB',
+   usable:()=>true,
+   why:()=>'',
+   run:sv=>fetchSeasonFallback(league,sv)}
+ ];
+ const tryLoad=async sv=>{
+  let res=null;
+  for(const src of chain){
+   if(!src.usable()){skipped.add(`${src.name}: ${src.why()}`);continue}
+   try{res=await src.run(sv);break}
+   catch(e){
+    errs.push(`${sv} ${src.name}: ${e.message}`);
+    const a=parseAllowedSeasons(e.message); if(a&&src.id==='primary')allowed=a;
+   }
+  }
+  if(!res)return false;
+  res.rows.forEach(r=>r.season=sv);
+  if(!source)source=res.source;
+  if(res.warn)errs.push(res.warn);
+  if(res.seen){const bad=verifyLeagueIdentity(league,res.seen);if(bad)errs.push(`${sv} ⚠️ ${bad}`)}
+  rows=rows.concat(res.rows);
+  used.push({season:sv,total:res.rows.length,finished:res.rows.filter(r=>r.finished).length,source:res.source});
+  return true;
+ };
+ const finished=()=>rows.filter(r=>r.finished).length;
+ const tried=new Set();
+ let seasonUsed=season;
+ $('seasonStatus').textContent=`${season} 시즌 불러오는 중...`;
+ let ok=await tryLoad(season); tried.add(season);
+ if(!ok&&allowed&&allowed.to<season&&!tried.has(allowed.to)){
+  seasonUsed=allowed.to;
+  $('seasonStatus').textContent=`플랜이 허용하는 최신 시즌(${seasonUsed})으로 전환합니다...`;
+  ok=await tryLoad(seasonUsed); tried.add(seasonUsed);
+ }
+ /* 여기까지 아무것도 못 받았다면 연도를 더 더듬지 않습니다.
+    이 리그가 실제로 무엇을 갖고 있는지 API에 한 번 물어보고, 그 답에 있는
+    시즌으로만 다시 시도합니다. 등록된 ID 자체가 없으면 이름·국가로 올바른
+    ID를 찾아 대체합니다. */
+ if(!rows.length){
+  $('seasonStatus').textContent='이 리그가 제공하는 시즌을 확인하는 중...';
+  let probe=await apiLeagueProbe(fetchLeague),avail=probe.seasons||[];
+  if(probe.exists===false){
+   const found=await apiFindLeagueId(LEAGUE_INFO[league]);
+   if(found){
+    fetchLeague=found.id;avail=found.seasons||[];
+    errs.push(`리그 ID ${league}가 API에 없어 "${found.country} · ${found.name}"(ID ${found.id})로 대신 조회했습니다. 등록부의 ID를 갱신해야 합니다.`);
+   }else{
+    errs.push(`리그 ID ${league}를 API에서 확인할 수 없습니다. 이 리그를 지원하지 않는 플랜이거나 ID가 바뀌었습니다.`);
+   }
+  }else if(probe.error){
+   errs.push(`리그 정보 조회 실패: ${probe.error}`);
+  }else if(probe.exists){
+   const bad=verifyLeagueIdentity(league,{name:probe.name,country:probe.country});
+   if(bad)errs.push('⚠️ '+bad);
+  }
+  /* 플랜이 알려준 범위가 있으면 교집합만 남깁니다. */
+  const usable=avail.filter(y=>y<=season&&(!allowed||(y>=allowed.from&&y<=allowed.to)));
+  const pickList=(usable.length?usable:avail.filter(y=>!allowed||(y>=allowed.from&&y<=allowed.to))).slice(0,2);
+  if(pickList.length){
+   availableSeasons=avail;
+   for(const sv of pickList){
+    if(tried.has(sv))continue;
+    $('seasonStatus').textContent=`${sv} 시즌으로 다시 시도합니다...`;
+    const got=await tryLoad(sv); tried.add(sv);
+    if(got){seasonUsed=sv;if(finished()>=minM)break}
+   }
+  }else if(avail.length){
+   errs.push(`이 리그가 제공하는 시즌은 ${avail.slice(0,6).join(', ')} 입니다. 플랜 허용 범위와 겹치는 시즌이 없습니다.`);
+  }
+ }
+ if(finished()<minM&&rows.length){
+  const prev=seasonUsed-1;
+  /* allowed·availableSeasons 는 <b>API-Football</b>에서 얻은 제약입니다.
+     football-data.org나 TheSportsDB로 데이터를 받았다면 그 제약을 적용할
+     이유가 없으므로, 실제로 쓰인 소스가 API-Football일 때만 봅니다. */
+  const primaryBound=source==='primary';
+  const ok2=(!primaryBound||((!allowed||prev>=allowed.from)
+    &&(!availableSeasons||availableSeasons.includes(prev))));
+  if(!tried.has(prev)&&ok2){
+   $('seasonStatus').textContent=`완료 경기 ${finished()}건 — 직전 시즌(${prev})만 추가로 불러옵니다...`;
+   await tryLoad(prev); tried.add(prev);
+  }
+ }
+ if(!rows.length){
+  /* 전부 실패했을 때가 "어느 소스를 왜 안 썼는지"가 가장 필요한 순간입니다.
+     예전에는 실패 목록만 보여주고 건너뛴 소스는 알려주지 않아, 키를 넣었는데
+     쓰이지 않은 이유를 알 수 없었습니다. */
+  $('seasonDot').className='dot err';$('seasonStatus').textContent='❌ 실패';
+  $('seasonSummary').innerHTML=
+   `<span style="color:var(--danger)">${errs.map(esc).join('<br>')}</span>`
+   +([...skipped].length?`<br><span class="small">건너뛴 소스: ${esc([...skipped].join(' / '))}</span>`:'');
+  lastLoadFailure={league,season,errs:[...errs],skipped:[...skipped]};
+  return null;
+ }
+ const seen=new Set();
+ rows=rows.filter(r=>{const k=String(r.id);if(seen.has(k))return false;seen.add(k);return true});
+ /* 시즌마다 소스가 갈리면 같은 팀이 API-Football('a…')과 TheSportsDB('t…')로
+    서로 다른 ID를 갖습니다. 그대로 두면 한 팀의 경기가 둘로 쪼개져 표본이
+    반토막 나고 강도 추정·최근폼·상대전적이 모두 어긋납니다.
+    등록부(정식 영문명)를 우선 키로, 안 잡히면 정규화된 팀명을 키로 합칩니다.
+    rows는 최신 시즌부터 쌓이므로 먼저 등장한 ID가 대표가 됩니다. */
+ const sources=[...new Set(used.map(u=>u.source))];
+ const mixedSource=sources.length>1;
+ let mergedIds=0;
+ if(mixedSource){
+  /* resolveTeam은 팀 230개에 대해 편집거리를 계산하므로 팀명당 한 번만 부릅니다. */
+  const keyCache=new Map();
+  const keyOf=name=>{
+   if(keyCache.has(name))return keyCache.get(name);
+   const r=resolveTeam(name),k=r.ok?'en:'+r.en:'nm:'+normName(name);
+   keyCache.set(name,k);return k;
+  };
+  const canon=new Map();
+  rows.forEach(r=>[[r.homeId,r.homeName],[r.awayId,r.awayName]].forEach(([id,nm])=>{
+   const k=keyOf(nm);if(k&&k!=='nm:'&&!canon.has(k))canon.set(k,{id,name:nm});
+  }));
+  rows.forEach(r=>{
+   const h=canon.get(keyOf(r.homeName)),a=canon.get(keyOf(r.awayName));
+   if(h&&h.id!==r.homeId){r.homeId=h.id;r.homeName=h.name;mergedIds++}
+   if(a&&a.id!==r.awayId){r.awayId=a.id;r.awayName=a.name;mergedIds++}
+  });
+ }
+ let teams=teamIndex(rows),rosterAdded=0;
+ /* 경기에서 뽑은 팀이 비정상적으로 적으면 리그 명단을 따로 받아 보강합니다. */
+ if(teams.length<12){
+  $('seasonStatus').textContent='팀 명단 보강 중...';
+  const roster=await tsdbRoster(league);
+  const have=new Set(teams.map(t=>normName(t.name)));
+  roster.filter(t=>!have.has(normName(t.name))).forEach(t=>{teams.push(t);rosterAdded++});
+ }
+ SEASON={league,season,seasonUsed,allowed,availableSeasons,fetchLeague,
+  minM,cacheKey,ts:Date.now(),rows,source,calls:API_CALLS-callsAtStart,
+  fdCalls:FD_CALLS-fdCallsAtStart,oldbCalls:OLDB_CALLS-oldbCallsAtStart,
+  skipped:[...skipped],
+  used,errs,teams,rosterAdded,sources,mixedSource,mergedIds};
+ DATASETS[league]=SEASON;
+ writeSeasonCache(cacheKey,SEASON);
+ paintSeasonStatus();paintFallbackStatus();
+ return SEASON;
+}
+function teamIndex(rows){
+ const m=new Map();
+ rows.forEach(r=>{if(r.homeId)m.set(r.homeId,r.homeName);if(r.awayId)m.set(r.awayId,r.awayName)});
+ return [...m].map(([id,name])=>({id,name}));
+}
+const CACHE_TTL=6*3600*1000;
+function readAllCache(){
+ try{const all=JSON.parse(localStorage.getItem(SEASON_KEY)||'{}');
+  return (all&&typeof all==='object')?all:{}}
+ catch{return {}}
+}
+function readSeasonCache(k){
+ const c=readAllCache()[k];
+ return (c&&Date.now()-c.ts<CACHE_TTL)?c:null;
+}
+/* 예전에는 만료 항목을 읽을 때 무시만 하고 지우지 않아 저장소가 계속 불어났고,
+   5MB 쿼터를 넘기면 catch가 조용히 삼켜서 그 뒤로 캐시가 영영 동작하지
+   않았습니다. 쓰기 전에 만료분을 치우고, 그래도 넘치면 오래된 것부터 버립니다. */
+function writeSeasonCache(k,v){
+ const all=readAllCache();
+ Object.keys(all).forEach(x=>{if(!all[x]||!all[x].ts||Date.now()-all[x].ts>CACHE_TTL)delete all[x]});
+ all[k]=v;
+ for(;;){
+  try{localStorage.setItem(SEASON_KEY,JSON.stringify(all));return}
+  catch(e){
+   const older=Object.keys(all).filter(x=>x!==k).sort((a,b)=>all[a].ts-all[b].ts);
+   if(!older.length){
+    console.warn('시즌 캐시 저장 실패(용량 초과). 이번 세션은 메모리로만 동작합니다.',e);
+    try{localStorage.removeItem(SEASON_KEY)}catch{}
+    return;
+   }
+   delete all[older[0]];
+  }
+ }
+}
+function clearSeasonCache(){
+ if(BUSY){toast(`${BUSY} 작업 중에는 캐시를 비울 수 없습니다.`,true);return}
+ try{localStorage.removeItem(SEASON_KEY)}catch{}
+ /* DATASETS를 비우지 않으면 ensureLeague()가 계속 옛 데이터를 돌려주어
+    "캐시 비우기"가 아무 효과도 없었습니다. */
+ Object.keys(DATASETS).forEach(k=>delete DATASETS[k]);
+ SEASON=null;BT=null;$('backtestArea').innerHTML='';
+ $('btDot').className='dot';$('btStatus').textContent='미실행';
+ paintSeasonStatus();paintFallbackStatus();
+ toast('캐시와 메모리 데이터를 모두 비웠습니다.');
+}
+/* 등록부 전체 보기 — 어떤 팀을 어떤 이름으로 부를 수 있는지 확인용 */
+function showTeamList(){
+ const byLg={};
+ ALL_TEAMS.forEach(en=>{const l=TEAM_LEAGUE[en];(byLg[l]=byLg[l]||[]).push(en)});
+ let h=`<div class="card layer-card"><div class="card-title">🔍 등록된 팀 ${ALL_TEAMS.length}개
+ <button class="clear-x" style="float:right" onclick="$('teamListArea').innerHTML=''" aria-label="팀 목록 닫기">✕</button></div>
+ <div class="small" style="margin-bottom:8px">아래 이름 중 아무거나 입력하시면 됩니다. 리그는 자동으로 판정됩니다.</div>`;
+ Object.keys(byLg).sort((a,b)=>byLg[b].length-byLg[a].length).forEach(l=>{
+  const I=LEAGUE_INFO[l];
+  h+=`<details style="margin-top:8px"><summary>${I.flag} ${I.name} — ${byLg[l].length}팀</summary>
+  <table class="coverage-table"><tr><th>영문</th><th>한글</th></tr>${
+   byLg[l].sort().map(en=>`<tr><td>${esc(en)}</td><td>${esc(TEAM_KO[en]||'—')}</td></tr>`).join('')
+  }</table></details>`;
+ });
+ /* 예전에는 backtestArea에 써서 검증 결과를 통째로 날렸습니다. */
+ $('teamListArea').innerHTML=h+'</div>';
+ $('teamListArea').scrollIntoView?.({behavior:'smooth',block:'start'});
+}
+function paintRegistryInfo(){
+ if($('regCount'))$('regCount').textContent=ALL_TEAMS.length;
+ const byLg={};ALL_TEAMS.forEach(en=>{const l=TEAM_LEAGUE[en];byLg[l]=(byLg[l]||0)+1});
+ if($('regLeagues'))$('regLeagues').innerHTML=Object.keys(byLg)
+  .map(l=>`${LEAGUE_INFO[l].flag}${LEAGUE_INFO[l].name}`).join(' · ');
+}
+/* 이 표시등은 "분석 전 · 대기중"에서 한 번도 바뀌지 않았습니다.
+   실제로 어떤 소스가 쓰였는지 보여줍니다. */
+function paintFallbackStatus(){
+ const dot=$('fallbackDot'),st=$('fallbackStatus');
+ if(!dot||!st)return;
+ const ds=Object.values(DATASETS);
+ if(!ds.length){dot.className='dot';st.textContent='분석 전 · 대기중';return}
+ const srcs=new Set();ds.forEach(d=>(d.sources||[d.source]).forEach(x=>x&&srcs.add(x)));
+ const names=[...srcs].map(srcName);
+ if(srcs.size>1){dot.className='dot err';st.textContent='혼합 · '+names.join(' + ')}
+ else if(srcs.has('fallback')){dot.className='dot err';st.textContent='TheSportsDB 사용 중'}
+ else{dot.className='dot ok';st.textContent=names[0]+' 사용 중'}
+}
+function paintSeasonStatus(){
+ const dot=$('seasonDot'),st=$('seasonStatus'),sum=$('seasonSummary');
+ if(!SEASON){dot.className='dot';st.textContent='미로드';sum.textContent='';return}
+ const fin=SEASON.rows.filter(r=>r.finished).length;
+ const nTeams=SEASON.teams.length;
+ const thin=nTeams<12||fin<20;
+ dot.className=thin?'dot err':'dot ok';
+ st.textContent=SEASON.mixedSource?'혼합 소스':srcName(SEASON.source);
+ let h=`완료 <b>${fin}</b>경기 / 총 ${SEASON.rows.length} · 팀 <b>${nTeams}</b>`
+  +` · API-Football ${SEASON.calls}회`
+  +(SEASON.fdCalls?` · football-data.org ${SEASON.fdCalls}회`:'')
+  +(SEASON.oldbCalls?` · OpenLigaDB ${SEASON.oldbCalls}회`:'')
+  +`(실패·재시도 포함)<br>`;
+ /* 어떤 소스를 왜 건너뛰었는지 보이지 않으면, 키를 넣었는데 안 쓰이는 이유를
+    알 수 없습니다. */
+ if(SEASON.skipped&&SEASON.skipped.length)
+  h+=`<span class="small">· 건너뛴 소스: ${esc(SEASON.skipped.join(' / '))}</span><br>`;
+ /* 플랜 제한은 사용자가 가장 먼저 알아야 할 정보인데, 예전에는 접힌
+    "데이터 수집 경고" 안에 파묻혀 있었습니다. 위로 끌어올립니다. */
+ if(SEASON.allowed)
+  h+=`<span style="color:var(--warning)">· API-Football 플랜이 <b>${SEASON.allowed.from}~${SEASON.allowed.to}</b> 시즌만 허용합니다`
+   +`${SEASON.seasonUsed!==SEASON.season?` → <b>${SEASON.seasonUsed}</b> 시즌으로 자동 전환했습니다`:''}.</span><br>`;
+ /* 리그가 실제로 제공하는 시즌을 보여주면, 실패했을 때 무엇이 문제인지
+    바로 알 수 있습니다. */
+ if(SEASON.availableSeasons&&SEASON.availableSeasons.length)
+  h+=`<span class="small">· 이 리그가 제공하는 시즌: ${SEASON.availableSeasons.slice(0,8).join(', ')}`
+   +`${SEASON.availableSeasons.length>8?' …':''}</span><br>`;
+ if(SEASON.fetchLeague&&String(SEASON.fetchLeague)!==String(SEASON.league))
+  h+=`<span style="color:var(--warning)">· 등록 ID ${SEASON.league} 대신 <b>ID ${SEASON.fetchLeague}</b>로 조회했습니다.</span><br>`;
+ h+=SEASON.used.length
+  ?SEASON.used.map(u=>`· ${u.season} 시즌: 완료 ${u.finished}/${u.total} (${srcName(u.source)})`).join('<br>')
+  :'· 사용한 시즌 없음';
+ if(SEASON.rosterAdded)h+=`<br>· 팀 명단 ${SEASON.rosterAdded}개를 별도로 보강했습니다`;
+ if(SEASON.mixedSource)
+  h+=`<br><span style="color:var(--warning)">· ⚠️ 시즌마다 데이터 출처가 다릅니다(API-Football + 대체 소스). `
+   +`팀 ID ${SEASON.mergedIds}건을 이름 기준으로 합쳤지만, 두 소스의 표기가 크게 다른 팀은 `
+   +`합쳐지지 않아 표본이 나뉘어 있을 수 있습니다.</span>`;
+ if(SEASON.errs&&SEASON.errs.length)
+  h+=`<br><details style="margin-top:6px"><summary style="color:var(--warning)">데이터 수집 경고 ${SEASON.errs.length}건 (펼쳐보기)</summary>`
+   +SEASON.errs.map(e=>`<span style="color:var(--danger)">· ${esc(e)}</span>`).join('<br>')+'</details>';
+ /* 예전 안내는 이 화면에 존재하지도 않는 입력칸과 드롭다운을 조작하라고
+    했습니다. 실제로 할 수 있는 일만 적습니다. */
+ if(thin)
+  h+=`<br><span style="color:var(--danger)"><b>⚠️ 데이터 부족.</b> 팀 ${nTeams}개 / 완료 ${fin}경기로는 정상 분석이 어렵습니다.<br>`
+   +(SEASON.allowed
+     ?`① 이 리그는 플랜이 ${SEASON.allowed.from}~${SEASON.allowed.to} 시즌만 허용합니다. 그 범위에서 받아온 결과가 위와 같습니다.<br>`
+     :`① 위 "데이터 수집 경고"를 펼쳐 API가 돌려준 실제 사유를 확인하세요. 무료 플랜은 최근 시즌을 막아두는 경우가 많습니다.<br>`)
+   +`② 시즌 개막 직후라면 완료 경기 자체가 없습니다. 이 경우 직전 시즌 하나를 자동으로 덧붙이며, 그래도 부족하면 시간이 지나야 합니다.<br>`
+   +`③ "캐시 비우기" 후 다시 불러오면 실패한 시즌을 재시도합니다.</span>`;
+ /* 자동완성 목록은 등록부가 관리하므로 여기서 건드리지 않습니다. */
+ sum.innerHTML=h;
+}
+
+/* ================= MODULE 2: DIXON-COLES STRENGTH MODEL ================= */
+/* λ_home = leagueHomeAvg × attack(home) × defence(away) × homeFactor(home)
+   λ_away = leagueAwayAvg × attack(away) × defence(home)
+   Strengths are fitted by iterative scaling with exponential time decay,
+   so beating a strong side counts more than beating a weak one.        */
+function fitStrength(rows,refDate){
+ const ref=refDate?new Date(refDate).getTime():Date.now();
+ const hl=T.halfLife(),k=T.shrink(),iters=T.iters(),hsplit=T.homeSplit();
+ const ms=rows.filter(r=>r.finished&&rowTime(r)<ref);
+ if(ms.length<10){fitStrength.lastReason=`완료된 경기 ${ms.length}개 (최소 10개 필요)`;return null}
+ fitStrength.lastReason='';
+ /* 가중치는 지역 배열에 둡니다. 예전에는 r._w로 원본 행을 덮어써서 캐시에
+    직렬화되고, 백테스트가 매 반복마다 공유 데이터를 흔들었습니다. */
+ const N=ms.length,W=new Float64Array(N);
+ for(let i=0;i<N;i++)W[i]=Math.pow(0.5,((ref-rowTime(ms[i]))/86400000)/hl);
+ let sw=0,shg=0,sag=0;
+ for(let i=0;i<N;i++){sw+=W[i];shg+=W[i]*ms[i].hg;sag+=W[i]*ms[i].ag}
+ const avgH=clamp(shg/sw,.3,4),avgA=clamp(sag/sw,.3,4);
+ const ids=[...new Set(ms.flatMap(r=>[r.homeId,r.awayId]))];
+ const att={},def={},cnt={},cnt2={},hW={},hW2={},hG={},aW={},aW2={},aG={},played={};
+ ids.forEach(i=>{att[i]=1;def[i]=1;cnt[i]=0;cnt2[i]=0;hW[i]=0;hW2[i]=0;hG[i]=0;aW[i]=0;aW2[i]=0;aG[i]=0;played[i]=0});
+ /* played를 여기서 같이 세어 둡니다. 예전에는 팀마다 전체 경기를 다시 훑어서
+    (팀 수 × 경기 수) 연산이 fit 한 번마다 통째로 더 붙었습니다. */
+ for(let i=0;i<N;i++){
+  const r=ms[i],w=W[i],w2=w*w;
+  cnt[r.homeId]+=w;cnt2[r.homeId]+=w2;played[r.homeId]++;
+  cnt[r.awayId]+=w;cnt2[r.awayId]+=w2;played[r.awayId]++;
+  hW[r.homeId]+=w;hW2[r.homeId]+=w2;hG[r.homeId]+=w*r.hg;
+  aW[r.awayId]+=w;aW2[r.awayId]+=w2;aG[r.awayId]+=w*r.ag;
+ }
+ /* Kish 유효표본수 (Σw)²/Σw² — 가중치 스케일에 영향받지 않습니다.
+    이전에는 가중합을 그대로 써서, 오래된 시즌이면 38경기 팀을 2경기 팀처럼
+    취급해 강도를 70% 넘게 깎아버리는 버그가 있었습니다. */
+ const nEffOf=(a,b)=>b>0?(a*a)/b:0;
+ for(let it=0;it<iters;it++){
+  const anum={},aden={},dnum={},dden={};
+  ids.forEach(i=>{anum[i]=0;aden[i]=0;dnum[i]=0;dden[i]=0});
+  for(let i=0;i<N;i++){
+   const r=ms[i],w=W[i];
+   anum[r.homeId]+=w*r.hg; aden[r.homeId]+=w*avgH*def[r.awayId];
+   anum[r.awayId]+=w*r.ag; aden[r.awayId]+=w*avgA*def[r.homeId];
+   dnum[r.awayId]+=w*r.hg; dden[r.awayId]+=w*avgH*att[r.homeId];
+   dnum[r.homeId]+=w*r.ag; dden[r.homeId]+=w*avgA*att[r.awayId];
+  }
+  ids.forEach(i=>{
+   if(aden[i]>0)att[i]=clamp(anum[i]/aden[i],.2,3);
+   if(dden[i]>0)def[i]=clamp(dnum[i]/dden[i],.2,3);
+  });
+  const ma=mean(ids.map(i=>att[i]))||1,md=mean(ids.map(i=>def[i]))||1;
+  ids.forEach(i=>{att[i]/=ma;def[i]/=md});
+ }
+ // shrink thin-sample teams toward league average
+ ids.forEach(i=>{
+  const nEff=nEffOf(cnt[i],cnt2[i]),f=nEff/(nEff+k);
+  att[i]=1+(att[i]-1)*f;def[i]=1+(def[i]-1)*f;
+ });
+ // team-specific home tendency, heavily shrunk, blended by "홈 개별성"
+ const hf={};
+ ids.forEach(i=>{
+  const hRate=hW[i]>0?hG[i]/hW[i]:null,aRate=aW[i]>0?aG[i]/aW[i]:null;
+  let r=1;
+  if(Number.isFinite(hRate)&&Number.isFinite(aRate)&&aRate>.05){
+   const nEff=Math.min(nEffOf(hW[i],hW2[i]),nEffOf(aW[i],aW2[i])),f=nEff/(nEff+k);
+   r=1+((hRate/aRate)/(avgH/avgA)-1)*f;
+  }
+  hf[i]=clamp(1+(r-1)*hsplit,.8,1.25);
+ });
+ return {avgH,avgA,att,def,hf,ids,nMatches:N,played,
+  nEff:Object.fromEntries(ids.map(i=>[i,nEffOf(cnt[i],cnt2[i])]))};
+}
+/* Dixon-Coles low-score correction: plain Poisson under-predicts 0-0 and 1-1 */
+function tau(x,y,lh,la,rho){
+ if(x===0&&y===0)return 1-lh*la*rho;
+ if(x===0&&y===1)return 1+lh*rho;
+ if(x===1&&y===0)return 1+la*rho;
+ if(x===1&&y===1)return 1-rho;
+ return 1;
+}
+function predict(S,homeId,awayId){
+ if(!S||!S.att[homeId]||!S.att[awayId])return null;
+ const lh=clamp(S.avgH*S.att[homeId]*S.def[awayId]*(S.hf[homeId]||1),.15,5);
+ const la=clamp(S.avgA*S.att[awayId]*S.def[homeId],.15,5);
+ return {lh,la,...scoreMatrix(lh,la,T.rho())};
+}
+function scoreMatrix(lh,la,rho){
+ let H=0,D=0,A=0,O=0,B=0,Z=0,best={p:0,h:0,a:0};
+ const M=11,grid=[];
+ for(let h=0;h<=M;h++){
+  grid[h]=[];
+  for(let a=0;a<=M;a++){
+   const p=poisson(lh,h)*poisson(la,a)*tau(h,a,lh,la,rho);
+   grid[h][a]=p;Z+=p;
+  }
+ }
+ for(let h=0;h<=M;h++)for(let a=0;a<=M;a++){
+  const p=grid[h][a]/Z;
+  if(h>a)H+=p;else if(h===a)D+=p;else A+=p;
+  if(h+a>2.5)O+=p;if(h>0&&a>0)B+=p;
+  if(p>best.p)best={p,h,a};
+ }
+ return {home:H,draw:D,away:A,over:O,btts:B,score:`${best.h}-${best.a}`,scoreP:best.p};
+}
+
+/* ================= MODULE 3: BACKTEST / CALIBRATION ================= */
+function brier(p,y){return p.reduce((s,x,i)=>s+Math.pow(x-(i===y?1:0),2),0)}
+function logloss(p,y){return -Math.log(clamp(p[y],1e-9,1))}
+/* 이동블록 부트스트랩 — 시계열의 자기상관을 유지한 채 재표집합니다.
+   블록 길이는 n^(1/3) (Politis-Romano 계열의 표준적인 경험칙).
+   난수는 고정 시드라 같은 데이터면 항상 같은 구간이 나옵니다. */
+function blockBootstrapCI(d,B=1000){
+ const n=d.length;
+ if(n<30)return null;
+ const L=clamp(Math.round(Math.cbrt(n)),2,Math.max(2,Math.floor(n/4)));
+ const nb=Math.ceil(n/L),rnd=lcg(20260908);
+ const means=[];
+ for(let b=0;b<B;b++){
+  let sum=0,c=0;
+  for(let k=0;k<nb&&c<n;k++){
+   const st=Math.floor(rnd()*(n-L+1));
+   for(let j=0;j<L&&c<n;j++,c++)sum+=d[st+j];
+  }
+  means.push(sum/c);
+ }
+ means.sort((a,b)=>a-b);
+ const q=pp=>means[clamp(Math.round(pp*(B-1)),0,B-1)];
+ return {lo:q(.025),hi:q(.975),L,B};
+}
+async function runBacktest(){
+ if(!busyGuard('검증'))return;
+ try{await runBacktestInner()}finally{busyDone()}
+}
+async function runBacktestInner(){
+ /* 검증 대상 리그를 명시적으로 정합니다.
+    예전에는 전역 SEASON이 비어 있을 때만 리그를 골랐기 때문에, EPL을 한 번
+    불러온 뒤 라리가 경기를 입력하고 검증을 누르면 EPL 데이터로 돌려놓고
+    화면에는 라리가라고 표시하는 문제가 있었습니다. */
+ /* 검증은 한 리그 안에서만 성립합니다. 리그 간 경기는 어느 한 리그의
+    워크포워드 검증으로 확인할 수 없으므로 대상 선정에서 제외합니다. */
+ const {matches}=currentPlan();
+ const cnt={};
+ matches.filter(m=>m.comp.kind==='domestic')
+  .forEach(m=>{cnt[m.comp.league]=(cnt[m.comp.league]||0)+1});
+ const lgs=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]);
+ const league=lgs[0]||(SEASON?SEASON.league:null);
+ if(!league){$('btDot').className='dot err';
+  $('btStatus').textContent=matches.length
+   ?'입력된 경기가 전부 리그 간 경기입니다 — 검증은 같은 리그 경기에서만 가능합니다'
+   :'먼저 경기를 입력하거나 분석을 실행하세요';return}
+ $('btDot').className='dot';$('btStatus').textContent='데이터 준비 중...';
+ const DS=await ensureLeague(league);
+ if(!DS){$('btDot').className='dot err';
+  $('btStatus').textContent=`${LEAGUE_INFO[league]?.name||league} 데이터를 불러오지 못했습니다`;return}
+ const rows=DS.rows.filter(r=>r.finished).sort((a,b)=>rowTime(a)-rowTime(b));
+ if(rows.length<40){
+  $('btDot').className='dot err';
+  $('btStatus').textContent=`완료 경기 ${rows.length}개 — 최소 40개 필요`;
+  $('backtestArea').innerHTML=`<div class="card"><div class="card-title" style="color:var(--danger)">백테스트를 실행할 수 없습니다</div>
+  <div class="small" style="line-height:1.7">${esc(LEAGUE_INFO[league]?.name||league)}의 완료된 경기가 <b>${rows.length}개</b>뿐입니다 (최소 40개 필요).<br>
+  시즌 초반이거나 무료 플랜이 최근 시즌을 막아둔 경우입니다. 왼쪽 "캐시 비우기" 후 "시즌 데이터 불러오기"를 다시 눌러 이전 시즌 보강을 시도해 보세요.</div></div>`;
+  return;
+ }
+ const start=Math.max(20,Math.floor(rows.length*T.warmup()));
+ /* 경기마다 전체 재학습하면 O(n²)이라 1,000경기에서 브라우저가 수십 초 멈춥니다.
+    재학습 간격을 두어 fit 횟수를 최대 T.maxFits()회로 제한합니다. 반감기가 120일인
+    모델에서 몇 경기치 최신 정보를 늦게 반영하는 대가는 무시할 수준이고,
+    학습에 쓰는 데이터는 여전히 "그 경기 이전"뿐이라 정보 누출은 없습니다. */
+ const evalN=rows.length-start;
+ const refit=Math.max(1,Math.ceil(evalN/T.maxFits()));
+ $('btDot').className='dot';$('btStatus').textContent='실행 중... 0%';
+ const preds=[];
+ let S=null,trainedUpto=0,fits=0;
+ for(let i=start;i<rows.length;i++){
+  const m=rows[i];
+  if(!S||i-trainedUpto>=refit){
+   S=fitStrength(rows.slice(0,i),m.date);trainedUpto=i;fits++;
+  }
+  if(!S)continue;
+  const pr=predict(S,m.homeId,m.awayId);
+  if(!pr)continue;
+  const y=m.hg>m.ag?0:m.hg===m.ag?1:2;
+  preds.push({p:[pr.home,pr.draw,pr.away],y,date:m.date,season:m.season,
+   home:m.homeName,away:m.awayName,hg:m.hg,ag:m.ag,lh:pr.lh,la:pr.la,trained:trainedUpto});
+  if((i-start)%20===0){
+   $('btStatus').textContent=`실행 중... ${Math.round((i-start)/evalN*100)}%`;
+   await sleep(0);
+  }
+ }
+ if(!preds.length){$('btDot').className='dot err';$('btStatus').textContent='예측 생성 실패';return}
+ const warm=rows.slice(0,start);
+ const bh=warm.filter(r=>r.hg>r.ag).length/warm.length;
+ const bd=warm.filter(r=>r.hg===r.ag).length/warm.length;
+ const base=[bh,bd,1-bh-bd];
+ preds.forEach(x=>{
+  x.bm=brier(x.p,x.y);x.bb=brier(base,x.y);
+  x.lm=logloss(x.p,x.y);x.lb=logloss(base,x.y);
+  x.hit=x.p.indexOf(Math.max(...x.p))===x.y;
+ });
+ /* 짝지은 차이의 95% 신뢰구간 — "기준보다 나은 게 우연인지" 판정합니다.
+    구간이 0을 포함하면 표본 노이즈와 구분되지 않는다는 뜻입니다.
+    단, 인접한 예측은 학습 데이터가 거의 같고 같은 팀이 반복 등장하므로
+    독립이 아닙니다. sd/√n 을 그대로 쓰면 구간이 실제보다 좁아져 "유의미"가
+    쉽게 나옵니다. 이동블록 부트스트랩으로 그 자기상관을 반영합니다. */
+ const d=preds.map(x=>x.bm-x.bb);
+ const md=mean(d);
+ const sd=Math.sqrt(d.reduce((s2,v)=>s2+(v-md)*(v-md),0)/Math.max(1,d.length-1));
+ const se=sd/Math.sqrt(d.length);
+ const naiveCi=[md-1.96*se,md+1.96*se];
+ const boot=blockBootstrapCI(d);
+ const ci=boot?[boot.lo,boot.hi]:naiveCi;
+ const significant=ci[1]<0;
+ const byOutcome=[0,1,2].map(k=>{
+  const sub=preds.filter(x=>x.y===k);
+  return {k,n:sub.length,hit:sub.filter(x=>x.hit).length};
+ });
+ const M={
+  n:preds.length,fits,refit,naiveCi,boot,
+  acc:preds.filter(x=>x.hit).length/preds.length,
+  brier:mean(preds.map(x=>x.bm)),ll:mean(preds.map(x=>x.lm)),
+  baseAcc:preds.filter(x=>base.indexOf(Math.max(...base))===x.y).length/preds.length,
+  baseBrier:mean(preds.map(x=>x.bb)),baseLl:mean(preds.map(x=>x.lb)),
+  md,se,ci,significant,byOutcome,
+  from:preds[0].date,to:preds[preds.length-1].date,
+  seasons:[...new Set(preds.map(x=>x.season).filter(Boolean))].sort()
+ };
+ const bins=Array.from({length:10},(_,i)=>({lo:i/10,hi:(i+1)/10,sp:0,hit:0,cnt:0}));
+ preds.forEach(x=>x.p.forEach((pv,k)=>{
+  const bb=bins[clamp(Math.floor(pv*10),0,9)];
+  bb.sp+=pv;bb.hit+=(k===x.y?1:0);bb.cnt++;
+ }));
+ BT={metrics:M,bins,preds,base,source:DS.source,
+  leagueId:String(DS.league),league:LEAGUE_INFO[DS.league]?.name||DS.league};
+ $('btDot').className=significant?'dot ok':'dot err';
+ $('btStatus').textContent=`실제 ${M.n}경기 · 적중 ${(M.acc*100).toFixed(1)}% · ${significant?'유의미':'노이즈 수준'}`;
+ renderBacktest();
+}
+function renderBacktest(){
+ if(!BT)return;
+ const M=BT.metrics,fmtD=d=>new Date(d).toLocaleDateString('ko-KR',{year:'2-digit',month:'numeric',day:'numeric'});
+ const names=['홈승','무','원정승'];
+ let h=`<div class="card layer-card">
+ <div class="card-title">🔬 실제 경기 검증 결과</div>
+ <div class="small" style="margin-bottom:10px;line-height:1.7">
+  대상: <b>${esc(BT.league)}</b> 실제 경기 <b>${M.n}건</b> · ${fmtD(M.from)} ~ ${fmtD(M.to)}
+  ${M.seasons.length?` · ${M.seasons.join(', ')} 시즌`:''}<br>
+  출처: ${esc(srcName(BT.source))} · 각 경기는 <b>그 경기 이전 데이터만</b>으로 예측했습니다.<br>
+  모델 재학습 ${M.fits}회(${M.refit}경기마다). 학습 데이터는 항상 예측 대상 경기 이전으로 잘라내므로 정보 누출은 없습니다.
+ </div>
+ <div class="pro-grid">
+  <div class="pro-kpi"><b>적중률</b><span>${(M.acc*100).toFixed(1)}%</span></div>
+  <div class="pro-kpi"><b>BRIER ↓</b><span>${M.brier.toFixed(4)}</span></div>
+  <div class="pro-kpi"><b>LOG LOSS ↓</b><span>${M.ll.toFixed(4)}</span></div>
+  <div class="pro-kpi"><b>판정</b><span class="badge ${M.significant?'real':'none'}">${M.significant?'유의미':'불충분'}</span></div>
+ </div>
+ <table class="coverage-table" style="margin-top:12px">
+  <tr><th>지표</th><th>모델</th><th>기준</th><th>차이</th></tr>
+  <tr><td>적중률</td><td>${(M.acc*100).toFixed(1)}%</td><td>${(M.baseAcc*100).toFixed(1)}%</td><td>${((M.acc-M.baseAcc)*100).toFixed(1)}%p</td></tr>
+  <tr><td>Brier</td><td>${M.brier.toFixed(4)}</td><td>${M.baseBrier.toFixed(4)}</td><td>${(M.brier-M.baseBrier).toFixed(4)}</td></tr>
+  <tr><td>Log Loss</td><td>${M.ll.toFixed(4)}</td><td>${M.baseLl.toFixed(4)}</td><td>${(M.ll-M.baseLl).toFixed(4)}</td></tr>
+ </table>
+ <div class="small" style="margin-top:10px;line-height:1.7">
+  <b>통계적 유의성:</b> 경기별 Brier 차이의 평균은 <b>${M.md.toFixed(4)}</b>,
+  95% 신뢰구간은 <b>[${M.ci[0].toFixed(4)}, ${M.ci[1].toFixed(4)}]</b> 입니다.<br>
+  ${M.significant
+   ? '✅ 구간이 전부 0보다 작으므로, 기준보다 나은 것이 <b>표본 우연으로 보기 어렵습니다.</b>'
+   : '⚠️ 구간이 0을 포함하므로, 이 차이는 <b>표본 노이즈와 구분되지 않습니다.</b> 경기 수를 늘리거나(이전 시즌 보강) 예측을 신뢰하지 마세요.'}
+ </div>
+ <details style="margin-top:10px"><summary>이 구간을 어떻게 구했고, 무엇을 보장하지 않는지</summary>
+ <div class="small" style="margin-top:8px;line-height:1.75">
+  <b>① 구간 계산법.</b> ${M.boot
+   ? `이동블록 부트스트랩(블록 길이 ${M.boot.L}경기, 재표집 ${M.boot.B}회)입니다.
+      인접한 예측은 학습 데이터가 거의 같고 같은 팀이 반복 등장해 서로 독립이 아닙니다.
+      단순 <i>sd/√n</i> 으로 계산하면 구간이 실제보다 좁아져 "유의미"가 쉽게 나옵니다.
+      참고로 그 단순 계산값은 [${M.naiveCi[0].toFixed(4)}, ${M.naiveCi[1].toFixed(4)}] 로,
+      블록 부트스트랩 구간보다 ${((M.naiveCi[1]-M.naiveCi[0])<(M.ci[1]-M.ci[0]))?'좁습니다':'넓습니다'}.`
+   : `표본이 30건 미만이라 부트스트랩을 쓰지 못하고 단순 정규근사(sd/√n)를 썼습니다.
+      인접 예측의 상관을 반영하지 못하므로 실제보다 좁은 구간입니다.`}<br>
+  <b>② 같은 데이터로 상수를 정했습니다.</b> 반감기·ρ·수축 같은 모델 상수는 고정값이지만
+   이 리그 데이터와 무관하게 정해진 값이 아닙니다. 즉 이 결과는 완전한 out-of-sample이
+   아니며, 진짜 성능은 여기 나온 수치보다 나쁠 가능성이 큽니다.<br>
+  <b>③ 배당을 이기는 것과는 다릅니다.</b> 여기서 말하는 "기준"은 워밍업 구간의 홈/무/원정
+   빈도일 뿐입니다. 북메이커 배당보다 낫다는 뜻이 아닙니다.<br>
+  <b>④ 반영하지 않은 것.</b> 부상·출전정지·로테이션·감독 교체·날씨·동기부여.
+ </div></details>
+ <table class="coverage-table" style="margin-top:12px">
+  <tr><th>실제 결과</th><th>경기 수</th><th>모델이 맞힌 비율</th></tr>
+  ${M.byOutcome.map(o=>`<tr><td>${names[o.k]}</td><td>${o.n}</td><td>${o.n?((o.hit/o.n)*100).toFixed(1):'—'}%</td></tr>`).join('')}
+ </table>
+ <div class="small" style="margin-top:8px">무승부는 어떤 모델이든 맞히기 어렵습니다. 이 표가 0%에 가깝다면 모델이 사실상 홈/원정만 찍고 있다는 뜻입니다.</div>
+ </div>`;
+
+ h+=`<div class="card layer-card" style="margin-top:16px">
+ <div class="card-title">📋 실제 경기별 예측 기록 (최근 25건)</div>
+ <div class="small" style="margin-bottom:8px">아래는 실제로 벌어진 경기입니다. 몇 개를 직접 확인해 보시면 이 검증이 진짜인지 판단하실 수 있습니다.</div>
+ <table class="coverage-table">
+  <tr><th>날짜</th><th>경기</th><th>모델 예측</th><th>실제</th><th></th></tr>
+  ${BT.preds.slice(-25).reverse().map(x=>{
+   const pick=names[x.p.indexOf(Math.max(...x.p))];
+   return `<tr><td>${fmtD(x.date)}</td><td>${esc(x.home)} vs ${esc(x.away)}</td>
+   <td>${pick} ${(Math.max(...x.p)*100).toFixed(0)}% <span style="color:var(--muted)">(${x.p.map(v=>(v*100).toFixed(0)).join('/')})</span></td>
+   <td>${x.hg}-${x.ag} ${names[x.y]}</td>
+   <td><span class="badge ${x.hit?'real':'none'}">${x.hit?'적중':'실패'}</span></td></tr>`;
+  }).join('')}
+ </table>
+ <button class="btn btn-secondary" onclick="downloadBacktestCsv()">⬇️ 전체 ${M.n}건 CSV로 내려받기</button>
+ <div class="small" style="margin-top:6px">엑셀에서 직접 검산하거나 다른 방식으로 재계산해 보실 수 있습니다.</div>
+ </div>`;
+
+ h+=`<div class="card layer-card" style="margin-top:16px"><div class="card-title">📐 캘리브레이션</div>
+ <table class="coverage-table"><tr><th>예측 구간</th><th>평균 예측</th><th>실제 적중률</th><th>표본</th><th>편차</th></tr>`;
+ BT.bins.filter(x=>x.cnt>0).forEach(x=>{
+  const pv=x.sp/x.cnt,av=x.hit/x.cnt,dv=av-pv;
+  const cls=x.cnt<20?'partial':Math.abs(dv)<.05?'real':Math.abs(dv)<.12?'partial':'none';
+  h+=`<tr><td>${(x.lo*100)|0}–${(x.hi*100)|0}%</td><td>${(pv*100).toFixed(1)}%</td><td>${(av*100).toFixed(1)}%</td>
+   <td>${x.cnt}${x.cnt<20?' <span style="color:var(--muted)">(적음)</span>':''}</td>
+   <td><span class="badge ${cls}">${dv>0?'+':''}${(dv*100).toFixed(1)}%p</span></td></tr>`;
+ });
+ h+=`</table><div class="small" style="margin-top:8px">편차 양수 = 과소평가, 음수 = 과신. 표본 20건 미만 구간은 참고만 하세요.</div></div>`;
+ $('backtestArea').innerHTML=h;
+}
+function downloadBacktestCsv(){
+ if(!BT)return;
+ const names=['HOME','DRAW','AWAY'];
+ const head='date,home,away,p_home,p_draw,p_away,lambda_home,lambda_away,model_pick,actual_home_goals,actual_away_goals,actual_result,hit,brier_model,brier_baseline';
+ const lines=BT.preds.map(x=>[
+  new Date(x.date).toISOString().slice(0,10),
+  '"'+String(x.home).replace(/"/g,'""')+'"','"'+String(x.away).replace(/"/g,'""')+'"',
+  x.p[0].toFixed(4),x.p[1].toFixed(4),x.p[2].toFixed(4),
+  x.lh.toFixed(3),x.la.toFixed(3),
+  names[x.p.indexOf(Math.max(...x.p))],x.hg,x.ag,names[x.y],x.hit?1:0,
+  x.bm.toFixed(4),x.bb.toFixed(4)
+ ].join(','));
+ try{
+  const blob=new Blob(['\ufeff'+head+'\n'+lines.join('\n')],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download=`backtest_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+ }catch(e){console.warn(e);toast('CSV 저장 실패: '+e.message,true)}
+}
+
+/* ---------- 최근 폼 · 상대전적 (이미 받아둔 시즌 데이터에서 계산, 네트워크 호출 없음) ---------- */
+/* 결과 카드용 최근폼·상대전적 블록. 전부 이미 받아둔 시즌 데이터에서 계산하므로
+   추가 네트워크 요청이 없고, 따라서 실패할 일도 없습니다. */
+function recentBlock(r){
+ if(!r.recentH||!r.recentH.length)return '';
+ const chips=a=>(a||[]).map(x=>`<span class="badge ${x.res==='W'?'real':x.res==='D'?'partial':'none'}" title="${esc(x.opp)} ${x.gf}-${x.ga} (${x.ha==='H'?'홈':'원정'})">${x.res}</span>`).join(' ');
+ let h=`<details style="margin-top:10px"><summary>📋 최근 폼 · 상대전적</summary>
+  <div style="margin-top:8px"><span class="small">${esc(r.home)}: </span>${chips(r.recentH)}<br>
+  <span class="small">${esc(r.away)}: </span>${chips(r.recentA)}</div>`;
+ if(r.h2h&&r.h2h.length)
+  h+=`<div style="margin-top:8px"><b class="small">직전 맞대결</b><br>${
+   r.h2h.map(x=>`<span class="small">${new Date(x.date).toLocaleDateString('ko-KR',{year:'2-digit',month:'numeric',day:'numeric'})} ${esc(x.homeName)} ${x.hg}-${x.ag} ${esc(x.awayName)}</span>`).join('<br>')}</div>`;
+ else h+='<div class="small" style="margin-top:8px;color:var(--muted)">이 데이터 범위에는 맞대결 기록이 없습니다.</div>';
+ return h+'</details>';
+}
+function h2hFromSeason(homeId,awayId,DS,limit=5){
+ const S=DS||SEASON; if(!S)return [];
+ return S.rows.filter(r=>r.finished&&
+   ((r.homeId===homeId&&r.awayId===awayId)||(r.homeId===awayId&&r.awayId===homeId)))
+  .sort((a,b)=>rowTime(b)-rowTime(a)).slice(0,limit);
+}
+function recentFor(teamId,limit=5,DS){
+ const S=DS||SEASON; if(!S)return [];
+ return S.rows.filter(r=>r.finished&&(r.homeId===teamId||r.awayId===teamId))
+  .sort((a,b)=>rowTime(b)-rowTime(a)).slice(0,limit)
+  .map(r=>{
+   const home=r.homeId===teamId;
+   const gf=home?r.hg:r.ag,ga=home?r.ag:r.hg;
+   return {date:r.date,opp:home?r.awayName:r.homeName,ha:home?'H':'A',gf,ga,
+    res:gf>ga?'W':gf===ga?'D':'L'};
+  });
+}
+
+/* ---------- analysis ---------- */
+/* 해석이 끝난 경기 하나를 분석합니다. 팀 식별은 이미 대시보드에서 끝났습니다. */
+/* 등록부의 정식 영문명을 특정 시즌 데이터셋의 실제 팀으로 연결합니다.
+   부분문자열이 "처음 걸리는" 팀을 고르면 'Inter'가 'Inter Miami'에 먼저
+   걸리는 식의 조용한 오매칭이 나므로, 전 팀을 채점해 최고점을 고르고
+   1·2위가 붙어 있으면 찍지 않고 실패로 돌립니다. */
+function findTeamIn(S,en,leagueLabel){
+ /* 등록부의 정식명 하나로만 대조하면, 데이터 소스가 다른 표기를 쓸 때
+    팀을 못 찾습니다(API-Football 'Inter' vs TheSportsDB 'Inter Milan').
+    그 팀의 알려진 라틴문자 이름 전부와 대조합니다. */
+ const names=TEAM_LATIN[en]||[en];
+ const qs=names.map(normName);
+ const exact=S.teams.filter(x=>qs.includes(normName(x.name)));
+ if(exact.length===1)return {t:exact[0]};
+ if(exact.length>1)return {err:`"${en}"와 이름이 같은 팀이 데이터에 ${exact.length}개 있습니다.`};
+ const q=normName(en);
+ let best=null,second=null;
+ S.teams.forEach(x=>{
+  const nx=normName(x.name);
+  let sc=0;
+  names.forEach((nm,i)=>{
+   sc=Math.max(sc,tokenScore(nm,x.name),simRatio(qs[i],nx));
+   if(nx.includes(qs[i])||qs[i].includes(nx))
+    sc=Math.max(sc,.8*Math.min(qs[i].length,nx.length)/Math.max(qs[i].length,nx.length,1));
+  });
+  if(!best||sc>best.sc){second=best;best={t:x,sc}}
+  else if(!second||sc>second.sc)second={t:x,sc};
+ });
+ if(!best||best.sc<.6)
+  return {err:`"${en}" 와 충분히 일치하는 팀이 ${leagueLabel} 데이터에 없습니다. `
+   +`승강으로 이번 시즌 소속이 바뀌었거나(2부 리그 등), 데이터 소스가 다른 표기를 쓰는 경우입니다.`,
+   notFound:true};
+ if(second&&best.sc-second.sc<.08)
+  return {err:`"${en}" 가 ${best.t.name} / ${second.t.name} 중 어느 쪽인지 확정할 수 없어 분석을 중단했습니다.`};
+ return {t:best.t};
+}
+/* 확률·픽·신뢰도 산출은 국내전과 리그 간 경기가 완전히 같습니다.
+   달라지는 것은 λ를 어떻게 얻었는지(pr)와 신뢰도 항목(layers)뿐입니다. */
+function finishResult(base,pr,layers,trust,extra){
+ const probs=[pr.home,pr.draw,pr.away];
+ const totW=layers.reduce((x,y)=>x+y.w,0),okW=layers.reduce((x,y)=>x+(y.ok?y.w:0),0);
+ const conf=Math.round(100*(okW/totW)*(Number.isFinite(trust)?trust:1));
+ const labels=['HOME','DRAW','AWAY'];
+ /* CONF는 "데이터를 얼마나 갖췄나"일 뿐이라, 데이터가 충분해도 세 결과가
+    33/33/33이면 픽할 이유가 없습니다. 확률 자체의 우위도 함께 봅니다. */
+ const ranked=probs.map((p,j)=>({p,j})).sort((x,y)=>y.p-x.p);
+ const top=ranked[0],margin=top.p-ranked[1].p;
+ const noBet=[];
+ if(conf<T.pickThreshold())noBet.push(`신뢰도 ${conf} < ${T.pickThreshold()}`);
+ if(top.p<T.minTopProb())noBet.push(`최고 확률 ${pct(top.p)} < ${pct(T.minTopProb())}`);
+ if(margin<T.minMargin())noBet.push(`1·2위 확률 차 ${pct(margin)} < ${pct(T.minMargin())}`);
+ return {...base,e:{lh:pr.lh,la:pr.la},
+  m:{score:pr.score,scoreP:pr.scoreP,over:pr.over,btts:pr.btts},
+  probs,conf,margin,topProb:top.p,noBetReason:noBet,
+  pick:noBet.length?'NO BET':labels[top.j],layers,...extra};
+}
+/* ---------- 같은 리그 경기 ---------- */
+function analyzeMatch(m,S,strength){
+ const league=m.comp.league;
+ const label=LEAGUE_INFO[league]?.name;
+ const base={slot:m.slot,home:m.home.en,away:m.away.en,
+  homeKo:m.home.ko,awayKo:m.away.ko,kind:'domestic',league,
+  leagueName:label,flag:LEAGUE_INFO[league]?.flag,
+  source:S.source,mixedSource:!!S.mixedSource};
+ const fh=findTeamIn(S,m.home.en,label),fa=findTeamIn(S,m.away.en,label);
+ const ht=fh.t,at=fa.t;
+ if(!ht||!at)return {...base,error:(fh.err||fa.err)+' 리그 판정이 맞는지 확인해 주세요.'};
+ if(ht.id===at.id)return {...base,error:'홈팀과 원정팀이 같습니다.'};
+ const pr=predict(strength,ht.id,at.id);
+ if(!pr){
+  const miss=[ht,at].filter(t=>!strength.att[t.id]).map(t=>t.name);
+  return {...base,error:`${miss.join(', ')}의 경기 기록이 없어 강도를 추정할 수 없습니다.`};
+ }
+ const nh=strength.played[ht.id]||0,na=strength.played[at.id]||0;
+ const layers=[
+  {k:'홈팀 경기 표본 5경기 이상',w:2,ok:nh>=5},
+  {k:'원정팀 경기 표본 5경기 이상',w:2,ok:na>=5},
+  {k:'리그 완료 경기 60건 이상',w:1,ok:strength.nMatches>=60},
+  /* 백테스트는 한 리그에서만 돌립니다. 다른 리그의 검증 결과를 이 경기의
+     신뢰도로 인정하면 안 됩니다. */
+  {k:'이 리그 백테스트 통과',w:2,
+   ok:!!(BT&&BT.metrics.significant&&BT.leagueId===String(league))}
+ ];
+ return finishResult(base,pr,layers,srcTrust(S.source),{
+  att:[strength.att[ht.id],strength.att[at.id]],
+  def:[strength.def[ht.id],strength.def[at.id]],
+  hfac:strength.hf[ht.id],played:[nh,na],
+  homeTeamId:ht.id,awayTeamId:at.id});
+}
+/* ---------- 리그 간 경기 ----------
+   두 팀의 강도를 각자의 국내 리그에서 따로 추정한 뒤 한 자리에 놓습니다.
+   기준 득점률은 두 리그 평균의 중간값을 쓰고, 리그 수준 차이는 leagueTilt()의
+   계수 k로 홈 λ에 ×k, 원정 λ에 ÷k 를 적용해 반영합니다.
+   챔스 데이터 30~40경기로 계산하던 예전 방식보다 표본이 훨씬 크지만,
+   대신 "리그 수준 계수"라는 가정이 하나 들어갑니다. 그래서 신뢰도 항목에
+   그 가정을 명시적으로 넣고 카드에도 경고를 답니다. */
+function analyzeCrossMatch(m,SH,strengthH,SA,strengthA){
+ const lh=m.comp.homeLeague,la=m.comp.awayLeague;
+ const IH=LEAGUE_INFO[lh],IA=LEAGUE_INFO[la];
+ const tilt=leagueTilt(lh,la);
+ const base={slot:m.slot,home:m.home.en,away:m.away.en,
+  homeKo:m.home.ko,awayKo:m.away.ko,kind:'cross',
+  league:lh,homeLeague:lh,awayLeague:la,
+  leagueName:`${IH.name} ↔ ${IA.name}`,flag:`${IH.flag}${IA.flag}`,
+  tilt,source:SH.source===SA.source?SH.source:'mixed',
+  sourceTrust:Math.min(srcTrust(SH.source),srcTrust(SA.source)),
+  mixedSource:!!(SH.mixedSource||SA.mixedSource)};
+ const fh=findTeamIn(SH,m.home.en,IH.name),fa=findTeamIn(SA,m.away.en,IA.name);
+ const ht=fh.t,at=fa.t;
+ if(!ht||!at)return {...base,error:(fh.err||fa.err)+' 리그 판정이 맞는지 확인해 주세요.'};
+ const missing=[[ht,strengthH],[at,strengthA]].filter(([t,st])=>!st.att[t.id]).map(([t])=>t.name);
+ if(missing.length)
+  return {...base,error:`${missing.join(', ')}의 경기 기록이 없어 강도를 추정할 수 없습니다.`};
+ /* 양쪽 리그의 홈/원정 기준 득점률을 평균해 중립적인 기준을 만듭니다. */
+ const avgH=(strengthH.avgH+strengthA.avgH)/2, avgA=(strengthH.avgA+strengthA.avgA)/2;
+ const lam_h=clamp(avgH*strengthH.att[ht.id]*strengthA.def[at.id]*(strengthH.hf[ht.id]||1)*tilt.k,.15,5);
+ const lam_a=clamp(avgA*strengthA.att[at.id]*strengthH.def[ht.id]/tilt.k,.15,5);
+ const pr={lh:lam_h,la:lam_a,...scoreMatrix(lam_h,lam_a,T.rho())};
+ const nh=strengthH.played[ht.id]||0,na=strengthA.played[at.id]||0;
+ const layers=[
+  {k:'홈팀 경기 표본 5경기 이상',w:2,ok:nh>=5},
+  {k:'원정팀 경기 표본 5경기 이상',w:2,ok:na>=5},
+  {k:'양쪽 리그 완료 경기 60건 이상',w:1,
+   ok:strengthH.nMatches>=60&&strengthA.nMatches>=60},
+  /* 리그 간 경기는 어느 한 리그의 백테스트로 검증되지 않습니다.
+     이 항목은 구조적으로 충족될 수 없으며, 그만큼 신뢰도가 낮게 나옵니다. */
+  {k:'리그 간 비교는 백테스트로 검증되지 않음',w:2,ok:false},
+  /* UEFA 계수가 없는 리그(K·J·MLS)가 끼면 눈금 맞추기가 더 거칠어집니다. */
+  {k:'양쪽 모두 UEFA 계수 보유 리그',w:1,ok:!!tilt.comparable}
+ ];
+ return finishResult(base,pr,layers,base.sourceTrust,{
+  att:[strengthH.att[ht.id],strengthA.att[at.id]],
+  def:[strengthH.def[ht.id],strengthA.def[at.id]],
+  hfac:strengthH.hf[ht.id],played:[nh,na],
+  homeTeamId:ht.id,awayTeamId:at.id,
+  /* 리그 간 경기는 두 데이터셋에 걸쳐 있어 상대전적을 뽑을 공통 데이터가
+     없습니다. 최근 폼은 각자의 리그 데이터에서 따로 가져옵니다. */
+  crossDatasets:{home:SH,away:SA}});
+}
+async function runV4Analysis(){
+ /* currentPlan()이 try 밖에 있으면 팀 해석 중 예외가 났을 때 아무 메시지도
+    없이 분석이 멈추고 버튼도 잠긴 채로 남습니다. 전부 try 안으로 넣습니다. */
+ if(!busyGuard('분석'))return;
+ const btn=document.querySelector('.btn-analyze');
+ const rows=[];
+ try{
+  const {matches,problems,needed}=currentPlan();
+  if(!matches.length){toast('팀 이름을 입력하세요. 리그는 자동으로 판정됩니다.',true);return}
+  btn&&(btn.disabled=true);
+  /* 필요한 리그를 먼저 전부 확보합니다. 리그 간 경기는 두 리그를 함께
+     쓰므로, 경기 단위가 아니라 리그 단위로 한 번씩만 불러옵니다. */
+  const DS={},FIT={},loadErr={};
+  /* 진행률은 "리그 로드 + 경기 분석" 전체를 하나의 축으로 봅니다. */
+  const steps=needed.length+matches.length;
+  let step=0;
+  for(let i=0;i<needed.length;i++){
+   const lg=needed[i],info=LEAGUE_INFO[lg];
+   setProgress(step,steps,`${info.flag} ${info.name} 데이터 불러오는 중 (${i+1}/${needed.length})`);
+   $('resultArea').innerHTML=`<div class="card loading">${info.flag} ${info.name} 데이터 불러오는 중... (${i+1}/${needed.length})</div>`;
+   await sleep(0);
+   const S=await ensureLeague(lg);
+   if(!S){
+    const why=lastLoadFailure&&String(lastLoadFailure.league)===String(lg)
+     ?` (${[...(lastLoadFailure.errs||[]).slice(-2),...(lastLoadFailure.skipped||[])].join(' / ')})`:'';
+    loadErr[lg]=`${info.name} 데이터를 불러오지 못했습니다.${why}`;step++;continue;
+   }
+   const st=fitStrength(S.rows,null);
+   if(!st){
+    const fin=S.rows.filter(r=>r.finished).length;
+    loadErr[lg]=`${info.name}의 완료 경기가 ${fin}건뿐이라 모델을 만들 수 없습니다 (최소 10건).`;
+    step++;continue;
+   }
+   DS[lg]=S;FIT[lg]=st;
+   step++;
+  }
+  /* 등록부는 클럽의 디비전을 고정값으로 들고 있는데 승강으로 매 시즌 바뀝니다.
+     등록된 리그 데이터에 팀이 없으면, 형제 디비전(K리그1↔2, PL↔챔피언십)에서
+     한 번 더 찾아봅니다. 실패했을 때만 추가로 불러오므로 평소에는 호출이 늘지
+     않고, 두 팀이 서로 다른 디비전이면 리그 간 경기로 다시 판정합니다. */
+  const inDS=(S,en)=>!!(S&&findTeamIn(S,en,'').t);
+  for(const m of matches){
+   const c=m.comp;
+   setProgress(step++,steps,`MATCH ${m.slot} · ${m.home.ko||m.home.en} vs ${m.away.ko||m.away.en} 분석 중`);
+   const meta={slot:m.slot,home:m.home.en,away:m.away.en,
+    homeKo:m.home.ko,awayKo:m.away.ko,kind:c.kind};
+   if(c.kind==='domestic'&&!loadErr[c.league]){
+    const S=DS[c.league],alt=LEAGUE_INFO[c.league]?.alt;
+    const hOk=inDS(S,m.home.en),aOk=inDS(S,m.away.en);
+    if((!hOk||!aOk)&&alt){
+     $('resultArea').innerHTML=`<div class="card loading">${LEAGUE_INFO[alt].flag} ${LEAGUE_INFO[alt].name} 확인 중... (승강 여부)</div>`;
+     await sleep(0);
+     let SA=DS[alt];
+     if(!SA&&!loadErr[alt]){
+      SA=await ensureLeague(alt);
+      if(SA){const st=fitStrength(SA.rows,null);if(st){DS[alt]=SA;FIT[alt]=st}else SA=null}
+     }
+     if(SA&&FIT[alt]){
+      const hAlt=inDS(SA,m.home.en),aAlt=inDS(SA,m.away.en);
+      const hL=hOk?c.league:(hAlt?alt:null), aL=aOk?c.league:(aAlt?alt:null);
+      if(hL&&aL&&hL!==aL){
+       m.comp=c.kind==='domestic'
+        ?{kind:'cross',homeLeague:hL,awayLeague:aL,leagues:[hL,aL]}:c;
+       meta.kind='cross';
+      }else if(hL&&aL&&hL===alt){
+       m.comp={kind:'domestic',league:alt,leagues:[alt]};
+      }
+     }
+    }
+   }
+   const c2=m.comp;
+   const bad=c2.leagues.filter(l=>loadErr[l]);
+   if(bad.length){rows.push({...meta,league:c2.leagues[0],
+    leagueName:LEAGUE_INFO[c2.leagues[0]]?.name,flag:LEAGUE_INFO[c2.leagues[0]]?.flag,
+    error:bad.map(l=>loadErr[l]).join(' ')});continue}
+   let r;
+   if(c2.kind==='domestic'){
+    const S=DS[c2.league];
+    r=analyzeMatch(m,S,FIT[c2.league]);
+    if(!r.error){
+     r.h2h=h2hFromSeason(r.homeTeamId,r.awayTeamId,S);
+     r.recentH=recentFor(r.homeTeamId,5,S);
+     r.recentA=recentFor(r.awayTeamId,5,S);
+    }
+   }else{
+    const SH=DS[c2.homeLeague],SA=DS[c2.awayLeague];
+    r=analyzeCrossMatch(m,SH,FIT[c2.homeLeague],SA,FIT[c2.awayLeague]);
+    if(!r.error){
+     /* 서로 다른 데이터셋이라 공통 상대전적은 없습니다. 최근 폼만 각자에서. */
+     r.h2h=[];
+     r.recentH=recentFor(r.homeTeamId,5,SH);
+     r.recentA=recentFor(r.awayTeamId,5,SA);
+     delete r.crossDatasets;
+    }
+   }
+   rows.push(r);
+  }
+  problems.forEach(slot=>rows.push({slot,home:$('home-'+slot).value,away:$('away-'+slot).value,
+   error:'팀 이름을 인식하지 못했습니다. 자동완성 목록에서 골라 주세요.'}));
+  rows.sort((a,b)=>a.slot-b.slot);
+  render(rows);
+  /* 사용자가 손댄 브리핑을 경고 없이 날리지 않습니다. */
+  const ta=$('briefing'),next=briefing(rows);
+  if(ta.value&&ta.value!==_lastBriefing){
+   _pendingBriefing=next;
+   setCopyStatus('새 브리핑이 준비됐습니다. 지금 내용은 직접 수정하신 것이라 그대로 두었습니다 — "새 브리핑으로 교체"를 누르면 바뀝니다.',true);
+   $('briefSwap').hidden=false;
+  }else{
+   ta.value=next;_lastBriefing=next;_pendingBriefing=null;
+   $('briefSwap').hidden=true;setCopyStatus('');
+  }
+ }catch(e){console.error(e);$('resultArea').innerHTML=`<div class="card" style="color:var(--danger)">오류: ${esc(e.message)}</div>`}
+ finally{if(btn)btn.disabled=false;setProgress(null);busyDone()}
+}
+function render(rows){
+ const list=rows.slice().sort((a,b)=>a.slot-b.slot);
+ const ok=list.filter(x=>!x.error);
+ const lgs=[...new Set(ok.flatMap(r=>r.kind==='cross'?[r.homeLeague,r.awayLeague]:[r.league]))];
+ let h=`<div class="card layer-card"><div class="card-title">🏆 분석 결과 · ${ok.length}/${list.length} 성공</div>
+ <div class="pro-grid">
+  <div class="pro-kpi"><b>분석 리그</b><span>${lgs.length}</span>
+   ${ok.some(x=>x.kind==='cross')?`<div class="small">리그 간 ${ok.filter(x=>x.kind==='cross').length}경기 포함</div>`:''}</div>
+  <div class="pro-kpi"><b>픽 생성</b><span>${ok.filter(x=>x.pick!=='NO BET').length}</span></div>
+  <div class="pro-kpi"><b>NO BET</b><span>${ok.filter(x=>x.pick==='NO BET').length}</span>
+   <div class="small">신뢰도 ${T.pickThreshold()} 미만이거나 확률 우위 부족</div></div>
+  <div class="pro-kpi"><b>검증</b><span>${BT?(BT.metrics.significant?'✅ 통과':'⚠️ 불충분'):'미실행'}</span>
+   ${BT?`<div class="small">${esc(BT.league)} 한정</div>`:''}</div>
+ </div>
+ <div style="margin-top:10px">${lgs.map(l=>`<span class="lg-badge on">${LEAGUE_INFO[l].flag} ${LEAGUE_INFO[l].name} ${
+   ok.filter(r=>r.kind==='cross'?(r.homeLeague===l||r.awayLeague===l):r.league===l).length}</span>`).join(' ')}</div>
+ </div><div class="result-grid">`;
+ list.forEach(r=>{
+  if(r.error){
+   h+=`<div class="result-card block"><div class="pick-head"><div class="r-match">MATCH ${r.slot} · ${esc(r.home||'')} vs ${esc(r.away||'')}</div><span class="badge none">실패</span></div>
+   <div class="r-comment">${esc(r.error)}</div></div>`;return;
+  }
+  const cls=r.conf>=75?'real':r.conf>=55?'partial':'none',p=r.probs;
+  const cardWarn=[];
+  if(r.mixedSource)cardWarn.push('시즌별 데이터 출처가 달라 팀 표본이 나뉘어 있을 수 있습니다.');
+  else if(r.source==='fallback')cardWarn.push('TheSportsDB 데이터입니다. 커버리지가 좁고 세부 지표가 없어 신뢰도에 0.9를 곱했습니다.');
+  if(r.kind==='cross'){
+   const IH=LEAGUE_INFO[r.homeLeague],IA=LEAGUE_INFO[r.awayLeague];
+   /* cardWarn 은 팀명이 섞일 수 있어 esc()로 이스케이프됩니다.
+      따라서 여기에 HTML 태그를 넣으면 그대로 글자로 보입니다. 평문으로 씁니다. */
+   cardWarn.push(`리그 간 경기입니다. 두 팀의 강도를 각자의 리그(${IH.name} / ${IA.name})에서 따로 추정한 뒤, `
+    +`리그 수준 계수 ×${n(r.tilt.k)} 로 눈금을 맞췄습니다. 이 계수는 UEFA 국가계수 순위에 기반한 "가정"이지 측정값이 아닙니다.`);
+   if(!r.tilt.comparable)
+    cardWarn.push('두 리그 중 한쪽은 UEFA 계수가 없는 리그(K·J·MLS)라 눈금 맞추기가 특히 거칩니다. 방향 참고 이상으로 쓰지 마세요.');
+   cardWarn.push('공격/수비 강도 값은 각자의 리그 평균 1.00 기준이므로, 두 열을 직접 비교하지 마세요.');
+  }
+  if(r.played[0]<5||r.played[1]<5)cardWarn.push('한 팀 이상 표본이 5경기 미만이라 강도 추정이 불안정합니다.');
+  h+=`<div class="result-card ${r.pick==='NO BET'?'block':''}">
+   <div class="pick-head"><div class="r-match">MATCH ${r.slot} · ${esc(r.homeKo||r.home)} vs ${esc(r.awayKo||r.away)}</div>
+    <span class="badge ${cls}">CONF ${r.conf}</span></div>
+   <div class="small" style="color:var(--muted);margin-bottom:6px">${r.flag} ${esc(r.leagueName)}${
+     r.kind==='cross'?` · 리그 수준 계수 ×${n(r.tilt.k)}`:''} · ${esc(r.home)} vs ${esc(r.away)}</div>
+   <div class="pick-main">${r.pick}</div>
+   <div class="confidence">H ${pct(p[0])} · D ${pct(p[1])} · A ${pct(p[2])}</div>
+   ${r.pick==='NO BET'&&r.noBetReason?.length
+     ?`<div class="small" style="margin-top:4px">NO BET 사유: ${esc(r.noBetReason.join(' · '))}</div>`:''}
+   <div class="data-grid">
+    <div class="data-row"><span>예상득점 λ</span><b>${n(r.e.lh)} / ${n(r.e.la)}</b></div>
+    <div class="data-row"><span>최빈 스코어</span><b>${r.m.score} (${pct(r.m.scoreP)})</b></div>
+    <div class="data-row"><span>O2.5 / BTTS</span><b>${pct(r.m.over)} / ${pct(r.m.btts)}</b></div>
+    <div class="data-row"><span>경기 표본</span><b>${r.played[0]} / ${r.played[1]}</b></div>
+    <div class="data-row"><span>공격강도</span><b>${n(r.att[0])} / ${n(r.att[1])}</b></div>
+    <div class="data-row"><span>수비강도</span><b>${n(r.def[0])} / ${n(r.def[1])}</b></div>
+   </div>
+   <div class="r-comment">공격/수비 강도는 리그 평균 1.00 기준입니다. 공격 1.20이면 평균보다 20% 더 득점, 수비 0.85면 15% 덜 실점하는 팀입니다. 홈 보정 ${n(r.hfac)}.</div>
+   ${cardWarn.length?`<div class="warn-box">⚠️ ${cardWarn.map(esc).join('<br>⚠️ ')}</div>`:''}
+   ${recentBlock(r)}
+   <details style="margin-top:10px"><summary>신뢰도 구성</summary><table class="coverage-table">${
+    r.layers.map(x=>`<tr><td>${esc(x.k)}</td><td><span class="badge ${x.ok?'real':'none'}">${x.ok?'OK':'부족'}</span></td></tr>`).join('')
+   }</table></details>
+  </div>`;
+ });
+ h+='</div>';$('resultArea').innerHTML=h;
+}
+/* ---------- AI BRIEFING ---------- */
+
+function srcLabel(r){
+ if(r.mixedSource)return '혼합 소스(시즌별로 다름)';
+ return srcName(r.source);
+}
+function briefingPrompt(rows){
+ const ok=rows.filter(x=>x&&!x.error), bad=rows.filter(x=>x&&x.error);
+ const L=[];
+ L.push('당신은 축구 경기 분석 전문가입니다. 아래는 제가 만든 통계 모델이 산출한 원시 데이터입니다.');
+ L.push('이 데이터를 검토하고, 마지막의 "분석 요청" 항목에 답해 주세요.');
+ L.push('');
+ L.push('# 모델 정보');
+ const lgs=[...new Set(ok.map(r=>r.leagueName).filter(Boolean))];
+ L.push(`- 대회: ${lgs.join(', ')||'-'}`);
+ L.push(`- 생성 시각: ${new Date().toLocaleString('ko-KR')}`);
+ L.push('- 계산 방식: Dixon-Coles 공격/수비 강도 모델. 시즌 전체 경기로 각 팀의 공격력·수비력을 리그 평균 1.00 기준으로 추정하고(상대 수준·경기 시점 가중 반영), 저스코어 보정을 적용한 포아송으로 확률 산출');
+ if(ok.some(r=>r.kind==='cross'))
+  L.push('- 리그 간 경기: 두 팀의 강도를 각자의 국내 리그에서 따로 추정한 뒤, UEFA 국가계수 기반 리그 수준 계수로 눈금을 맞춰 결합했습니다. 이 계수는 **측정값이 아니라 가정**이며, 어떤 백테스트로도 검증되지 않았습니다. 리그 간 경기의 확률은 같은 리그 경기보다 훨씬 불확실하게 다뤄 주세요.');
+ L.push(`- 설정: 반감기 ${T.halfLife()}일 / 저스코어보정 ρ=${T.rho()} / 홈개별성 ${Math.round(T.homeSplit()*100)}% / 수축 ${T.shrink()} / 픽기준 CONF ${T.pickThreshold()}·확률 ${pct(T.minTopProb())}·마진 ${pct(T.minMargin())}`);
+ if(BT){const M=BT.metrics;
+  L.push(`- **실제 경기 검증**: ${BT.league} 실제 ${M.n}경기(${new Date(M.from).toISOString().slice(0,10)}~${new Date(M.to).toISOString().slice(0,10)}), 각 경기를 그 이전 데이터만으로 예측`);
+  L.push(`  · 적중률 ${(M.acc*100).toFixed(1)}% (기준 ${(M.baseAcc*100).toFixed(1)}%) · Brier ${M.brier.toFixed(4)} (기준 ${M.baseBrier.toFixed(4)}) · Log Loss ${M.ll.toFixed(4)} (기준 ${M.baseLl.toFixed(4)})`);
+  L.push(`  · Brier 차이 95% 신뢰구간 [${M.ci[0].toFixed(4)}, ${M.ci[1].toFixed(4)}]`
+   +(M.boot?` (이동블록 부트스트랩, 블록 ${M.boot.L}경기 · ${M.boot.B}회 재표집 — 인접 예측의 상관을 반영)`:' (정규근사 — 표본이 적어 상관 미반영)'));
+  L.push(`  · 모델 재학습 ${M.fits}회(${M.refit}경기마다), 학습 데이터는 항상 대상 경기 이전으로 제한`);
+  L.push('  · ⚠️ 모델 상수가 이 데이터와 무관하게 정해진 값이 아니므로 완전한 out-of-sample이 아닙니다. 실제 성능은 이 수치보다 나쁠 수 있습니다.');
+  L.push('  · ⚠️ 여기서 "기준"은 워밍업 구간의 홈/무/원정 빈도이며, 북메이커 배당을 이긴다는 뜻이 아닙니다.');
+  L.push(`  · 판정: ${M.significant?'**통계적으로 유의미하게 기준보다 우수**':'**기준과의 차이가 표본 노이즈와 구분되지 않음 — 예측을 신뢰하지 마세요**'}`);
+  L.push(`  · 결과별 적중률: ${M.byOutcome.map((o,i)=>['홈승','무','원정승'][i]+' '+(o.n?((o.hit/o.n)*100).toFixed(0):'-')+'%('+o.n+'건)').join(' / ')}`);
+ }else{L.push('- ⚠️ 검증 미실행 — 이 모델의 실제 정확도는 확인되지 않았습니다. 예측을 참고 이상으로 받아들이지 마세요.');}
+ L.push(`- 신뢰도(CONF)는 데이터 확보율이지 예측 적중률이 아닙니다. CONF ${T.pickThreshold()} 미만이거나, 최고 확률이 ${pct(T.minTopProb())} 미만이거나, 1·2위 확률 차가 ${pct(T.minMargin())} 미만이면 NO BET입니다.`);
+ L.push('- 이 모델은 부상, 출전정지, 로테이션, 감독 교체, 날씨, 동기부여, 배당을 전혀 반영하지 않습니다.');
+ L.push('');
+ L.push(`# 경기 데이터 (${ok.length}경기)`);
+ if(!ok.length)L.push('(분석에 성공한 경기가 없습니다)');
+ ok.forEach(r=>{
+  L.push('');
+  L.push(`## MATCH ${r.slot} — ${r.home} vs ${r.away} (${r.leagueName||"?"}${r.kind==='cross'?', 리그 간 경기':''})`);
+  L.push(`- 모델 픽: **${r.pick}** (신뢰도 ${r.conf}/100, 데이터 출처 ${srcLabel(r)})`
+   +(r.pick==='NO BET'&&r.noBetReason?.length?` — NO BET 사유: ${r.noBetReason.join(' · ')}`:''));
+  L.push(`- 승/무/패 확률: 홈 ${pct(r.probs[0])} / 무 ${pct(r.probs[1])} / 원정 ${pct(r.probs[2])}`);
+  L.push(`- 예상 득점(λ): 홈 ${n(r.e.lh)} / 원정 ${n(r.e.la)}`);
+  L.push(`- 최빈 스코어: ${r.m.score} (${pct(r.m.scoreP)}) · 오버2.5 ${pct(r.m.over)} · 양팀득점 ${pct(r.m.btts)}`);
+  L.push(`- 홈팀 강도(${r.played[0]}경기): 공격 ${n(r.att[0])} / 수비 ${n(r.def[0])} (리그 평균 1.00, 낮은 수비값 = 덜 실점)`);
+  L.push(`- 원정팀 강도(${r.played[1]}경기): 공격 ${n(r.att[1])} / 수비 ${n(r.def[1])}`);
+  L.push(`- 홈 보정 계수: ${n(r.hfac)}`);
+  if(r.recentH&&r.recentH.length){
+   const f=a=>a.map(x=>`${x.res}(${x.ha} ${x.gf}-${x.ga} vs ${x.opp})`).join(', ');
+   L.push(`- 홈팀 최근 5경기: ${f(r.recentH)}`);
+   if(r.recentA&&r.recentA.length)L.push(`- 원정팀 최근 5경기: ${f(r.recentA)}`);
+  }
+  if(r.h2h&&r.h2h.length)
+   L.push(`- 상대전적: ${r.h2h.map(x=>`${new Date(x.date).toISOString().slice(0,10)} ${x.homeName} ${x.hg}-${x.ag} ${x.awayName}`).join(' / ')}`);
+  const warn=[];
+  if(r.mixedSource)warn.push('시즌별로 데이터 출처가 달라 팀 표본이 나뉘어 있을 수 있음');
+  else if(r.source==='fallback')warn.push('TheSportsDB 데이터 — 커버리지가 좁고 세부 지표 없음');
+  if(r.played[0]<5||r.played[1]<5)warn.push('한 팀 이상 경기 표본 5경기 미만 — 강도 추정 불안정');
+  if(r.kind==='cross'){
+   warn.push(`리그 간 경기 — 두 팀 강도를 각자 리그에서 추정한 뒤 리그 수준 계수 ×${n(r.tilt.k)}로 보정. 이 계수는 UEFA 국가계수 기반 가정이지 측정값이 아님`);
+   warn.push('공격/수비 강도는 각자 리그 평균 1.00 기준이라 두 팀 값을 직접 비교하면 안 됨');
+   if(!r.tilt.comparable)warn.push('한쪽이 UEFA 계수 없는 리그(K·J·MLS)라 보정이 특히 거침');
+  }
+  if(warn.length)L.push(`- ⚠️ 주의: ${warn.join(' / ')}`);
+ });
+ if(bad.length){
+  L.push('');
+  L.push(`# 데이터 수집 실패 (${bad.length}경기)`);
+  L.push('아래 경기는 데이터가 없으므로 추측하지 마시고, 필요하면 직접 확인이 필요하다고만 답해 주세요.');
+  bad.forEach(r=>L.push(`- MATCH ${r.slot} ${r.home||'?'} vs ${r.away||'?'} — ${r.error}`));
+ }
+ L.push('');
+ L.push('# 분석 요청');
+ L.push('1. 각 경기별로 모델 픽에 동의하는지, 동의하지 않는다면 그 근거를 말해 주세요.');
+ L.push('2. 최신 정보(부상, 출전정지, 로테이션, 최근 이적, 일정 과부하)를 반영했을 때 조정이 필요한 경기를 짚어 주세요.');
+ L.push('3. 신뢰도는 낮지만 실제로는 예측 가능성이 높은 경기가 있다면 알려 주세요. 반대로 신뢰도는 높지만 위험한 경기도요.');
+ L.push('4. 전체 중 가장 확신할 수 있는 3경기를 순서대로 골라 주세요.');
+ L.push('5. 위 데이터에 없는 수치는 지어내지 말고, 모르는 부분은 모른다고 해 주세요.');
+ return L.join('\n');
+}
+
+
+
+function briefing(rows){
+ return briefingPrompt(rows);
+}
+let _lastBriefing='',_pendingBriefing=null;
+function applyPendingBriefing(){
+ if(_pendingBriefing==null)return;
+ $('briefing').value=_pendingBriefing;_lastBriefing=_pendingBriefing;_pendingBriefing=null;
+ $('briefSwap').hidden=true;setCopyStatus('새 브리핑으로 교체했습니다.');
+}
+function setCopyStatus(msg,bad){
+ const el=$('copyStatus');if(!el)return;
+ el.textContent=msg;el.style.color=bad?'var(--danger)':'var(--green)';
+}
+
+/* FIX: the old code was `navigator.clipboard?.writeText(v).then(...)`.
+   On file:// there is no navigator.clipboard, so the whole optional chain
+   short-circuits and the button silently did NOTHING. Now we fall back to
+   execCommand('copy'), which works in non-secure contexts. */
+async function copyBriefing(btn){
+ const ta=$('briefing'),v=ta.value;
+ if(!v){setCopyStatus('복사할 내용이 없습니다. 먼저 분석을 실행하세요.',true);return}
+ let ok=false,why='';
+ if(navigator.clipboard&&window.isSecureContext){
+  try{await navigator.clipboard.writeText(v);ok=true}
+  catch(e){why=e.message;console.warn('clipboard API 실패',e)}
+ }
+ if(!ok){
+  try{
+   const ro=ta.readOnly;ta.readOnly=false;
+   ta.focus();ta.select();ta.setSelectionRange(0,v.length);
+   ok=document.execCommand('copy');
+   ta.readOnly=ro;
+   if(!ok)why='execCommand 거부됨';
+  }catch(e){why=e.message;console.warn('execCommand 실패',e)}
+ }
+ if(ok){
+  setCopyStatus(`✅ ${v.length.toLocaleString()}자 복사됨 — Gemini나 Claude에 붙여넣으세요.`);
+  if(btn){const t=btn.textContent;btn.textContent='✅ 복사됨';setTimeout(()=>btn.textContent=t,1500)}
+ }else{
+  ta.focus();ta.select();
+  setCopyStatus(`복사 실패(${why||'브라우저 제한'}). 텍스트를 선택해 뒀으니 Ctrl+C를 눌러주세요.`,true);
+ }
+}
+function downloadBriefing(){
+ const v=$('briefing').value;
+ if(!v){setCopyStatus('저장할 내용이 없습니다. 먼저 분석을 실행하세요.',true);return}
+ try{
+  const stamp=new Date().toISOString().slice(0,16).replace(/[:T]/g,'-');
+  const blob=new Blob([v],{type:'text/markdown;charset=utf-8'});
+  const url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download=`분석브리핑_${stamp}.md`;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+  setCopyStatus('✅ .md 파일로 저장했습니다.');
+ }catch(e){console.warn(e);setCopyStatus('저장 실패: '+e.message,true)}
+}
+
+
+buildSlots();
+paintRegistryInfo();
+refreshPlan();
+applyDefaultKeys();
+/* 이 판에는 프록시가 없습니다 - 브라우저가 직접 부를 수 있는 소스만 씁니다. */
+</script>
+
+
+<!-- standalone -->
+<script>
+/* ============================================================
+   혼자 도는 판(standalone)을 위한 마무리.
+
+   이 파일 하나를 브라우저로 열면 끝입니다. 서버도, 프록시도, 배치 파일도
+   없습니다. 그래서 브라우저가 직접 부를 수 없는 소스(football-data.org)는
+   화면에서 아예 치웁니다 — 있어도 못 쓰는데 자리를 차지하고, 실패 메시지로
+   사람을 헷갈리게 할 뿐입니다.
+
+   대신 키를 이 브라우저에 기억시킬 수 있게 합니다. 매번 넣는 게 제일 번거롭습니다.
+   ============================================================ */
+(function () {
+  'use strict';
+
+  var KEY_STORE = 'usai_keys_v1';
+  var IDS = ['apiKey', 'tsdbKey'];
+  var $ = function (id) { return document.getElementById(id); };
+
+  /* ---------- 1. 브라우저에서 못 쓰는 소스 치우기 ---------- */
+  function dropFootballData() {
+    var fd = $('fdKey');
+    var row = fd && fd.closest('.src-row');
+    if (row) row.remove();
+
+    // 남은 소스 번호를 1,2,3 으로 다시 매깁니다.
+    var n = 0;
+    document.querySelectorAll('.src-row .src-rank').forEach(function (el) {
+      el.textContent = String(++n);
+    });
+
+    // 대체 소스 띠에서도 뺍니다.
+    var bar = document.querySelector('.probar');
+    if (bar && /FOOTBALL-DATA/.test(bar.textContent)) {
+      bar.innerHTML = '<span class="protag">1 · API-FOOTBALL</span>'
+        + '<span class="protag">2 · OPENLIGADB</span>'
+        + '<span class="protag">3 · TheSportsDB</span>';
+    }
+  }
+
+  /* ---------- 2. 키 기억하기 ---------- */
+  function readStore() {
+    try { return JSON.parse(localStorage.getItem(KEY_STORE) || '{}'); }
+    catch (e) { return {}; }
+  }
+  function writeStore(o) {
+    try { localStorage.setItem(KEY_STORE, JSON.stringify(o)); return true; }
+    catch (e) { return false; }
+  }
+
+  function installKeyMemory() {
+    var saved = readStore();
+    var on = !!saved.__remember;
+
+    IDS.forEach(function (id) {
+      var el = $(id);
+      if (el && on && saved[id] && !el.value) el.value = saved[id];
+    });
+
+    var box = document.createElement('label');
+    box.className = 'small';
+    box.style.cssText = 'display:flex;align-items:center;gap:8px;margin-top:10px;cursor:pointer';
+    box.innerHTML = '<input type="checkbox" id="rememberKeys" style="width:auto;margin:0">'
+      + '<span>이 브라우저에 키를 기억시키기 <b id="rememberState"></b></span>';
+
+    var anchor = $('apiKey') && $('apiKey').closest('.src-row');
+    if (!anchor) return;
+    anchor.appendChild(box);
+
+    var cb = $('rememberKeys');
+    var state = $('rememberState');
+    cb.checked = on;
+
+    function save() {
+      if (!cb.checked) {
+        writeStore({});
+        state.textContent = '· 꺼짐';
+        return;
+      }
+      var o = { __remember: true };
+      IDS.forEach(function (id) { o[id] = ($(id) || {}).value || ''; });
+      state.textContent = writeStore(o) ? '· 기억함' : '· 저장 실패';
+    }
+
+    cb.addEventListener('change', save);
+    var timer = null;
+    IDS.forEach(function (id) {
+      var el = $(id);
+      if (!el) return;
+      el.addEventListener('input', function () {
+        if (!cb.checked) return;
+        clearTimeout(timer);
+        timer = setTimeout(save, 600);
+      });
+    });
+    state.textContent = on ? '· 기억함' : '';
+  }
+
+  /* ---------- 3. 안내 문구를 사실에 맞게 ---------- */
+  function fixNotes() {
+    var note = document.querySelector('.v4-note');
+    if (note && /저장되지 않습니다/.test(note.textContent)) {
+      note.innerHTML = '키는 <b>이 브라우저 안에만</b> 남습니다. 위 칸을 체크하지 않으면 '
+        + '새로고침할 때 사라지고, 체크하면 이 브라우저에 저장됩니다(다른 사람에게 전송되지 않습니다).<br>'
+        + '각 키는 해당 서비스로만 전송되며, 모델은 API가 실제로 돌려준 값만 사용합니다.';
+    }
+
+    var badge = document.querySelector('.version-badge');
+    if (badge) badge.textContent = 'v4.0 · 단일 파일';
+
+    var intro = document.querySelector('.card .small');
+    if (intro && /위에서부터 차례로/.test(intro.textContent)) {
+      intro.innerHTML = '소스를 <b>위에서부터 차례로</b> 시도하고, 하나가 성공하면 나머지는 호출하지 않습니다. '
+        + '<b>API-Football 키 하나면 30개 리그가 전부 덮입니다.</b> '
+        + '키가 없어도 OpenLigaDB(독일)와 TheSportsDB 공개 키로 동작하지만 커버리지가 좁습니다.';
+    }
+  }
+
+  function boot() {
+    try {
+      dropFootballData();
+      installKeyMemory();
+      fixNotes();
+    } catch (e) {
+      console.error('마무리 중 오류:', e);
+    }
+  }
+
+  if (document.readyState === 'loading')
+    document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+})();
+
+</script>
+</body></html>
