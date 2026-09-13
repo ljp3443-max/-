@@ -4,7 +4,10 @@
   [switch]$NoBrowser,
   [switch]$TestAllowLocal,
   [string]$TestUpstream = '',
-  [string]$ForceServer = ''
+  [string]$ForceServer = '',
+  [string]$InstallDir = '',
+  [switch]$NoSetup,
+  [switch]$NoRelaunch
 )
 
 # 축구 분석기 - 내 PC 안에서만 도는 작은 서버.
@@ -337,18 +340,129 @@ function Run-TcpListener($listener) {
   }
 }
 
+# ---------------------------------------------------------------- 자리 잡기
+# OneDrive 안에서 프로그램을 돌리면 파일이 "온라인 전용"으로 바뀌거나 동기화
+# 중에 잠겨서 설명하기 어려운 실패가 납니다. 그래서 처음 실행될 때 자기 자신을
+# OneDrive 바깥의 평범한 폴더로 옮기고, 거기서 다시 시작합니다.
+
+function Test-Writable([string]$dir) {
+  try {
+    if (-not (Test-Path -LiteralPath $dir)) {
+      [void](New-Item -ItemType Directory -Path $dir -Force -ErrorAction Stop)
+    }
+    $probe = Join-Path $dir ('.w' + [Guid]::NewGuid().ToString('N').Substring(0, 6))
+    [IO.File]::WriteAllText($probe, 'x')
+    Remove-Item -LiteralPath $probe -Force
+    return $true
+  }
+  catch { return $false }
+}
+
+function Get-AppFolder {
+  # 앞에서부터 시도해서 실제로 쓸 수 있는 첫 번째 폴더를 씁니다.
+  # LOCALAPPDATA 는 OneDrive 가 건드리지 않는 자리입니다.
+  $candidates = @()
+  if ($InstallDir) { $candidates += $InstallDir }
+  else {
+    $candidates += 'C:\분석기'
+    if ($env:LOCALAPPDATA) { $candidates += (Join-Path $env:LOCALAPPDATA '분석기') }
+    $candidates += (Join-Path ([IO.Path]::GetTempPath()) '분석기')
+  }
+  foreach ($d in $candidates) {
+    if (Test-Writable $d) { return $d }
+  }
+  return ''
+}
+
+function New-DesktopShortcut([string]$target, [string]$workdir) {
+  # 바로가기는 실패해도 그냥 넘어갑니다 - 없어도 프로그램은 돕니다.
+  try {
+    $desk = [Environment]::GetFolderPath('Desktop')
+    if (-not $desk) { return '' }
+    $lnkPath = Join-Path $desk '축구 분석기.lnk'
+    $ws = New-Object -ComObject WScript.Shell
+    $lnk = $ws.CreateShortcut($lnkPath)
+    $lnk.TargetPath = $target
+    $lnk.WorkingDirectory = $workdir
+    $lnk.Description = '축구 분석기'
+    $lnk.Save()
+    return $lnkPath
+  }
+  catch { return '' }
+}
+
+function Invoke-Setup([string]$sourcePath) {
+  # 돌아오는 값: 앞으로 쓸 폴더. 옮겼으면 이 프로세스는 여기서 끝냅니다.
+  $appDir = Get-AppFolder
+  if (-not $appDir) { return '' }
+
+  $homeBat = Join-Path $appDir '축구분석기.bat'
+  $srcFull = $sourcePath
+  try { $srcFull = [IO.Path]::GetFullPath($sourcePath) } catch { }
+
+  if ($srcFull -eq $homeBat) { return $appDir }   # 이미 제자리
+
+  try { Copy-Item -LiteralPath $srcFull -Destination $homeBat -Force -ErrorAction Stop }
+  catch {
+    Write-Host ''
+    Write-Host "  [알림] $appDir 로 옮기지 못했습니다 ($($_.Exception.Message))."
+    Write-Host '         지금 자리에서 그대로 실행합니다.'
+    Write-Host ''
+    return ''
+  }
+
+  $lnk = New-DesktopShortcut $homeBat $appDir
+
+  Write-Host ''
+  Write-Host '  ============================================'
+  Write-Host '   자리를 잡았습니다.'
+  Write-Host ''
+  Write-Host "   설치 위치:  $appDir"
+  if ($lnk) {
+    Write-Host '   바탕화면에 [축구 분석기] 아이콘을 만들었습니다.'
+    Write-Host '   앞으로는 그 아이콘만 더블클릭하시면 됩니다.'
+  }
+  else {
+    Write-Host "   앞으로는 $homeBat 을 더블클릭하시면 됩니다."
+  }
+  Write-Host ''
+  Write-Host '   지금 있던 파일은 지우셔도 됩니다.'
+  Write-Host '  ============================================'
+  Write-Host ''
+
+  if (-not $NoRelaunch) {
+    try {
+      Start-Process -FilePath $homeBat -WorkingDirectory $appDir -ErrorAction Stop
+      exit 0
+    }
+    catch {
+      # 새 창을 띄우지 못했다면 굳이 여기서 멈출 이유가 없습니다.
+      # 옮겨 두기는 했으니, 이번에는 지금 자리에서 그대로 돕니다.
+      Write-Host "  [알림] 새 창을 띄우지 못해 이 창에서 계속합니다 ($($_.Exception.Message))"
+      Write-Host ''
+    }
+  }
+  return $appDir
+}
+
 # ---------------------------------------------------------------- 시작
 
 if (-not $Source) { $Source = $PSCommandPath }
 
-# %TEMP% 가 비어 있는 환경도 있습니다. 순서대로 찾아봅니다.
-$tmpRoot = $env:TEMP
-if (-not $tmpRoot) { $tmpRoot = $env:TMP }
-if (-not $tmpRoot) { $tmpRoot = [IO.Path]::GetTempPath() }
-$workDir = Join-Path $tmpRoot 'sports-ai-analyzer'
+$appDir = ''
+if (-not $NoSetup) { $appDir = Invoke-Setup $Source }
+
+# 기록은 앱 폴더에 둡니다. 거기가 안 되면 임시 폴더로 갑니다.
+$workDir = $appDir
+if (-not $workDir) {
+  $tmpRoot = $env:TEMP
+  if (-not $tmpRoot) { $tmpRoot = $env:TMP }
+  if (-not $tmpRoot) { $tmpRoot = [IO.Path]::GetTempPath() }
+  $workDir = Join-Path $tmpRoot 'sports-ai-analyzer'
+}
 try {
-  if (-not (Test-Path $workDir)) { [void](New-Item -ItemType Directory -Path $workDir -Force) }
-  $script:logFile = Join-Path $workDir 'app.log'
+  if (-not (Test-Path -LiteralPath $workDir)) { [void](New-Item -ItemType Directory -Path $workDir -Force) }
+  $script:logFile = Join-Path $workDir '기록.log'
   Set-Content -LiteralPath $script:logFile -Value ("=== {0} ===" -f (Get-Date)) -Encoding UTF8
 }
 catch { $script:logFile = '' }
